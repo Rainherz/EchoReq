@@ -1,0 +1,170 @@
+"""Carga el fixture Clínica Norte en la base.
+
+Reproduce el mismo caso que usa el frontend: tres reuniones encadenadas donde
+R-02 acumula cláusulas que deberían haber sido requisitos separados.
+
+La propuesta ``p-02`` va marcada como ``known_defective``: el guion de
+inyección sabe que colapsar el reembolso dentro de R-02 es incorrecto. Esa
+marca es el denominador de la métrica de aceptación de propuestas defectuosas.
+
+Uso:  .venv/bin/python seed.py [--reset]
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from datetime import datetime, timedelta, timezone
+
+from app.adapters.persistence.pool import close_pool, cursor
+
+PROJECT = "clinica-norte"
+TZ = timezone(timedelta(hours=-3))
+
+MEETINGS = [
+    ("m-2026-08-20", 1, "Reunión 1 · relevamiento", datetime(2026, 8, 20, 14, 0, tzinfo=TZ), "discovery"),
+    ("m-2026-09-03", 2, "Reunión 2 · recordatorios", datetime(2026, 9, 3, 14, 0, tzinfo=TZ), "living"),
+    ("m-2026-09-17", 3, "Reunión 3 · cancelaciones", datetime(2026, 9, 17, 14, 0, tzinfo=TZ), "living"),
+]
+
+TURNS = [
+    ("m-2026-09-17", 8, "AN", "05:52", "Arranquemos por lo del recordatorio, que quedó a medias la vez pasada."),
+    ("m-2026-09-17", 9, "CL", "06:05", "Sí. El SMS ya lo estamos mandando y funcionó bien con los pacientes mayores."),
+    ("m-2026-09-17", 10, "PO", "06:28", "Bien. El tema ahora es cuando se cae el médico."),
+    ("m-2026-09-17", 11, "CL", "06:34", "Sí, eso pasa bastante seguido, más de lo que quisiéramos."),
+    ("m-2026-09-17", 12, "CL", "06:40", "Cuando el médico cancela, el paciente tendría que poder reprogramar directo desde el mismo mensaje que le llega."),
+    ("m-2026-09-17", 13, "AN", "06:58", "Sin volver a entrar a la app, claro."),
+    ("m-2026-09-17", 14, "CL", "07:11", "Exacto. Que le aparezcan tres horarios y elija."),
+    ("m-2026-09-17", 27, "CL", "14:20", "Otra cosa: la recepcionista necesita ver quién confirmó y quién no, antes de que arranque el turno."),
+    ("m-2026-09-17", 28, "PO", "14:38", "¿En la misma agenda del día o aparte?"),
+    ("m-2026-09-17", 29, "CL", "14:44", "En la misma, con un color distinto o algo así."),
+    ("m-2026-09-17", 41, "CL", "22:03", "Y los turnos que se sacan por teléfono, ¿esos también reciben el recordatorio?"),
+    ("m-2026-09-17", 42, "AN", "22:15", "Hoy no, porque no siempre cargamos el celular del paciente."),
+    ("m-2026-09-17", 43, "CL", "22:26", "Entonces habría que pedirlo obligatorio cuando cargan por teléfono."),
+    ("m-2026-09-17", 58, "CL", "31:47", "Ah, y los turnos de control postoperatorio no se pueden cancelar online, esos van sí o sí por teléfono."),
+    ("m-2026-09-17", 59, "PO", "32:02", "Eso choca con lo que definimos de cancelación, ojo."),
+]
+
+R02_R1 = "Como paciente quiero cancelar un turno hasta 24 h antes sin costo. Si la cancelación ocurre con menos de 24 h, se aplica un cargo del 50%."
+R02_R2 = R02_R1[:-1] + ", excepto cuando la cancelación la origina el profesional."
+R02_R3 = R02_R2[:-1] + ", en cuyo caso el paciente puede reprogramar desde la notificación recibida."
+
+R04_R1 = "El sistema debe enviar un recordatorio por WhatsApp 24 h antes del turno."
+R04_R2 = R04_R1[:-1] + ", con envío de SMS de respaldo cuando el paciente no tenga WhatsApp disponible."
+R04_R3 = R04_R2[:-1] + ", y debe permitir confirmar la asistencia desde el mensaje."
+
+R03_R1 = "Como recepcionista quiero ver la agenda del día para organizar la sala de espera."
+R03_R3 = "Como recepcionista quiero ver la agenda del día, distinguiendo los turnos confirmados de los no confirmados, para organizar la sala de espera."
+
+REVISIONS = [
+    ("R-01", 1, "m-2026-08-20", "create", "Como paciente quiero reservar un turno desde el celular, para no tener que llamar por teléfono.", [44, 47, 48], "Nace en el primer borrador."),
+    ("R-02", 1, "m-2026-08-20", "create", R02_R1, [49, 50, 51], "Nace con la política de cancelación y el cargo por aviso tardío."),
+    ("R-03", 1, "m-2026-08-20", "create", R03_R1, [72], "Nace en el primer borrador."),
+    ("R-04", 1, "m-2026-08-20", "create", R04_R1, [95], "Nace en el primer borrador."),
+    ("R-05", 1, "m-2026-08-20", "create", "Como médico quiero bloquear franjas horarias por ausencia.", [118], "Nace en el primer borrador."),
+    ("R-06", 1, "m-2026-08-20", "create", "Como recepcionista quiero cargar turnos tomados por teléfono, para atender a pacientes que no usan la aplicación.", [61], "Nace en el primer borrador."),
+    ("R-04", 2, "m-2026-09-03", "modify", R04_R2, [23], "Se agrega el SMS de respaldo."),
+    ("R-02", 2, "m-2026-09-03", "modify", R02_R2, [88], "Se agrega la excepción del profesional. El reembolso implicado no se documentó."),
+    ("R-03", 3, "m-2026-09-17", "modify", R03_R3, [27, 28, 29], "Se agrega el estado de confirmación."),
+    ("R-02", 3, "m-2026-09-17", "modify", R02_R3, [12, 13, 14], "Se agrega la reprogramación sobre la excepción heredada."),
+    ("R-07", 3, "m-2026-09-17", "create", "Como recepcionista quiero que el teléfono de contacto sea obligatorio al cargar un turno telefónico, para que el paciente reciba el recordatorio.", [41, 42, 43], "Nace para cerrar el circuito de recordatorios."),
+    ("R-04", 3, "m-2026-09-17", "modify", R04_R3, [9, 27], "Se agrega la confirmación de asistencia."),
+]
+
+ATOMICITY = {
+    "rule": "atomicity",
+    "label": "Atomicidad",
+    "detail": "R-02 pasaría a cubrir 4 responsabilidades: cancelación, cargo, excepción del profesional y reprogramación.",
+}
+MINIMAL = {
+    "rule": "minimal",
+    "label": "Minimalidad",
+    "detail": "La historia excede una oración y acumula cláusulas condicionales.",
+}
+CONFLICT = {
+    "rule": "conflict-free",
+    "label": "Conflicto",
+    "detail": "Incompatible con R-02 en su redacción vigente.",
+}
+
+PROPOSALS = [
+    ("p-01", "modify", "R-03", R03_R1, R03_R3, [27, 28, 29], "La recepción necesita el estado de confirmación.", [], None, False),
+    ("p-02", "modify", "R-02", R02_R2, R02_R3, [12, 13, 14], "El cliente pide reprogramación cuando cancela el profesional.", [ATOMICITY, MINIMAL], None, True),
+    ("p-03", "create", "R-07", None, "Como recepcionista quiero que el teléfono de contacto sea obligatorio al cargar un turno telefónico, para que el paciente reciba el recordatorio.", [41, 42, 43], "Los turnos telefónicos quedan fuera del circuito de recordatorios.", [], None, False),
+    ("p-04", "conflict", "R-02", R02_R2, "Los turnos de control postoperatorio no admiten cancelación online. Contradice la política general de R-02.", [58, 59], "Excepción por tipo de turno no contemplada.", [CONFLICT], None, False),
+    ("p-05", "modify", "R-04", R04_R2, R04_R3, [9, 27], "La confirmación de asistencia necesita un canal de entrada.", [ATOMICITY], None, False),
+]
+
+
+def reset() -> None:
+    """Vacía el fixture.
+
+    TRUNCATE en lugar de DELETE: los triggers de inmutabilidad bloquean el
+    borrado fila por fila, a propósito. Esta es la única vía de reinicio, y
+    solo debe usarse sobre una base de prueba.
+    """
+    with cursor() as cur:
+        cur.execute(
+            "TRUNCATE review_decisions, change_proposals, requirement_revisions, "
+            "llm_calls, turns, meetings, projects, participants RESTART IDENTITY CASCADE"
+        )
+
+
+def seed() -> None:
+    with cursor() as cur:
+        cur.execute(
+            "INSERT INTO participants (id, display_name, role) VALUES (%s, %s, %s) "
+            "ON CONFLICT (id) DO NOTHING",
+            ("p-analista-01", "Analista", "analista"),
+        )
+        cur.execute(
+            "INSERT INTO projects (id, name) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING",
+            (PROJECT, "Clínica Norte"),
+        )
+        for meeting_id, iteration, label, held_at, mode in MEETINGS:
+            cur.execute(
+                "INSERT INTO meetings (id, project_id, iteration, label, held_at, consent_at, mode) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING",
+                (meeting_id, PROJECT, iteration, label, held_at, held_at, mode),
+            )
+        cur.executemany(
+            "INSERT INTO turns (meeting_id, turn_id, speaker, starts_at, text) "
+            "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            TURNS,
+        )
+        cur.executemany(
+            "INSERT INTO requirement_revisions "
+            "(project_id, requirement_id, revision, meeting_id, operation, content, source_turn_ids, summary) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            [
+                (PROJECT, rid, rev, mid, op, content, turns, summary)
+                for rid, rev, mid, op, content, turns, summary in REVISIONS
+            ],
+        )
+        cur.executemany(
+            "INSERT INTO change_proposals "
+            "(id, project_id, meeting_id, iteration, operation, target_id, previous_content, "
+            " content, source_turn_ids, rationale, signals, theme, known_defective) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            [
+                (
+                    pid, PROJECT, "m-2026-09-17", 3, op, target, previous,
+                    content, turns, rationale, json.dumps(signals), theme, defective,
+                )
+                for pid, op, target, previous, content, turns, rationale, signals, theme, defective
+                in PROPOSALS
+            ],
+        )
+
+
+if __name__ == "__main__":
+    try:
+        if "--reset" in sys.argv:
+            reset()
+            print("fixture vaciado")
+        seed()
+        print(f"fixture cargado: {PROJECT}")
+    finally:
+        # Python 3.14 no permite unir hilos durante la finalización del
+        # intérprete: el pool tiene que cerrarse antes de salir.
+        close_pool()

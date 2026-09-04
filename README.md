@@ -13,6 +13,23 @@ Encuadre: SWEBOK v4, KA 1 — tópicos 6 (Requirements Management Activities) y
 
 ## Cómo correrlo
 
+Base de datos:
+
+```bash
+docker compose up -d          # PostgreSQL 17 + pgvector en :5433
+```
+
+API:
+
+```bash
+cd api
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python seed.py --reset   # carga el fixture Clínica Norte
+.venv/bin/uvicorn app.main:app --port 8010 --reload
+```
+
+Interfaz:
+
 ```bash
 cd web
 pnpm install
@@ -39,9 +56,28 @@ Fase 1 — interfaces sobre datos mock, sin backend.
 | Trazabilidad | `#traceability` | Lista |
 | Iteraciones · Exportar | `#iterations` `#export` | Pendientes |
 
-Fase 2: backend FastAPI + PostgreSQL/pgvector para persistir
-`review_decisions`, `requirement_revisions`, `change_proposals` y `llm_calls`.
-Fase 3: pipeline de transcripción y generación de propuestas.
+Fase 2 — backend sobre PostgreSQL. Esquema, repositorios y endpoints listos;
+la interfaz todavía consume mocks locales.
+
+| Endpoint | Qué devuelve |
+| --- | --- |
+| `GET /api/projects/{id}/iterations/{n}/queue?participant=` | Propuestas pendientes con el contexto de cada cita |
+| `POST /api/review-decisions` | Anexa la decisión y devuelve el intervalo medido |
+| `GET /api/projects/{id}/document?revision=` | Especificación derivada en esa revisión |
+| `GET /api/projects/{id}/requirements/{rid}/history` | Historia completa del requisito |
+| `GET /api/projects/{id}/metrics` | Mediana de decisión y aceptación de defectuosas por iteración |
+| `GET /api/projects/{id}/drift` | Deriva sintáctica por revisión |
+
+Pendiente: conectar la interfaz a la API y el pipeline de transcripción y
+generación de propuestas.
+
+### Inmutabilidad
+
+`requirement_revisions`, `review_decisions`, `llm_calls` y `turns` son de solo
+anexado, y la restricción se hace cumplir con triggers en la base, no por
+convención del código. Un `UPDATE` accidental sobre una decisión de revisión
+destruiría datos que no se pueden reconstruir. La única vía de reinicio es
+`TRUNCATE`, y solo sobre una base de prueba.
 
 ## Estructura
 

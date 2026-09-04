@@ -1,0 +1,21 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: echoreq-db
+    environment:
+      POSTGRES_USER: echoreq
+      POSTGRES_PASSWORD: echoreq
+      POSTGRES_DB: echoreq
+    ports:
+      - "5433:5432"
+    volumes:
+      - echoreq-data:/var/lib/postgresql/data
+      - ./api/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echoreq -d echoreq"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  echoreq-data:
