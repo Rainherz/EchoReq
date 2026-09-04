@@ -13,35 +13,41 @@ Encuadre: SWEBOK v4, KA 1 — tópicos 6 (Requirements Management Activities) y
 
 ## Cómo correrlo
 
-Base de datos:
+La primera vez:
 
 ```bash
-docker compose up -d          # PostgreSQL 17 + pgvector en :5433
+make setup          # venv de la API + dependencias de la interfaz
+make db             # PostgreSQL 17 + pgvector en :5433, espera a que esté lista
+make reset          # carga el fixture Clínica Norte
 ```
 
-API:
+Después, en dos terminales:
 
 ```bash
-cd api
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python seed.py --reset   # carga el fixture Clínica Norte
-.venv/bin/uvicorn app.main:app --port 8010 --reload
+make api            # :8010
+make web            # :5180
 ```
 
-Interfaz:
+Y para comprobar que todo responde:
 
 ```bash
-cd web
-pnpm install
-pnpm dev
+make smoke
 ```
 
 | Comando | Qué hace |
 | --- | --- |
-| `pnpm dev` | Servidor de desarrollo |
-| `pnpm build` | Compila `tsc` + build de producción |
-| `pnpm exec tsc --noEmit` | Verificación de tipos |
-| `pnpm exec oxlint src` | Linter |
+| `make setup` | Instala dependencias de API e interfaz |
+| `make db` | Levanta PostgreSQL y espera a que acepte conexiones |
+| `make api` | API en `:8010` con recarga automática |
+| `make web` | Interfaz en `:5180` |
+| `make seed` / `make reset` | Carga o recarga el fixture |
+| `make smoke` | Verifica el stack entero y muestra los números del estudio |
+| `make check` | Tipos, linter y build de la interfaz |
+| `make stop` / `make clean` | Baja la base, con o sin su volumen |
+
+`make check` corre el build completo, no solo `tsc --noEmit`: usan
+configuraciones distintas y el build detecta errores que la verificación de
+tipos suelta deja pasar.
 
 ## Estado
 
