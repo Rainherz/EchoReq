@@ -3,6 +3,8 @@ import type { ReviewAction } from "../../domain/types";
 
 interface DecisionBarProps {
   proposedContent?: string;
+  /** Persistiendo la decisión: evita el doble envío. */
+  busy?: boolean;
   onDecide: (action: ReviewAction, editedContent?: string) => void;
 }
 
@@ -19,7 +21,7 @@ interface DecisionBarProps {
  *
  * Neither may be added while a study run is in progress.
  */
-export function DecisionBar({ proposedContent, onDecide }: DecisionBarProps) {
+export function DecisionBar({ proposedContent, busy = false, onDecide }: DecisionBarProps) {
   const [draft, setDraft] = useState<string | null>(null);
 
   if (draft !== null) {
@@ -38,9 +40,10 @@ export function DecisionBar({ proposedContent, onDecide }: DecisionBarProps) {
           <button
             type="button"
             className="btn btn--primary"
+            disabled={busy}
             onClick={() => onDecide("edit", draft)}
           >
-            Guardar y continuar
+            {busy ? "Guardando…" : "Guardar y continuar"}
           </button>
           <button
             type="button"
@@ -64,13 +67,15 @@ export function DecisionBar({ proposedContent, onDecide }: DecisionBarProps) {
         <button
           type="button"
           className="btn btn--primary"
+          disabled={busy}
           onClick={() => onDecide("accept")}
         >
-          Aceptar
+          {busy ? "Guardando…" : "Aceptar"}
         </button>
         <button
           type="button"
           className="btn"
+          disabled={busy}
           onClick={() => setDraft(proposedContent ?? "")}
         >
           Editar
@@ -78,6 +83,7 @@ export function DecisionBar({ proposedContent, onDecide }: DecisionBarProps) {
         <button
           type="button"
           className="btn"
+          disabled={busy}
           onClick={() => onDecide("reject")}
         >
           Rechazar

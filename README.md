@@ -56,8 +56,9 @@ Fase 1 — interfaces sobre datos mock, sin backend.
 | Trazabilidad | `#traceability` | Lista |
 | Iteraciones · Exportar | `#iterations` `#export` | Pendientes |
 
-Fase 2 — backend sobre PostgreSQL. Esquema, repositorios y endpoints listos;
-la interfaz todavía consume mocks locales.
+Fase 2 — backend sobre PostgreSQL, con la interfaz conectada. Revisión,
+Documento y Trazabilidad leen y escriben contra la API; Descubrimiento y
+Captura siguen sobre mocks porque el pipeline todavía no existe.
 
 | Endpoint | Qué devuelve |
 | --- | --- |
@@ -66,10 +67,20 @@ la interfaz todavía consume mocks locales.
 | `GET /api/projects/{id}/document?revision=` | Especificación derivada en esa revisión |
 | `GET /api/projects/{id}/requirements/{rid}/history` | Historia completa del requisito |
 | `GET /api/projects/{id}/metrics` | Mediana de decisión y aceptación de defectuosas por iteración |
+| `GET /api/projects/{id}/revisions` | Log completo de revisiones |
+| `GET /api/projects/{id}/rejections` | Propuestas rechazadas |
 | `GET /api/projects/{id}/drift` | Deriva sintáctica por revisión |
 
-Pendiente: conectar la interfaz a la API y el pipeline de transcripción y
-generación de propuestas.
+Vite redirige `/api` al backend, así que la interfaz no necesita CORS ni
+conocer el puerto de la API.
+
+**Una sola implementación de cada regla.** La derivación del documento y el
+conteo de responsabilidades viven únicamente en el backend. La interfaz los
+consume; no los recalcula. Dos implementaciones de la misma regla terminan
+divergiendo, y la que lee el análisis es la del backend.
+
+Pendiente: pipeline de transcripción y generación de propuestas, y las
+pantallas de Iteraciones y Exportar.
 
 ### Inmutabilidad
 

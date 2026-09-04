@@ -113,6 +113,17 @@ class DocumentEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class Rejection:
+    """Propuesta rechazada. La ausencia que deja es un dato del estudio."""
+
+    proposal_id: str
+    iteration: int
+    target_id: str
+    operation: str
+    rationale: str
+
+
+@dataclass(frozen=True, slots=True)
 class IterationMetrics:
     """Las cifras que sostienen H1, H2 y H3, por iteración."""
 

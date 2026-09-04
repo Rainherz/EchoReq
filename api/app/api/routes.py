@@ -22,6 +22,7 @@ from .schemas import (
     DriftOut,
     MetricsOut,
     ProposalOut,
+    RejectionOut,
     RevisionOut,
 )
 
@@ -100,6 +101,27 @@ def document(project_id: str, revision: int = Query(...)) -> list[DocumentEntryO
     ]
 
 
+@router.get("/projects/{project_id}/revisions")
+def revisions(project_id: str) -> list[RevisionOut]:
+    """Log completo de revisiones del proyecto.
+
+    Alimenta la matriz de trazabilidad, que necesita ver todas las filas y no
+    el documento derivado.
+    """
+    return [
+        RevisionOut(
+            requirement_id=row.requirement_id,
+            revision=row.revision,
+            meeting_id=row.meeting_id,
+            operation=row.operation,
+            content=row.content,
+            source_turn_ids=row.source_turn_ids,
+            summary=row.summary,
+        )
+        for row in _documents.revisions(project_id)
+    ]
+
+
 @router.get("/projects/{project_id}/requirements/{requirement_id}/history")
 def history(project_id: str, requirement_id: str) -> list[RevisionOut]:
     rows = _spec.history(project_id, requirement_id)
@@ -117,6 +139,18 @@ def history(project_id: str, requirement_id: str) -> list[RevisionOut]:
         )
         for row in rows
     ]
+
+
+@router.get("/projects/{project_id}/rejections")
+def rejections(project_id: str) -> list[RejectionOut]:
+    """Propuestas que se rechazaron.
+
+    Una propuesta rechazada no deja texto en la especificación, pero la
+    ausencia es un dato del estudio: se discutió, se descartó, y ahora no
+    existe en ningún lado. La matriz de trazabilidad tiene que poder
+    mostrarla.
+    """
+    return [RejectionOut(**asdict(row)) for row in _decisions.rejections(project_id)]
 
 
 @router.get("/projects/{project_id}/metrics")

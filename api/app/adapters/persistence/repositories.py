@@ -17,6 +17,7 @@ from ...requirements.domain.entities import (
     DocumentEntry,
     IterationMetrics,
     QualitySignal,
+    Rejection,
     RequirementRevision,
     ReviewDecision,
     Turn,
@@ -137,6 +138,30 @@ class PostgresDecisionRepository:
                 )
             )
         return out
+
+
+    def rejections(self, project_id: str) -> list[Rejection]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT p.id, p.iteration, p.target_id, p.operation, p.rationale
+                FROM review_decisions d
+                JOIN change_proposals p ON p.id = d.proposal_id
+                WHERE p.project_id = %s AND d.action = 'reject'
+                ORDER BY p.iteration, p.id
+                """,
+                (project_id,),
+            )
+            return [
+                Rejection(
+                    proposal_id=row["id"],
+                    iteration=row["iteration"],
+                    target_id=row["target_id"],
+                    operation=row["operation"],
+                    rationale=row["rationale"],
+                )
+                for row in cur.fetchall()
+            ]
 
 
 class PostgresDocumentRepository:

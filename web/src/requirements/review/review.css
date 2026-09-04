@@ -284,3 +284,14 @@
   line-height: 1.55;
   margin-top: 0.9rem;
 }
+
+.decide__failure {
+  border-left: 3px solid var(--stop);
+  background: var(--stop-wash);
+  color: var(--ink-soft);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0.85rem 0 0;
+}

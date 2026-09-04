@@ -1,10 +1,17 @@
-import { useMemo } from "react";
-import { documentAt } from "../domain/document";
-import type { RequirementRevision } from "../domain/document";
+import { useCallback, useMemo } from "react";
+import type { ProposalOperation } from "../domain/types";
+import type { DocumentEntry, Rejection, RequirementRevision } from "../domain/document";
+import {
+  fetchDocumentSnapshots,
+  fetchRejections,
+  fetchRevisions,
+} from "../../adapters/api/client";
+import { useResource } from "../../adapters/api/useResource";
+import { AsyncBoundary } from "../../shell/AsyncBoundary";
 import { ATOMIC_LIMIT } from "../document/components/ClauseMeter";
 import "./traceability.css";
 
-const MARK: Record<RequirementRevision["operation"], { cls: string; text: string }> = {
+const MARK: Record<ProposalOperation, { cls: string; text: string }> = {
   create: { cls: "mark mark--create", text: "A" },
   modify: { cls: "mark mark--modify", text: "M" },
   delete: { cls: "mark mark--modify", text: "B" },
@@ -12,81 +19,116 @@ const MARK: Record<RequirementRevision["operation"], { cls: string; text: string
 };
 
 interface TraceabilityScreenProps {
-  log: RequirementRevision[];
+  projectId: string;
   currentRevision: number;
-  meetings: Record<number, { id: string; label: string; date: string }>;
-  rejected: Array<{ revision: number; targetId: string; note: string }>;
+  meetingDates: Record<number, string>;
+}
+
+interface MatrixData {
+  revisions: RequirementRevision[];
+  snapshots: DocumentEntry[][];
+  rejections: Rejection[];
 }
 
 /**
- * Requirement × iteration matrix.
+ * Matriz requisitos × iteraciones.
  *
- * The document screen answers "what does this requirement say now"; this one
- * answers "which requirements does each meeting keep reopening". A row marked
- * in every column is the shape drift takes.
+ * La pantalla de Documento responde qué dice un requisito ahora; esta responde
+ * cuáles reabre cada reunión. Una fila marcada en todas las columnas es la
+ * forma que toma la deriva.
  */
 export function TraceabilityScreen({
-  log,
+  projectId,
   currentRevision,
-  meetings,
-  rejected,
+  meetingDates,
 }: TraceabilityScreenProps) {
-  const revisions = Array.from({ length: currentRevision }, (_, i) => i + 1);
-
-  const requirementIds = useMemo(
-    () => [...new Set(log.map((row) => row.requirementId))].sort(),
-    [log],
+  const resource = useResource<MatrixData>(
+    useCallback(
+      async () => ({
+        revisions: await fetchRevisions(projectId),
+        snapshots: await fetchDocumentSnapshots(projectId, currentRevision),
+        rejections: await fetchRejections(projectId),
+      }),
+      [projectId, currentRevision],
+    ),
+    [projectId, currentRevision],
   );
 
-  /** Clause count of each requirement at each revision, for the trend column. */
-  const clausesByRevision = useMemo(() => {
-    const snapshots = revisions.map((revision) => documentAt(log, revision));
-    return new Map(
-      requirementIds.map((id) => [
-        id,
-        snapshots.map(
-          (snapshot) =>
-            snapshot.find((entry) => entry.requirementId === id)?.responsibilities ??
-            null,
-        ),
-      ]),
-    );
-  }, [log, requirementIds, revisions]);
-
-  /**
-   * Marks for one cell.
-   *
-   * A requirement can be both amended and the target of a rejected proposal in
-   * the same iteration, so this returns every mark rather than the first: the
-   * rejection is precisely what must not be hidden behind an accepted change.
-   */
-  const cellFor = (requirementId: string, revision: number) => {
-    const marks = log
-      .filter(
-        (entry) =>
-          entry.requirementId === requirementId && entry.revision === revision,
-      )
-      .map((entry) => MARK[entry.operation]);
-
-    const rejectedHere = rejected.filter(
-      (entry) => entry.targetId === requirementId && entry.revision === revision,
-    );
-    for (const _ of rejectedHere) {
-      marks.push({ cls: "mark mark--rejected", text: "R" });
-    }
-
-    return marks;
-  };
+  const columns = Array.from({ length: currentRevision }, (_, i) => i + 1);
 
   return (
     <div className="trace">
       <div className="screen__head">
         <span className="screen__title">Matriz de trazabilidad</span>
         <span className="screen__meta">
-          {requirementIds.length} requisitos × {currentRevision} iteraciones
+          {resource.data?.revisions.length ?? 0} entradas × {currentRevision}{" "}
+          iteraciones
         </span>
       </div>
 
+      <AsyncBoundary resource={resource}>
+        {(data) => <Matrix data={data} columns={columns} meetingDates={meetingDates} />}
+      </AsyncBoundary>
+    </div>
+  );
+}
+
+function Matrix({
+  data,
+  columns,
+  meetingDates,
+}: {
+  data: MatrixData;
+  columns: number[];
+  meetingDates: Record<number, string>;
+}) {
+  const { revisions, snapshots, rejections } = data;
+
+  const requirementIds = useMemo(
+    () => [...new Set(revisions.map((row) => row.requirementId))].sort(),
+    [revisions],
+  );
+
+  /** Responsabilidades de cada requisito en cada revisión, según la API. */
+  const trends = useMemo(
+    () =>
+      new Map(
+        requirementIds.map((id) => [
+          id,
+          snapshots.map(
+            (snapshot) =>
+              snapshot.find((entry) => entry.requirementId === id)
+                ?.responsibilities ?? null,
+          ),
+        ]),
+      ),
+    [requirementIds, snapshots],
+  );
+
+  /**
+   * Marcas de una celda.
+   *
+   * Un requisito puede haber sido modificado y además ser blanco de una
+   * propuesta rechazada en la misma iteración, así que se devuelven todas: el
+   * rechazo es justo lo que no puede quedar tapado por un cambio aceptado.
+   */
+  const marksFor = (requirementId: string, revision: number) => {
+    const marks = revisions
+      .filter(
+        (row) => row.requirementId === requirementId && row.revision === revision,
+      )
+      .map((row) => MARK[row.operation]);
+
+    for (const rejection of rejections) {
+      if (rejection.targetId === requirementId && rejection.iteration === revision) {
+        marks.push({ cls: "mark mark--rejected", text: "R" });
+      }
+    }
+    return marks;
+  };
+
+  return (
+    <>
       <div className="card">
         <div className="card__head">
           Requisitos tocados por iteración
@@ -98,10 +140,10 @@ export function TraceabilityScreen({
             <thead>
               <tr>
                 <th>Requisito</th>
-                {revisions.map((revision) => (
+                {columns.map((revision) => (
                   <th key={revision}>
                     r{revision}
-                    <small>{meetings[revision]?.date ?? ""}</small>
+                    <small>{meetingDates[revision] ?? ""}</small>
                   </th>
                 ))}
                 <th>Responsabilidades</th>
@@ -109,13 +151,13 @@ export function TraceabilityScreen({
             </thead>
             <tbody>
               {requirementIds.map((id) => {
-                const trend = clausesByRevision.get(id) ?? [];
+                const trend = trends.get(id) ?? [];
                 const last = trend.at(-1);
                 return (
                   <tr key={id}>
                     <td className="matrix__id">{id}</td>
-                    {revisions.map((revision) => {
-                      const marks = cellFor(id, revision);
+                    {columns.map((revision) => {
+                      const marks = marksFor(id, revision);
                       return (
                         <td key={revision}>
                           {marks.length > 0 ? (
@@ -136,9 +178,7 @@ export function TraceabilityScreen({
                       {trend
                         .map((value) => (value === null ? "·" : String(value)))
                         .join(" → ")}
-                      {last !== null && last !== undefined && last > ATOMIC_LIMIT && (
-                        <b> ⚠</b>
-                      )}
+                      {last != null && last > ATOMIC_LIMIT && <b> ⚠</b>}
                     </td>
                   </tr>
                 );
@@ -163,14 +203,14 @@ export function TraceabilityScreen({
         </div>
       </div>
 
-      {rejected.length > 0 && (
+      {rejections.length > 0 && (
         <div className="trace__note">
           <strong>Lo que no quedó escrito.</strong>{" "}
-          {rejected.map((entry) => entry.note).join(" ")} Una propuesta rechazada no
-          deja texto en la especificación, pero sí queda registrada acá: la ausencia
-          es un dato del estudio, no un hueco.
+          {rejections.map((entry) => entry.rationale).join(" ")} Una propuesta
+          rechazada no deja texto en la especificación, pero sí queda registrada
+          acá: la ausencia es un dato del estudio, no un hueco.
         </div>
       )}
-    </div>
+    </>
   );
 }

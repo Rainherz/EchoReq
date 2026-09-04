@@ -12,6 +12,7 @@ from .entities import (
     ChangeProposal,
     DocumentEntry,
     IterationMetrics,
+    Rejection,
     RequirementRevision,
     ReviewDecision,
     Turn,
@@ -38,6 +39,8 @@ class DecisionRepository(Protocol):
         ...
 
     def metrics_by_iteration(self, project_id: str) -> list[IterationMetrics]: ...
+
+    def rejections(self, project_id: str) -> list[Rejection]: ...
 
 
 class DocumentRepository(Protocol):

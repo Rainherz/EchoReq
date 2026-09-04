@@ -1,11 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
-import type {
-  ChangeProposal,
-  ProposalOperation,
-  ReviewAction,
-  ReviewDecision,
-  Turn,
-} from "../domain/types";
+import { useCallback, useState } from "react";
+import type { ProposalOperation, ReviewAction, ReviewDecision } from "../domain/types";
+import type { QueueItem, RecordDecisionInput } from "../../adapters/api/client";
 import { ProposalDiff } from "./components/ProposalDiff";
 import { TurnContext } from "./components/TurnContext";
 import { SystemSignals } from "./components/SystemSignals";
@@ -13,9 +8,6 @@ import { DecisionBar } from "./components/DecisionBar";
 import { ReviewTimer } from "./components/ReviewTimer";
 import { ReviewSummary } from "./components/ReviewSummary";
 import "./review.css";
-
-/** Turns of surrounding context shown on each side of the cited span. */
-const CONTEXT_WINDOW = 2;
 
 const OPERATION_LABEL: Record<ProposalOperation, string> = {
   create: "Alta",
@@ -27,44 +19,59 @@ const OPERATION_LABEL: Record<ProposalOperation, string> = {
 interface ReviewScreenProps {
   iteration: number;
   participantId: string;
-  proposals: ChangeProposal[];
-  turns: Turn[];
+  items: QueueItem[];
+  /** Persiste la decisión. Debe rechazar si el backend no la aceptó. */
+  onDecide: (input: RecordDecisionInput) => Promise<void>;
 }
 
 /**
- * Container for the review queue.
+ * Container de la cola de revisión.
  *
- * Owns the queue position, the presentation timestamp and the decision log.
- * Every child below is presentational.
+ * Es dueño de la posición en la cola, del instante de presentación y del
+ * registro local de decisiones. Todos los hijos son presentacionales.
  */
 export function ReviewScreen({
   iteration,
   participantId,
-  proposals,
-  turns,
+  items,
+  onDecide,
 }: ReviewScreenProps) {
   const [index, setIndex] = useState(0);
   const [decisions, setDecisions] = useState<ReviewDecision[]>([]);
-  // Set when a proposal is put on screen. Never reset by opening the editor:
-  // the interval of record runs from first presentation to final decision.
+  // Se fija al mostrar la propuesta y nunca se reinicia al abrir el editor:
+  // el intervalo de registro corre desde la primera presentación hasta la
+  // decisión final.
   const [presentedAt, setPresentedAt] = useState(() => Date.now());
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
 
-  const proposal = proposals[index];
-
-  const contextTurns = useMemo(() => {
-    if (!proposal) return [];
-    const positions = proposal.sourceTurnIds
-      .map((id) => turns.findIndex((turn) => turn.id === id))
-      .filter((position) => position >= 0);
-    if (positions.length === 0) return [];
-    const from = Math.max(0, Math.min(...positions) - CONTEXT_WINDOW);
-    const to = Math.min(turns.length, Math.max(...positions) + CONTEXT_WINDOW + 1);
-    return turns.slice(from, to);
-  }, [proposal, turns]);
+  const proposal = items[index];
 
   const decide = useCallback(
-    (action: ReviewAction, editedContent?: string) => {
-      if (!proposal) return;
+    async (action: ReviewAction, editedContent?: string) => {
+      if (!proposal || saving) return;
+
+      const decidedAt = Date.now();
+      setSaving(true);
+      setFailure(null);
+
+      try {
+        await onDecide({
+          proposalId: proposal.id,
+          participantId,
+          action,
+          presentedAt,
+          decidedAt,
+          editedContent,
+        });
+      } catch (cause) {
+        // La propuesta se queda en pantalla. Perder una decisión por un
+        // fallo de red sería perder un dato que no se puede reconstruir.
+        setFailure(cause instanceof Error ? cause.message : String(cause));
+        setSaving(false);
+        return;
+      }
+
       setDecisions((current) => [
         ...current,
         {
@@ -72,14 +79,15 @@ export function ReviewScreen({
           participantId,
           action,
           presentedAt,
-          decidedAt: Date.now(),
+          decidedAt,
           editedContent,
         },
       ]);
       setIndex((current) => current + 1);
       setPresentedAt(Date.now());
+      setSaving(false);
     },
-    [proposal, participantId, presentedAt],
+    [proposal, saving, onDecide, participantId, presentedAt],
   );
 
   const restart = useCallback(() => {
@@ -102,11 +110,11 @@ export function ReviewScreen({
     <div className="review">
       <div className="review__head">
         <span className="review__title">
-          Propuesta {index + 1} de {proposals.length}
+          Propuesta {index + 1} de {items.length}
         </span>
 
         <span className="progress" aria-label={`${index} decididas`}>
-          {proposals.map((item, position) => (
+          {items.map((item, position) => (
             <span
               key={item.id}
               className={
@@ -159,7 +167,10 @@ export function ReviewScreen({
               turnos {proposal.sourceTurnIds.join(", ")}
             </span>
           </div>
-          <TurnContext turns={contextTurns} citedIds={proposal.sourceTurnIds} />
+          <TurnContext
+            turns={proposal.contextTurns}
+            citedIds={proposal.sourceTurnIds}
+          />
         </div>
 
         <div className="card">
@@ -168,7 +179,19 @@ export function ReviewScreen({
             <span className="card__count">{proposal.signals.length}</span>
           </div>
           <SystemSignals signals={proposal.signals} />
-          <DecisionBar proposedContent={proposal.content} onDecide={decide} />
+
+          {failure !== null && (
+            <p className="decide__failure">
+              No se registró la decisión: {failure} La propuesta sigue en
+              pantalla; volvé a decidir cuando el backend responda.
+            </p>
+          )}
+
+          <DecisionBar
+            proposedContent={proposal.content}
+            busy={saving}
+            onDecide={decide}
+          />
         </div>
       </div>
     </div>

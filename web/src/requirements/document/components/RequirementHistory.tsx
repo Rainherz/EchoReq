@@ -1,6 +1,4 @@
-import type { RequirementRevision } from "../../domain/document";
-import { estimateResponsibilities } from "../../domain/document";
-import { ATOMIC_LIMIT } from "./ClauseMeter";
+import type { Rejection, RequirementRevision } from "../../domain/document";
 
 const OPERATION_LABEL: Record<RequirementRevision["operation"], string> = {
   create: "Alta",
@@ -9,15 +7,10 @@ const OPERATION_LABEL: Record<RequirementRevision["operation"], string> = {
   conflict: "Conflicto",
 };
 
-export interface RejectedNote {
-  revision: number;
-  note: string;
-}
-
 interface RequirementHistoryProps {
   requirementId: string;
   history: RequirementRevision[];
-  rejected: RejectedNote[];
+  rejected: Rejection[];
   meetingLabel: (meetingId: string) => string;
 }
 
@@ -45,34 +38,30 @@ export function RequirementHistory({
       </div>
 
       <div className="timeline">
-        {history.map((row) => {
-          const clauses = estimateResponsibilities(row.content);
-          return (
-            <div key={`${row.requirementId}-${row.revision}`} className="timeline__item">
-              <div className="timeline__meta">
-                <span>revisión {row.revision}</span>
-                <span>{meetingLabel(row.meetingId)}</span>
-                <span>turnos {row.sourceTurnIds.join(", ")}</span>
-                <span className={clauses > ATOMIC_LIMIT ? "tag tag--warn" : "tag"}>
-                  {OPERATION_LABEL[row.operation]}
-                </span>
-              </div>
-              {row.summary}
-              <div className="timeline__content">{row.content}</div>
+        {history.map((row) => (
+          <div key={`${row.requirementId}-${row.revision}`} className="timeline__item">
+            <div className="timeline__meta">
+              <span>revisión {row.revision}</span>
+              <span>{meetingLabel(row.meetingId)}</span>
+              <span>turnos {row.sourceTurnIds.join(", ")}</span>
+              <span className="tag">{OPERATION_LABEL[row.operation]}</span>
             </div>
-          );
-        })}
+            {row.summary}
+            <div className="timeline__content">{row.content}</div>
+          </div>
+        ))}
 
         {rejected.map((entry) => (
           <div
-            key={`rejected-${entry.revision}`}
+            key={`rejected-${entry.proposalId}`}
             className="timeline__item timeline__item--rejected"
           >
             <div className="timeline__meta">
-              <span>revisión {entry.revision}</span>
+              <span>iteración {entry.iteration}</span>
+              <span>{entry.proposalId}</span>
               <span className="tag tag--stop">Rechazada</span>
             </div>
-            {entry.note}
+            {entry.rationale} No dejó texto en la especificación.
           </div>
         ))}
       </div>

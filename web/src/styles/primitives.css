@@ -158,3 +158,16 @@
   align-items: center;
   flex-wrap: wrap;
 }
+
+.btn:disabled,
+.btn:disabled:hover {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--card);
+}
+
+.btn--primary:disabled,
+.btn--primary:disabled:hover {
+  background: var(--ok);
+  filter: none;
+}

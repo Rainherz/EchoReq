@@ -79,6 +79,14 @@ class RevisionOut(Schema):
     summary: str
 
 
+class RejectionOut(Schema):
+    proposal_id: str
+    iteration: int
+    target_id: str
+    operation: str
+    rationale: str
+
+
 class MetricsOut(Schema):
     iteration: int
     decisions: int
