@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi import Response
 
+from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.persistence.repositories import (
     AlreadyDecided,
     PostgresDecisionRepository,
@@ -21,6 +23,7 @@ from .schemas import (
     DocumentEntryOut,
     DriftOut,
     MetricsOut,
+    DatasetOut,
     ProposalOut,
     RejectionOut,
     RevisionOut,
@@ -163,3 +166,43 @@ def metrics(project_id: str) -> list[MetricsOut]:
 def drift(project_id: str) -> list[DriftOut]:
     """Deriva sintáctica por revisión. Determinista, sin modelo."""
     return [DriftOut(**row) for row in _spec.drift_by_revision(project_id)]
+
+
+@router.get("/projects/{project_id}/export")
+def datasets(project_id: str) -> list[DatasetOut]:
+    """Conjuntos disponibles, con su diccionario de datos y cantidad de filas."""
+    return [
+        DatasetOut(
+            name=dataset.name,
+            title=dataset.title,
+            purpose=dataset.purpose,
+            columns=[
+                {"name": column, "meaning": meaning}
+                for column, meaning in dataset.codebook.items()
+            ],
+            rows=row_count(dataset, project_id),
+        )
+        for dataset in DATASETS.values()
+    ]
+
+
+@router.get("/projects/{project_id}/export/{name}.csv", response_model=None)
+def export_csv(project_id: str, name: str) -> Response:
+    """Descarga un conjunto como CSV.
+
+    Se sirve con Content-Disposition para que el navegador lo baje como
+    archivo en lugar de mostrarlo.
+    """
+    dataset = DATASETS.get(name)
+    if dataset is None:
+        raise HTTPException(status_code=404, detail=f"No existe el conjunto {name}.")
+
+    return Response(
+        content=to_csv(dataset, project_id),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{project_id}-{name}.csv"'
+            )
+        },
+    )

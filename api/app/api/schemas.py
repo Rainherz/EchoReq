@@ -96,6 +96,19 @@ class MetricsOut(Schema):
     defective_total: int
 
 
+class ColumnOut(Schema):
+    name: str
+    meaning: str
+
+
+class DatasetOut(Schema):
+    name: str
+    title: str
+    purpose: str
+    columns: list[ColumnOut]
+    rows: int
+
+
 class DriftOut(Schema):
     revision: int
     requirements: int

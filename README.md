@@ -54,7 +54,8 @@ Fase 1 — interfaces sobre datos mock, sin backend.
 | Revisión | `#review` | Lista |
 | Documento | `#document` | Lista |
 | Trazabilidad | `#traceability` | Lista |
-| Iteraciones · Exportar | `#iterations` `#export` | Pendientes |
+| Exportar | `#export` | Lista |
+| Iteraciones | `#iterations` | Pendiente |
 
 Fase 2 — backend sobre PostgreSQL, con la interfaz conectada. Revisión,
 Documento y Trazabilidad leen y escriben contra la API; Descubrimiento y
@@ -70,6 +71,8 @@ Captura siguen sobre mocks porque el pipeline todavía no existe.
 | `GET /api/projects/{id}/revisions` | Log completo de revisiones |
 | `GET /api/projects/{id}/rejections` | Propuestas rechazadas |
 | `GET /api/projects/{id}/drift` | Deriva sintáctica por revisión |
+| `GET /api/projects/{id}/export` | Conjuntos disponibles con su diccionario de datos |
+| `GET /api/projects/{id}/export/{name}.csv` | Descarga un conjunto como CSV |
 
 Vite redirige `/api` al backend, así que la interfaz no necesita CORS ni
 conocer el puerto de la API.
@@ -79,8 +82,19 @@ conteo de responsabilidades viven únicamente en el backend. La interfaz los
 consume; no los recalcula. Dos implementaciones de la misma regla terminan
 divergiendo, y la que lee el análisis es la del backend.
 
-Pendiente: pipeline de transcripción y generación de propuestas, y las
-pantallas de Iteraciones y Exportar.
+### Exportación
+
+Cinco conjuntos para el análisis: `decisions`, `revisions`, `proposals`,
+`turns` y `llm_calls`. Cada uno lleva su diccionario de datos, definido junto
+a la consulta que lo produce, así que la documentación no puede quedar
+desfasada del archivo. `decisions` es el origen de H2 y H3.
+
+Las columnas que dependen de reglas de calidad —`responsibilities`— se
+calculan en Python con la misma función que usa el resto del sistema, no se
+reimplementan en SQL.
+
+Pendiente: pipeline de transcripción y generación de propuestas, y la
+pantalla de Iteraciones.
 
 ### Inmutabilidad
 

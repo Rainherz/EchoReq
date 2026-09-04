@@ -6,6 +6,7 @@ import { CaptureScreen } from "./requirements/capture/CaptureScreen";
 import { DiscoveryScreen } from "./requirements/discovery/DiscoveryScreen";
 import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
+import { ExportScreen } from "./requirements/export/ExportScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { fetchQueue, recordDecision } from "./adapters/api/client";
 import type { RecordDecisionInput } from "./adapters/api/client";
@@ -41,7 +42,6 @@ const CRUMB: Record<Section, string> = {
 
 const STUB_TITLE: Record<string, string> = {
   iterations: "Iteraciones del estudio",
-  export: "Exportar datos",
 };
 
 const SECTIONS = Object.keys(CRUMB) as Section[];
@@ -143,9 +143,9 @@ export default function App() {
         />
       )}
 
-      {(section === "iterations" || section === "export") && (
-        <ScreenStub title={STUB_TITLE[section]} />
-      )}
+      {section === "export" && <ExportScreen projectId={PROJECT} />}
+
+      {section === "iterations" && <ScreenStub title={STUB_TITLE[section]} />}
     </AppShell>
   );
 }

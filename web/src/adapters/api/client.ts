@@ -179,6 +179,34 @@ export async function fetchRevisions(
   }));
 }
 
+export interface DatasetColumn {
+  name: string;
+  meaning: string;
+}
+
+export interface Dataset {
+  name: string;
+  title: string;
+  purpose: string;
+  columns: DatasetColumn[];
+  rows: number;
+}
+
+export function fetchDatasets(projectId: string): Promise<Dataset[]> {
+  return request<Dataset[]>(`/projects/${projectId}/export`);
+}
+
+/**
+ * URL de descarga de un conjunto.
+ *
+ * Se navega como enlace en vez de bajarse por fetch: el servidor manda
+ * Content-Disposition y el navegador guarda el archivo sin que la aplicación
+ * tenga que armar un blob.
+ */
+export function csvUrl(projectId: string, name: string): string {
+  return `${BASE}/projects/${projectId}/export/${name}.csv`;
+}
+
 export function fetchMetrics(projectId: string): Promise<IterationMetrics[]> {
   return request<IterationMetrics[]>(`/projects/${projectId}/metrics`);
 }
