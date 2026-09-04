@@ -1,0 +1,20 @@
+# dependencias
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+*.tsbuildinfo
+
+# entorno
+.env
+.env.*
+!.env.example
+
+# editores y sistema
+.DS_Store
+.idea/
+.vscode/
+
+# cachés de tooling
+.atl/*.cache.json

@@ -1,0 +1,155 @@
+.trace {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 1180px;
+}
+
+.trace__scroll {
+  overflow-x: auto;
+}
+
+.matrix {
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 560px;
+  width: 100%;
+}
+
+.matrix th {
+  font-family: var(--f-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  padding: 0 0.5rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  vertical-align: bottom;
+}
+
+.matrix th:first-child,
+.matrix th:last-child {
+  text-align: left;
+}
+
+.matrix th small {
+  display: block;
+  font-size: 0.92em;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--faint);
+  opacity: 0.75;
+  font-weight: 400;
+}
+
+.matrix td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.matrix tr:last-child td {
+  border-bottom: none;
+}
+
+.matrix tr:hover td {
+  background: var(--hover);
+}
+
+.matrix__id {
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ok);
+  text-align: left !important;
+  white-space: nowrap;
+}
+
+.matrix__trend {
+  text-align: left !important;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.matrix__trend b {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.mark--create {
+  background: var(--ok);
+  color: var(--on-ok);
+}
+
+.mark--modify {
+  background: var(--warn-wash);
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.mark--conflict,
+.mark--rejected {
+  background: var(--stop-wash);
+  color: var(--stop);
+  border-color: var(--stop);
+}
+
+.mark--none {
+  color: var(--line);
+}
+
+.legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.trace__note {
+  border-left: 3px solid var(--stop);
+  background: var(--stop-wash);
+  padding: 0.8rem 0.95rem;
+  border-radius: 0 5px 5px 0;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.trace__note strong {
+  font-weight: 600;
+}
+
+.matrix__marks {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+}

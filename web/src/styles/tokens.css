@@ -1,0 +1,131 @@
+/* Design tokens and base layer.
+   Every colour is declared here in the bare :root block first, so the
+   un-stamped (system-default) theme always resolves to a complete palette. */
+
+:root {
+  --ink: #14201e;
+  --ink-soft: #2c3a36;
+  --muted: #59665f;
+  --faint: #8a968f;
+
+  --chrome: #e2e7e1;
+  --bg: #f8f9f7;
+  --card: #ffffff;
+  --line: #d5ddd4;
+  --hover: #eef1ed;
+  --sunken: #ecefea;
+
+  --ok: #1d6b5e;
+  --ok-wash: #e2ede9;
+  --on-ok: #f6f8f6;
+
+  --warn: #a9631c;
+  --warn-wash: #f5eade;
+
+  --stop: #a3382a;
+  --stop-wash: #f7e5e1;
+
+  --shadow: 0 1px 2px rgba(20, 32, 30, 0.05);
+
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #e6ebe7;
+    --ink-soft: #c8d1cb;
+    --muted: #93a099;
+    --faint: #6b7a73;
+
+    --chrome: #151e1b;
+    --bg: #121b18;
+    --card: #1a2421;
+    --line: #2a3833;
+    --hover: #1f2c28;
+    --sunken: #141d1a;
+
+    --ok: #63b3a3;
+    --ok-wash: #16261f;
+    --on-ok: #0c1412;
+
+    --warn: #d69a51;
+    --warn-wash: #271f11;
+
+    --stop: #e08a78;
+    --stop-wash: #2b1613;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ink: #e6ebe7;
+  --ink-soft: #c8d1cb;
+  --muted: #93a099;
+  --faint: #6b7a73;
+
+  --chrome: #151e1b;
+  --bg: #121b18;
+  --card: #1a2421;
+  --line: #2a3833;
+  --hover: #1f2c28;
+  --sunken: #141d1a;
+
+  --ok: #63b3a3;
+  --ok-wash: #16261f;
+  --on-ok: #0c1412;
+
+  --warn: #d69a51;
+  --warn-wash: #271f11;
+
+  --stop: #e08a78;
+  --stop-wash: #2b1613;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--ok);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

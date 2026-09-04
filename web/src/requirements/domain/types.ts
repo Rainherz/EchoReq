@@ -1,0 +1,78 @@
+/**
+ * Domain types for the living requirements documentation instrument.
+ *
+ * These mirror the message contract between the three pipeline stages:
+ * transcription -> agent -> document. Field names match the persisted
+ * schema so the frontend never invents a shape the backend does not store.
+ */
+
+export type SpeakerCode = "PO" | "CL" | "AN";
+
+/** A single speaker turn. `id` is the stable citation unit for the whole system. */
+export interface Turn {
+  id: number;
+  meetingId: string;
+  speaker: SpeakerCode;
+  startsAt: string;
+  text: string;
+}
+
+export type RequirementFormat = "user-story" | "ieee830" | "use-case";
+
+export interface Requirement {
+  id: string;
+  content: string;
+  format: RequirementFormat;
+  bornInRevision: number;
+}
+
+export type ProposalOperation = "create" | "modify" | "delete" | "conflict";
+
+/** A rule-based quality signal. Advisory only: it never blocks a decision. */
+export interface QualitySignal {
+  rule: string;
+  label: string;
+  detail: string;
+}
+
+/**
+ * A proposed change to the specification.
+ *
+ * `sourceTurnIds` is mandatory by contract: a proposal that cannot point at
+ * the transcript is discarded before it ever reaches this screen.
+ */
+export interface ChangeProposal {
+  id: string;
+  iteration: number;
+  operation: ProposalOperation;
+  targetId: string;
+  /** Requirement text currently in force. Absent for `create`. */
+  previousContent?: string;
+  /** Requirement text the agent proposes. Absent for `delete`. */
+  content?: string;
+  sourceTurnIds: number[];
+  rationale: string;
+  signals: QualitySignal[];
+}
+
+export type ReviewAction = "accept" | "edit" | "reject";
+
+/**
+ * The instrument's output.
+ *
+ * `presentedAt` and `decidedAt` are the study's primary measurement. They are
+ * captured here and never reconstructed afterwards — an iteration reviewed
+ * without them cannot be recovered.
+ */
+export interface ReviewDecision {
+  proposalId: string;
+  participantId: string;
+  action: ReviewAction;
+  presentedAt: number;
+  decidedAt: number;
+  /** Reviewer's replacement text when the action is `edit`. */
+  editedContent?: string;
+}
+
+export const decisionSeconds = (d: ReviewDecision): number =>
+  (d.decidedAt - d.presentedAt) / 1000;
