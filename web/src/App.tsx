@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppShell, ScreenStub } from "./shell/AppShell";
 import type { Section } from "./shell/AppShell";
+import { CaptureScreen } from "./requirements/capture/CaptureScreen";
 import { DiscoveryScreen } from "./requirements/discovery/DiscoveryScreen";
 import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
@@ -25,7 +26,6 @@ const CRUMB: Record<Section, string> = {
 };
 
 const STUB_TITLE: Record<string, string> = {
-  sessions: "Captura de sesiones",
   iterations: "Iteraciones del estudio",
   export: "Exportar datos",
 };
@@ -61,6 +61,13 @@ export default function App() {
       active={section}
       onNavigate={navigate}
     >
+      {section === "sessions" && (
+        <CaptureScreen
+          meetingLabel="Reunión 1 · relevamiento inicial"
+          date="20 ago 2026 · 14:00"
+        />
+      )}
+
       {section === "discovery" && (
         <DiscoveryScreen
           participantId="p-analista-01"
@@ -96,9 +103,9 @@ export default function App() {
         />
       )}
 
-      {(section === "sessions" ||
-        section === "iterations" ||
-        section === "export") && <ScreenStub title={STUB_TITLE[section]} />}
+      {(section === "iterations" || section === "export") && (
+        <ScreenStub title={STUB_TITLE[section]} />
+      )}
     </AppShell>
   );
 }
