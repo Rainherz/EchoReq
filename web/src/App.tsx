@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { AppShell, ScreenStub } from "./shell/AppShell";
 import type { Section } from "./shell/AppShell";
+import { DiscoveryScreen } from "./requirements/discovery/DiscoveryScreen";
 import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { proposals, turns } from "./mocks/clinica";
+import { discoveryCandidates, discoveryTurns } from "./mocks/descubrimiento";
 import {
   CURRENT_REVISION,
   MEETINGS,
@@ -14,6 +16,7 @@ import {
 
 const CRUMB: Record<Section, string> = {
   sessions: "/ Sesiones",
+  discovery: "/ Descubrimiento / Reunión 1",
   review: "/ Revisión / Reunión 3",
   document: "/ Documento",
   traceability: "/ Trazabilidad",
@@ -58,6 +61,14 @@ export default function App() {
       active={section}
       onNavigate={navigate}
     >
+      {section === "discovery" && (
+        <DiscoveryScreen
+          participantId="p-analista-01"
+          turns={discoveryTurns}
+          candidates={discoveryCandidates}
+        />
+      )}
+
       {section === "review" && (
         <ReviewScreen
           iteration={3}

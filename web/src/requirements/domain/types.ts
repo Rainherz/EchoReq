@@ -53,6 +53,12 @@ export interface ChangeProposal {
   sourceTurnIds: number[];
   rationale: string;
   signals: QualitySignal[];
+  /**
+   * Grouping used by discovery mode. Candidates are reviewed by theme so the
+   * reviewer judges them against their neighbours instead of as a flat list,
+   * which invites blanket approval.
+   */
+  theme?: string;
 }
 
 export type ReviewAction = "accept" | "edit" | "reject";

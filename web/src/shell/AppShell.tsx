@@ -3,6 +3,7 @@ import "./shell.css";
 
 export type Section =
   | "sessions"
+  | "discovery"
   | "review"
   | "document"
   | "traceability"
@@ -17,6 +18,7 @@ interface NavEntry {
 
 const PROJECT_NAV: NavEntry[] = [
   { id: "sessions", label: "Sesiones", count: 3 },
+  { id: "discovery", label: "Descubrimiento", count: 10 },
   { id: "review", label: "Revisión", count: 5 },
   { id: "document", label: "Documento" },
   { id: "traceability", label: "Trazabilidad" },
