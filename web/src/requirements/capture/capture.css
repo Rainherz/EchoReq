@@ -313,3 +313,40 @@
   color: var(--faint);
   margin-top: 2px;
 }
+
+/* audio cargado */
+.audio__loaded {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.audio__badge {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: var(--ok-wash);
+  color: var(--ok-text);
+  border-radius: 4px;
+  padding: 0.35em 0.5em;
+}
+
+.audio__sub {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--faint);
+  margin-top: 0.15rem;
+}
+
+.dropzone--over {
+  border-color: var(--ok);
+  background: var(--ok-wash);
+}
+
+.consent:disabled {
+  cursor: default;
+}

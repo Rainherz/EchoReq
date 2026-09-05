@@ -150,8 +150,25 @@ partiría la serie en dos.
 El prompt vive completo en `app/adapters/llm/prompts.py` en lugar de armarse
 por pedazos, porque es parte del método y tiene que poder citarse en el paper.
 
-Pendiente: transcripción de audio a turnos (WhisperX). Hoy los turnos se
-cargan directo en la base; el resto del pipeline ya corre sobre ellos.
+### Audio
+
+La pantalla de Captura sube el archivo de verdad: `POST /meetings/{id}/audio`,
+multipart, con validación de formato y tope de 500 MB. El tamaño se controla
+mientras se escribe, no por el encabezado `Content-Length`, que el cliente
+puede mentir.
+
+El archivo va al disco —`ECHOREQ_AUDIO_DIR`, por defecto `api/storage/audio`—
+y la base guarda dónde está, cuánto pesa y su **SHA-256**. El hash no es
+adorno: permite comprobar que el audio del que salió una transcripción es el
+mismo que se grabó, sin confiar en el nombre del archivo.
+
+El consentimiento se registra con `POST /meetings/{id}/consent` y se escribe
+una sola vez: `consent_at` no se pisa, así que la fecha guardada es la de
+cuando se dio realmente.
+
+Pendiente: transcripción de audio a turnos (WhisperX). Mientras tanto una
+reunión puede tener turnos cargados directo en la base, y la pantalla lo dice
+así —«turnos cargados a mano»— en vez de mostrar el pipeline como completo.
 
 ### Corrección de decisiones
 

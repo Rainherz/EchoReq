@@ -147,6 +147,10 @@ class Meeting:
     has_consent: bool
     turn_count: int
     pending_proposals: int
+    audio_filename: str | None = None
+    audio_bytes: int | None = None
+    transcription_status: str = "pending"
+    transcription_error: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -25,6 +25,17 @@ class MeetingOut(Schema):
     has_consent: bool
     turn_count: int
     pending_proposals: int
+    audio_filename: str | None
+    audio_bytes: int | None
+    transcription_status: str
+    transcription_error: str | None
+
+
+class MeetingAudioOut(Schema):
+    filename: str
+    size_bytes: int
+    sha256: str
+    transcription_status: str
 
 
 class ProjectOut(Schema):

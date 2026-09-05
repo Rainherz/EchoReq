@@ -3,3 +3,4 @@ uvicorn[standard]==0.41.0
 psycopg[binary,pool]==3.2.10
 pydantic==2.12.4
 anthropic==1.4.0
+python-multipart==0.0.32

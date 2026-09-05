@@ -113,6 +113,49 @@ export interface Meeting {
   turnCount: number;
   /** Propuestas que este participante todavía no decidió. */
   pendingProposals: number;
+  audioFilename: string | null;
+  audioBytes: number | null;
+  transcriptionStatus: "pending" | "running" | "done" | "failed";
+  transcriptionError: string | null;
+}
+
+/**
+ * Sube el audio de una reunión.
+ *
+ * Va como multipart y sin `Content-Type` propio: el navegador tiene que
+ * poner el suyo con el `boundary`, y fijarlo a mano rompe el parseo.
+ */
+export async function uploadAudio(
+  meetingId: string,
+  file: File,
+): Promise<{ filename: string; sizeBytes: number; sha256: string }> {
+  const body = new FormData();
+  body.append("file", file);
+
+  const response = await fetch(
+    `${BASE}/meetings/${encodeURIComponent(meetingId)}/audio`,
+    { method: "POST", body },
+  );
+
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((payload) => payload.detail as string)
+      .catch(() => response.statusText);
+    throw new ApiError(response.status, detail);
+  }
+
+  return response.json();
+}
+
+export async function recordConsent(meetingId: string): Promise<void> {
+  const response = await fetch(
+    `${BASE}/meetings/${encodeURIComponent(meetingId)}/consent`,
+    { method: "POST" },
+  );
+  if (!response.ok) {
+    throw new ApiError(response.status, "No se pudo registrar el consentimiento.");
+  }
 }
 
 export interface Project {

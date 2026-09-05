@@ -1,15 +1,8 @@
-import { useEffect, useState } from "react";
-import { Waveform } from "./components/Waveform";
-import { ParticipantList } from "./components/ParticipantList";
-import type { Participant } from "./components/ParticipantList";
+import { useRef, useState } from "react";
+import type { Meeting } from "../../adapters/api/client";
+import { recordConsent, uploadAudio } from "../../adapters/api/client";
 import "../review/review.css";
 import "./capture.css";
-
-const PARTICIPANTS: Participant[] = [
-  { code: "CL", name: "Cliente · dirección médica", share: 0.52 },
-  { code: "PO", name: "Product Owner", share: 0.31 },
-  { code: "AN", name: "Analista", share: 0.17 },
-];
 
 /** Etapas del pipeline, en el orden en que corren. */
 const STAGES = [
@@ -39,169 +32,211 @@ const STAGES = [
   },
 ] as const;
 
-const STAGE_MS = 900;
+const formatBytes = (bytes: number): string =>
+  bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.round(bytes / 1024)} KB`;
 
 interface CaptureScreenProps {
-  meetingLabel: string;
-  date: string;
-  onFinished?: () => void;
+  meeting: Meeting;
+  /** Recarga la reunión desde la API después de un cambio. */
+  onChanged: () => void;
 }
 
 /**
  * Captura: la única pantalla que toca la reunión misma.
  *
- * Deliberadamente inerte. No hay copiloto en vivo ni sugerencias durante la
- * sesión: cualquier cosa que influya en lo que dicen los participantes
+ * Deliberadamente inerte durante la sesión. No hay copiloto ni sugerencias en
+ * vivo: cualquier cosa que influya en lo que dicen los participantes
  * cambiaría la entrada que el estudio mide, y la deriva ya no podría
  * separarse de la influencia del asistente.
  */
-export function CaptureScreen({ meetingLabel, date, onFinished }: CaptureScreenProps) {
-  const [loaded, setLoaded] = useState(false);
-  const [consent, setConsent] = useState(false);
-  const [consentAt, setConsentAt] = useState<string | null>(null);
-  const [stage, setStage] = useState(-1);
+export function CaptureScreen({ meeting, onChanged }: CaptureScreenProps) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
-  const running = stage >= 0 && stage < STAGES.length;
-  const finished = stage >= STAGES.length;
-  const canProcess = loaded && consent && stage < 0;
+  const hasAudio = meeting.audioFilename !== null;
+  const hasTurns = meeting.turnCount > 0;
+  // Turnos sin audio significa que se cargaron directo en la base, no que el
+  // pipeline los produjo. Decir "completo" ahí sería atribuirle a la
+  // herramienta un trabajo que nadie hizo.
+  const seeded = hasTurns && !hasAudio;
+  const transcribed = hasAudio && meeting.transcriptionStatus === "done";
 
-  useEffect(() => {
-    if (!running) return;
-    const id = window.setTimeout(() => setStage((current) => current + 1), STAGE_MS);
-    return () => window.clearTimeout(id);
-  }, [running, stage]);
-
-  useEffect(() => {
-    if (finished) onFinished?.();
-  }, [finished, onFinished]);
-
-  const toggleConsent = () => {
-    setConsent((current) => {
-      const next = !current;
-      setConsentAt(
-        next
-          ? new Date().toLocaleString("es-AR", {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })
-          : null,
-      );
-      return next;
-    });
+  const send = async (file: File) => {
+    setUploading(true);
+    setFailure(null);
+    try {
+      await uploadAudio(meeting.id, file);
+      onChanged();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setUploading(false);
+    }
   };
+
+  const consent = async () => {
+    setFailure(null);
+    try {
+      await recordConsent(meeting.id);
+      onChanged();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    }
+  };
+
+  // Índice de la etapa en curso. Sin transcripción implementada todas quedan
+  // pendientes: mostrarlas avanzando sería mentir sobre lo que pasó.
+  const activeStage = transcribed ? STAGES.length : -1;
+
+  const processingCount = transcribed
+    ? "completo"
+    : seeded
+      ? "turnos cargados a mano"
+      : hasAudio
+        ? "pendiente"
+        : `${STAGES.length} etapas`;
 
   return (
     <div className="capture">
       <div className="screen__head">
-        <span className="screen__title">{meetingLabel}</span>
-        <span className="screen__meta">{date}</span>
-        <span className="screen__ops">
-          <button type="button" className="btn btn--small">
-            Descartar
-          </button>
-          <button
-            type="button"
-            className="btn btn--small btn--primary"
-            disabled={!canProcess}
-            onClick={() => setStage(0)}
-          >
-            {finished ? "Procesada" : running ? "Procesando…" : "Procesar reunión"}
-          </button>
+        <span className="screen__title">{meeting.label}</span>
+        <span className="screen__meta">
+          {new Date(meeting.heldAt).toLocaleString("es-AR", {
+            dateStyle: "long",
+            timeStyle: "short",
+          })}
         </span>
       </div>
 
-      {/* Los pasos van numerados porque la captura es una secuencia real: sin
-          audio no hay qué consentir, y sin consentimiento no se procesa. */}
-      <Step index={1} title="Audio de la sesión" done={loaded}>
-        {loaded ? (
+      {failure && <p className="decide__failure">{failure}</p>}
+
+      <Step index={1} title="Audio de la sesión" done={hasAudio}>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".mp3,.m4a,.wav,.ogg,.flac,.webm,audio/*"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void send(file);
+            event.target.value = "";
+          }}
+        />
+
+        {hasAudio ? (
           <>
-            <Waveform />
-            <div className="audio__meta">
-              <button type="button" className="btn btn--small">
-                ▶ Reproducir
-              </button>
+            <div className="audio__loaded">
+              <span className="audio__badge">
+                {meeting.audioFilename?.split(".").pop()?.toUpperCase()}
+              </span>
+              <span>
+                <strong>{meeting.audioFilename}</strong>
+                <span className="audio__sub">
+                  {meeting.audioBytes ? formatBytes(meeting.audioBytes) : ""}
+                  {meeting.turnCount > 0 && ` · ${meeting.turnCount} turnos`}
+                </span>
+              </span>
               <button
                 type="button"
                 className="btn btn--small"
-                onClick={() => setLoaded(false)}
+                disabled={uploading}
+                onClick={() => fileInput.current?.click()}
               >
-                Quitar
+                Reemplazar
               </button>
-              <span className="audio__file">
-                reunion-01.m4a · 42:18 · 38 MB
-              </span>
             </div>
           </>
         ) : (
-          <div className="dropzone">
+          <div
+            className={dragging ? "dropzone dropzone--over" : "dropzone"}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              const file = event.dataTransfer.files?.[0];
+              if (file) void send(file);
+            }}
+          >
             <p className="dropzone__text">
-              Arrastrá el archivo acá, o grabá directamente.
+              {uploading ? "Subiendo…" : "Arrastrá el archivo acá."}
               <br />
               <span className="dropzone__formats">
-                mp3, m4a, wav · también sirve la exportación de Meet o Zoom
+                mp3, m4a, wav, ogg, flac o webm · hasta 500 MB
               </span>
             </p>
             <div className="audio__meta">
               <button
                 type="button"
                 className="btn btn--small btn--primary"
-                onClick={() => setLoaded(true)}
+                disabled={uploading}
+                onClick={() => fileInput.current?.click()}
               >
-                Subir archivo
-              </button>
-              <button type="button" className="btn btn--small">
-                Grabar ahora
+                {uploading ? "Subiendo…" : "Elegir archivo"}
               </button>
             </div>
           </div>
         )}
       </Step>
 
-      <Step index={2} title="Consentimiento" done={consent} blocked={!loaded}>
+      <Step
+        index={2}
+        title="Consentimiento"
+        done={meeting.hasConsent}
+        blocked={!hasAudio}
+      >
         <button
           type="button"
           className="consent"
-          aria-pressed={consent}
-          onClick={toggleConsent}
-          disabled={!loaded}
+          aria-pressed={meeting.hasConsent}
+          onClick={consent}
+          disabled={!hasAudio || meeting.hasConsent}
         >
-          <span className={consent ? "consent__box consent__box--on" : "consent__box"}>
+          <span
+            className={
+              meeting.hasConsent ? "consent__box consent__box--on" : "consent__box"
+            }
+          >
             ✓
           </span>
           <span>
             Los participantes fueron informados de que la sesión se graba y
             transcribe con fines del estudio, y prestaron su consentimiento.
-            {consent && consentAt && (
+            {meeting.hasConsent && (
               <span className="consent__stamp">
-                registrado {consentAt} · {PARTICIPANTS.length} participantes
+                registrado · queda en la base con su fecha
               </span>
             )}
           </span>
         </button>
-        {!consent && (
+        {!meeting.hasConsent && (
           <p className="step__hint">
-            Sin consentimiento registrado no se habilita el procesamiento.
+            Se registra una sola vez y no se puede deshacer desde la interfaz.
           </p>
         )}
       </Step>
 
-      {/* Las etapas se muestran antes de procesar, no solo durante: hay que
-          poder saber qué va a pasar antes de apretar el botón. */}
       <Step
         index={3}
         title="Procesamiento"
-        done={finished}
-        count={
-          finished
-            ? "completo"
-            : running
-              ? `${stage + 1} de ${STAGES.length}`
-              : `${STAGES.length} etapas`
-        }
+        done={transcribed}
+        blocked={!meeting.hasConsent}
+        count={processingCount}
       >
         {STAGES.map((item, position) => {
           const state =
-            position < stage ? "done" : position === stage ? "active" : "pending";
+            position < activeStage
+              ? "done"
+              : position === activeStage
+                ? "active"
+                : "pending";
           return (
             <div key={item.id} className={`stage stage--${state}`}>
               <span className="stage__mark">✓</span>
@@ -213,13 +248,17 @@ export function CaptureScreen({ meetingLabel, date, onFinished }: CaptureScreenP
             </div>
           );
         })}
-      </Step>
 
-      {finished && (
-        <Step index={4} title="Hablantes detectados" done>
-          <ParticipantList participants={PARTICIPANTS} ready />
-        </Step>
-      )}
+        {!transcribed && (
+          <p className="step__hint">
+            {seeded
+              ? `Esta reunión tiene ${meeting.turnCount} turnos cargados directamente en la base, sin pasar por el pipeline. No hay audio asociado.`
+              : hasAudio
+                ? "El audio está cargado y verificado por su hash. La transcripción todavía no está implementada, así que las etapas siguen pendientes."
+                : "Cargá el audio para habilitar el procesamiento."}
+          </p>
+        )}
+      </Step>
     </div>
   );
 }
@@ -239,11 +278,7 @@ function Step({
   count?: string;
   children: React.ReactNode;
 }) {
-  const classes = [
-    "step",
-    done ? "step--done" : "",
-    blocked ? "step--blocked" : "",
-  ]
+  const classes = ["step", done ? "step--done" : "", blocked ? "step--blocked" : ""]
     .filter(Boolean)
     .join(" ");
 

@@ -79,6 +79,8 @@ class PostgresCatalogRepository:
                 SELECT
                     m.id, m.project_id, m.iteration, m.label, m.mode, m.held_at,
                     (m.consent_at IS NOT NULL) AS has_consent,
+                    m.audio_filename, m.audio_bytes, m.transcription_status,
+                    m.transcription_error,
                     (SELECT count(*) FROM turns t WHERE t.meeting_id = m.id)
                         AS turn_count,
                     (SELECT count(*) FROM change_proposals cp
@@ -95,6 +97,74 @@ class PostgresCatalogRepository:
                 (participant_id, project_id),
             )
             return [Meeting(**row) for row in cur.fetchall()]
+
+
+class PostgresMeetingRepository:
+    """Escritura sobre la reunión: consentimiento y audio."""
+
+    def create(
+        self, project_id: str, iteration: int, label: str, held_at, mode: str
+    ) -> str:
+        meeting_id = f"m-{held_at:%Y-%m-%d}"
+        with cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO meetings (id, project_id, iteration, label, held_at, mode)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (meeting_id, project_id, iteration, label, held_at, mode),
+            )
+            return cur.fetchone()["id"]
+
+    def exists(self, meeting_id: str) -> bool:
+        with cursor() as cur:
+            cur.execute("SELECT 1 FROM meetings WHERE id = %s", (meeting_id,))
+            return cur.fetchone() is not None
+
+    def record_consent(self, meeting_id: str) -> None:
+        """Deja constancia del consentimiento.
+
+        Se escribe una sola vez: `consent_at` no se pisa si ya estaba, para
+        que la fecha registrada sea la de cuando se dio realmente.
+        """
+        with cursor() as cur:
+            cur.execute(
+                "UPDATE meetings SET consent_at = coalesce(consent_at, now()) "
+                "WHERE id = %s RETURNING consent_at",
+                (meeting_id,),
+            )
+            if cur.fetchone() is None:
+                raise LookupError(f"No existe la reunión {meeting_id}.")
+
+    def attach_audio(
+        self,
+        meeting_id: str,
+        *,
+        filename: str,
+        path: str,
+        size_bytes: int,
+        sha256: str,
+    ) -> None:
+        """Asocia el audio y deja la transcripción pendiente."""
+        with cursor() as cur:
+            cur.execute(
+                """
+                UPDATE meetings
+                SET audio_filename = %s,
+                    audio_path = %s,
+                    audio_bytes = %s,
+                    audio_sha256 = %s,
+                    uploaded_at = now(),
+                    transcription_status = 'pending',
+                    transcription_error = NULL
+                WHERE id = %s
+                RETURNING id
+                """,
+                (filename, path, size_bytes, sha256, meeting_id),
+            )
+            if cur.fetchone() is None:
+                raise LookupError(f"No existe la reunión {meeting_id}.")
 
 
 class PostgresProposalRepository:

@@ -192,13 +192,7 @@ export default function App() {
         {() => (
           <>
             {route.section === "sessions" && selected && (
-              <CaptureScreen
-                meetingLabel={selected.label}
-                date={new Date(selected.heldAt).toLocaleString("es-AR", {
-                  dateStyle: "long",
-                  timeStyle: "short",
-                })}
-              />
+              <CaptureScreen meeting={selected} onChanged={meetings.reload} />
             )}
 
             {route.section === "discovery" && (

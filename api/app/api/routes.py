@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi import Response
 
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
+from ..adapters.storage import audio as audio_store
 from ..adapters.persistence.repositories import (
     AlreadyCorrected,
     AlreadyDecided,
     PostgresCatalogRepository,
     PostgresDecisionRepository,
+    PostgresMeetingRepository,
     PostgresDocumentRepository,
     PostgresProposalRepository,
     PostgresTranscriptRepository,
@@ -26,6 +28,7 @@ from .schemas import (
     DecisionOut,
     DocumentEntryOut,
     DriftOut,
+    MeetingAudioOut,
     MeetingOut,
     MetricsOut,
     ProjectOut,
@@ -43,6 +46,7 @@ _decisions = PostgresDecisionRepository()
 _documents = PostgresDocumentRepository()
 _transcripts = PostgresTranscriptRepository()
 _catalog = PostgresCatalogRepository()
+_meetings_repo = PostgresMeetingRepository()
 
 _queue = ReviewQueue(_proposals, _transcripts, _decisions)
 _spec = SpecificationReader(_documents)
@@ -60,19 +64,55 @@ def meetings(project_id: str, participant: str = Query(...)) -> list[MeetingOut]
     rows = _catalog.meetings(project_id, participant)
     if not rows:
         raise HTTPException(status_code=404, detail=f"No hay reuniones en {project_id}.")
-    return [
-        MeetingOut(
-            id=m.id,
-            iteration=m.iteration,
-            label=m.label,
-            mode=m.mode,
-            held_at=m.held_at,
-            has_consent=m.has_consent,
-            turn_count=m.turn_count,
-            pending_proposals=m.pending_proposals,
+    return [MeetingOut(**asdict(m)) for m in rows]
+
+
+@router.post("/meetings/{meeting_id}/consent", status_code=204)
+def record_consent(meeting_id: str) -> None:
+    """Deja constancia del consentimiento de los participantes.
+
+    Es condición para procesar la sesión: grabar personas sin registrarlo
+    está fuera del protocolo del estudio.
+    """
+    try:
+        _meetings_repo.record_consent(meeting_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/meetings/{meeting_id}/audio", status_code=201)
+def upload_audio(meeting_id: str, file: UploadFile = File(...)) -> MeetingAudioOut:
+    """Carga el audio de una reunión.
+
+    El archivo se guarda en disco con su hash; la base guarda dónde está y
+    con qué verificarlo. La transcripción queda pendiente: es otro paso.
+    """
+    # Se verifica la reunión antes de escribir: si no, una subida a un
+    # identificador inexistente deja el archivo huérfano en el disco.
+    if not _meetings_repo.exists(meeting_id):
+        raise HTTPException(
+            status_code=404, detail=f"No existe la reunión {meeting_id}."
         )
-        for m in rows
-    ]
+
+    try:
+        stored = audio_store.store(meeting_id, file.filename or "", file.file)
+    except audio_store.RejectedAudio as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    _meetings_repo.attach_audio(
+        meeting_id,
+        filename=stored.filename,
+        path=stored.path,
+        size_bytes=stored.size_bytes,
+        sha256=stored.sha256,
+    )
+
+    return MeetingAudioOut(
+        filename=stored.filename,
+        size_bytes=stored.size_bytes,
+        sha256=stored.sha256,
+        transcription_status="pending",
+    )
 
 
 @router.get("/meetings/{meeting_id}/turns")
