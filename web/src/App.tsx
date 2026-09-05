@@ -68,7 +68,7 @@ interface Route {
 
 function routeFromHash(): Route {
   const [raw, focus] = window.location.hash.replace("#", "").split("/");
-  const section = SECTIONS.includes(raw as Section) ? (raw as Section) : "review";
+  const section = SECTIONS.includes(raw as Section) ? (raw as Section) : "sessions";
   return { section, focus: focus ? decodeURIComponent(focus) : null };
 }
 
@@ -92,6 +92,10 @@ export default function App() {
   const openProject = (next: Project) => {
     window.localStorage.setItem(LAST_PROJECT, next.id);
     setMeetingId(null);
+    // Se entra por Sesiones. Conservar la sección del proyecto anterior dejaba
+    // a un proyecto nuevo mirando una cola de revisión que no puede existir.
+    window.location.hash = "sessions";
+    setRoute({ section: "sessions", focus: null });
     setProject(next);
   };
 
@@ -265,7 +269,9 @@ function ProjectApp({
         ) : null
       }
     >
-      <AsyncBoundary resource={meetings}>
+      {/* Sin reuniones todavía no es un error ni un vacío: es el alta de la
+          primera. La sección Sesiones se encarga. */}
+      <AsyncBoundary resource={meetings} allowEmpty>
         {() => (
           <>
             {route.section === "sessions" &&
@@ -305,14 +311,18 @@ function ProjectApp({
               <AsyncBoundary
                 resource={queue}
                 empty={
-                  <div className="card">
-                    <div className="card__head">Sin candidatos</div>
-                    <p style={{ margin: 0, fontSize: ".88rem", lineHeight: 1.55 }}>
-                      La reunión {iteration} no tiene candidatos pendientes.
-                      Generalos con <code>generate.py</code>, o elegí otra
-                      reunión arriba.
-                    </p>
-                  </div>
+                  selected === null ? (
+                    <NoMeetingsYet onGo={() => navigate("sessions")} />
+                  ) : (
+                    <div className="card">
+                      <div className="card__head">Sin candidatos</div>
+                      <p style={{ margin: 0, fontSize: ".88rem", lineHeight: 1.55 }}>
+                        La reunión {iteration} no tiene candidatos pendientes.
+                        Generalos con <code>generate.py</code>, o elegí otra
+                        reunión arriba.
+                      </p>
+                    </div>
+                  )
                 }
               >
                 {(items) => (
@@ -331,27 +341,31 @@ function ProjectApp({
               <AsyncBoundary
                 resource={queue}
                 empty={
-                  <div className="card">
-                    <div className="card__head">Cola vacía</div>
-                    <p
-                      style={{
-                        margin: "0 0 .7rem",
-                        fontSize: ".88rem",
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      No quedan propuestas pendientes de la reunión {iteration}.
-                      Elegí otra arriba, o recargá el fixture con{" "}
-                      <code>seed.py --reset</code>.
-                    </p>
-                    <button
-                      type="button"
-                      className="btn btn--small"
-                      onClick={queue.reload}
-                    >
-                      Recargar
-                    </button>
-                  </div>
+                  selected === null ? (
+                    <NoMeetingsYet onGo={() => navigate("sessions")} />
+                  ) : (
+                    <div className="card">
+                      <div className="card__head">Cola vacía</div>
+                      <p
+                        style={{
+                          margin: "0 0 .7rem",
+                          fontSize: ".88rem",
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        No quedan propuestas pendientes de la reunión{" "}
+                        {iteration}. Elegí otra arriba, o generá las propuestas
+                        con <code>generate.py</code>.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn--small"
+                        onClick={queue.reload}
+                      >
+                        Recargar
+                      </button>
+                    </div>
+                  )
                 }
               >
                 {(items) => (
@@ -393,5 +407,27 @@ function ProjectApp({
         )}
       </AsyncBoundary>
     </AppShell>
+  );
+}
+
+/**
+ * Estado inicial de un proyecto recién creado.
+ *
+ * Descubrimiento y Revisión trabajan sobre la cola de una reunión. Sin
+ * reuniones no hay nada que decidir todavía, y decirlo así evita que el
+ * analista lea una cola vacía como una falla de la herramienta.
+ */
+function NoMeetingsYet({ onGo }: { onGo: () => void }) {
+  return (
+    <div className="card">
+      <div className="card__head">Todavía no hay reuniones</div>
+      <p style={{ margin: "0 0 .7rem", fontSize: ".88rem", lineHeight: 1.55 }}>
+        Esta pantalla trabaja sobre lo que el agente propone a partir de una
+        reunión. Cargá la primera en Sesiones y volvé.
+      </p>
+      <button type="button" className="btn btn--small" onClick={onGo}>
+        Ir a Sesiones
+      </button>
+    </div>
   );
 }
