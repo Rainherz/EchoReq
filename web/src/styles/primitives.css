@@ -131,6 +131,26 @@
   margin-bottom: 0.25rem;
 }
 
+/* Ancho de las pantallas.
+
+   El tope existe por longitud de línea, no por capricho, pero sin centrar se
+   lee como contenido pegado a la izquierda con un hueco al lado. Centrado, el
+   mismo tope se lee como margen.
+
+   --measure-wide   tablas y vistas de dos paneles
+   --measure        lectura y tarjetas
+   --measure-form   una secuencia de pasos, angosta a propósito */
+:root {
+  --measure-wide: 1360px;
+  --measure: 1080px;
+  --measure-form: 820px;
+}
+
+.screen {
+  margin-inline: auto;
+  width: 100%;
+}
+
 /* screen header shared by every section */
 .screen__head {
   display: flex;
