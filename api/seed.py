@@ -235,6 +235,19 @@ def seed() -> None:
             "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             TURNS + TURNS_D1,
         )
+        # Los turnos del fixture están escritos a mano y nunca pasaron por un
+        # modelo. La reunión igual queda transcripta: dejarla en 'pending'
+        # haría que la interfaz ofrezca transcribir algo que ya tiene turnos.
+        cur.execute(
+            """
+            UPDATE meetings m
+            SET transcription_status = 'done',
+                transcription_model = 'fixture'
+            WHERE m.project_id = %s
+              AND EXISTS (SELECT 1 FROM turns t WHERE t.meeting_id = m.id)
+            """,
+            (PROJECT,),
+        )
         cur.executemany(
             "INSERT INTO change_proposals "
             "(id, project_id, meeting_id, iteration, operation, target_id, "

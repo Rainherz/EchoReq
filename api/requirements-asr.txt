@@ -1,0 +1,19 @@
+# Pila de transcripción. Va en un entorno aparte de requirements.txt a
+# propósito: son cientos de megabytes de torch y modelos que el servidor web
+# no debe cargar nunca. Quien solo quiere levantar la API no tiene por qué
+# bajarlos.
+#
+# No se usa WhisperX: fija `ctranslate2==4.4.0`, que no tiene wheel para
+# Python 3.14. Se arma el pipeline con sus dos piezas por separado, lo que
+# además evita cargar el modelo de alineación forzada — da tiempos por
+# palabra, y acá se cita por turno.
+#
+# Instalación (torch de CPU, no la build CUDA de 2,5 GB que no sirve sin GPU):
+#   python -m venv .venv-asr
+#   .venv-asr/bin/pip install --index-url https://download.pytorch.org/whl/cpu torch torchaudio
+#   .venv-asr/bin/pip install -r requirements-asr.txt
+
+faster-whisper==1.2.1
+pyannote.audio==4.0.7
+psycopg[binary,pool]==3.2.10
+soundfile==0.14.0

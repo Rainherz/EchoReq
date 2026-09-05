@@ -4,6 +4,7 @@ node_modules/
 
 # python
 .venv/
+.venv-asr/
 __pycache__/
 *.py[cod]
 

@@ -10,7 +10,7 @@ const STAGES = [
     id: "transcribe",
     label: "Transcripción",
     detail: "El audio pasa a texto.",
-    output: "WhisperX",
+    output: "faster-whisper",
   },
   {
     id: "diarize",
@@ -69,7 +69,10 @@ export function CaptureScreen({
   // pipeline los produjo. Decir "completo" ahí sería atribuirle a la
   // herramienta un trabajo que nadie hizo.
   const seeded = hasTurns && !hasAudio;
-  const transcribed = hasAudio && meeting.transcriptionStatus === "done";
+  const status = meeting.transcriptionStatus;
+  const transcribed = hasAudio && status === "done";
+  const running = hasAudio && status === "running";
+  const failed = hasAudio && status === "failed";
 
   const send = async (file: File) => {
     setUploading(true);
@@ -94,17 +97,30 @@ export function CaptureScreen({
     }
   };
 
-  // Índice de la etapa en curso. Sin transcripción implementada todas quedan
-  // pendientes: mostrarlas avanzando sería mentir sobre lo que pasó.
-  const activeStage = transcribed ? STAGES.length : -1;
+  // Las tres primeras etapas corren juntas, en una sola pasada del CLI. No
+  // hay forma de saber en cuál está, así que mientras corre se muestran las
+  // tres activas: fingir un avance etapa por etapa sería inventarlo.
+  const ASR_STAGES = 3;
+  const stageState = (position: number): string => {
+    if (position < ASR_STAGES) {
+      if (transcribed) return "done";
+      return running ? "active" : "pending";
+    }
+    // El análisis es un paso aparte, con su propio comando.
+    return transcribed ? "active" : "pending";
+  };
 
   const processingCount = transcribed
-    ? "completo"
-    : seeded
-      ? "turnos cargados a mano"
-      : hasAudio
-        ? "pendiente"
-        : `${STAGES.length} etapas`;
+    ? `${meeting.turnCount} turnos`
+    : running
+      ? "transcribiendo…"
+      : failed
+        ? "falló"
+        : seeded
+          ? "turnos cargados a mano"
+          : hasAudio
+            ? "pendiente"
+            : `${STAGES.length} etapas`;
 
   return (
     <div className="capture">
@@ -242,12 +258,7 @@ export function CaptureScreen({
         count={processingCount}
       >
         {STAGES.map((item, position) => {
-          const state =
-            position < activeStage
-              ? "done"
-              : position === activeStage
-                ? "active"
-                : "pending";
+          const state = stageState(position);
           return (
             <div key={item.id} className={`stage stage--${state}`}>
               <span className="stage__mark">✓</span>
@@ -260,13 +271,45 @@ export function CaptureScreen({
           );
         })}
 
-        {!transcribed && (
+        {failed && meeting.transcriptionError && (
+          <p className="decide__failure">{meeting.transcriptionError}</p>
+        )}
+
+        {seeded && (
           <p className="step__hint">
-            {seeded
-              ? `Esta reunión tiene ${meeting.turnCount} turnos cargados directamente en la base, sin pasar por el pipeline. No hay audio asociado.`
-              : hasAudio
-                ? "El audio está cargado y verificado por su hash. La transcripción todavía no está implementada, así que las etapas siguen pendientes."
-                : "Cargá el audio para habilitar el procesamiento."}
+            Esta reunión tiene {meeting.turnCount} turnos cargados directamente
+            en la base, sin pasar por el pipeline. No hay audio asociado.
+          </p>
+        )}
+
+        {!hasAudio && !seeded && (
+          <p className="step__hint">Cargá el audio para habilitar el procesamiento.</p>
+        )}
+
+        {hasAudio && !transcribed && !running && (
+          <p className="step__hint">
+            La transcripción corre aparte del servidor: sin GPU son decenas de
+            minutos, y eso no entra en una petición. Desde <code>api/</code>:
+            <br />
+            <code>.venv-asr/bin/python transcribe.py {meeting.id}</code>
+            <br />
+            Esta pantalla refleja lo que diga la base, así que alcanza con
+            recargarla.
+          </p>
+        )}
+
+        {running && (
+          <p className="step__hint">
+            Transcribiendo. Recargá para ver si terminó.
+          </p>
+        )}
+
+        {transcribed && (
+          <p className="step__hint">
+            {meeting.turnCount} turnos listos para citar. El análisis es el
+            siguiente paso, desde <code>api/</code>:
+            <br />
+            <code>.venv/bin/python generate.py {meeting.id} --project …</code>
           </p>
         )}
       </Step>

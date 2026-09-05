@@ -19,6 +19,7 @@ La primera vez:
 make setup          # venv de la API + dependencias de la interfaz
 make db             # PostgreSQL 17 + pgvector en :5433, espera a que esté lista
 make reset          # carga el fixture Clínica Norte
+make asr            # opcional: pila de transcripción, ~1,5 GB
 ```
 
 Después, en dos terminales:
@@ -63,9 +64,16 @@ Fase 1 — interfaces sobre datos mock, sin backend.
 | Exportar | `#export` | Lista |
 | Iteraciones | `#iterations` | Lista |
 
-Fase 2 — backend sobre PostgreSQL, con la interfaz conectada. Revisión,
-Documento y Trazabilidad leen y escriben contra la API; Descubrimiento y
-Captura siguen sobre mocks porque el pipeline todavía no existe.
+Fase 2 — backend sobre PostgreSQL, con la interfaz conectada. Todas las
+pantallas leen y escriben contra la API.
+
+Fase 3 — pipeline real. El audio se transcribe y se diariza en la máquina del
+investigador, y el agente genera propuestas contra la especificación vigente.
+Las dos etapas corren como procesos aparte del servidor: la interfaz refleja
+lo que quedó en la base, no dispara el trabajo.
+
+Falta que la transcripción y la generación se puedan lanzar desde la interfaz,
+y ponerles nombre a los hablantes que la diarización devuelve como `S1`, `S2`.
 
 | Endpoint | Qué devuelve |
 | --- | --- |
@@ -166,9 +174,63 @@ El consentimiento se registra con `POST /meetings/{id}/consent` y se escribe
 una sola vez: `consent_at` no se pisa, así que la fecha guardada es la de
 cuando se dio realmente.
 
-Pendiente: transcripción de audio a turnos (WhisperX). Mientras tanto una
-reunión puede tener turnos cargados directo en la base, y la pantalla lo dice
-así —«turnos cargados a mano»— en vez de mostrar el pipeline como completo.
+Una reunión también puede tener turnos cargados directo en la base, sin haber
+pasado por el pipeline. La pantalla lo dice así —«turnos cargados a mano»— en
+vez de mostrar el procesamiento como completo.
+
+### Transcripción
+
+Del audio a los turnos citables, en la máquina del investigador:
+
+```bash
+make asr                              # instala la pila, una sola vez (~1,5 GB)
+export HF_TOKEN=hf_...                # token de HuggingFace
+make transcribe M=mi-proyecto-r1
+```
+
+Corre en su propio entorno, `api/.venv-asr`, y como proceso aparte del
+servidor. Las dos cosas por el mismo motivo: sin GPU, cuarenta minutos de
+audio son decenas de minutos de trabajo y cientos de megabytes de modelos
+residentes. Eso no entra en una petición HTTP ni tiene por qué instalarse para
+levantar la API. La interfaz no llama a nada: lee `transcription_status` de la
+base y muestra en qué anda.
+
+El audio tiene que entrar en 16 kHz mono. Desde un MP4 de cámara:
+
+```bash
+ffmpeg -i reunion.mp4 -vn -ac 1 -ar 16000 -c:a pcm_s16le reunion.wav
+```
+
+**No se usa WhisperX**: fija `ctranslate2==4.4.0`, que no tiene wheel para
+Python 3.14. El pipeline usa sus dos piezas por separado —faster-whisper para
+el texto, pyannote para las voces— lo que además evita cargar el modelo de
+alineación forzada, que da tiempos por palabra cuando acá se cita por turno.
+La diarización necesita aceptar la licencia de
+`pyannote/speaker-diarization-3.1` en HuggingFace.
+
+Las decisiones que importan para el estudio:
+
+- **`temperature=0` y sin escalones de reintento.** Por defecto el modelo sube
+  la temperatura cuando desconfía de su salida, y eso vuelve irreproducible
+  justo el tramo difícil.
+- **`condition_on_previous_text=False`.** Da algo menos de coherencia, pero
+  impide que en una grabación larga el modelo entre en bucle y repita una
+  frase durante minutos. Una alucinación acá terminaría citada como evidencia
+  de un requisito.
+- **Se transcribe una sola vez.** `turns` es de solo anexado: una decisión ya
+  registrada puede citar el turno 44, y rehacer la transcripción reasignaría
+  ese número a otro tramo del audio sin que nada lo delate.
+- **Queda la procedencia.** `transcription_model`, `transcription_params` y
+  `transcribed_at`, por el mismo motivo que existe `llm_calls`. El estudio
+  compara la reunión 1 contra la 5: si el transcriptor cambió en el medio, la
+  deriva medida deja de ser la de los requisitos.
+
+Un turno agrupa tramos seguidos del mismo hablante separados por menos de dos
+segundos. El corte no es cosmético: el turno es la unidad de evidencia, y sin
+él una persona que habla diez minutos produce una cita de diez minutos.
+
+Los hablantes salen como `S1`, `S2`… La diarización distingue voces, no
+personas: ponerles nombre es decisión del analista, no del modelo.
 
 ### Corrección de decisiones
 
@@ -282,6 +344,22 @@ web/src/
   mocks/                 fixture Clínica Norte
   styles/                tokens y primitivos
 ```
+
+Del lado de la API, la transcripción sigue la misma separación que el resto:
+
+```
+api/
+  transcribe.py                          CLI, corre con .venv-asr
+  app/requirements/
+    domain/transcription.py              qué es un turno, atribución de voces
+    transcribe.py                        reglas: una sola vez, con audio
+  app/adapters/
+    transcription/local_engine.py        faster-whisper + pyannote
+    persistence/transcript_store.py      turnos, estado y procedencia
+```
+
+La segmentación en turnos y la atribución de hablantes viven en el dominio, no
+en el adaptador: son reglas del estudio y se prueban sin torch instalado.
 
 Cada pantalla sigue container-presentational: el contenedor tiene el estado,
 los componentes de `components/` son puros.
