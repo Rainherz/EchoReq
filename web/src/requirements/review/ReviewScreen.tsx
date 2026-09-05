@@ -7,6 +7,8 @@ import { SystemSignals } from "./components/SystemSignals";
 import { DecisionBar } from "./components/DecisionBar";
 import { ReviewTimer } from "./components/ReviewTimer";
 import { ReviewSummary } from "./components/ReviewSummary";
+import { CorrectLast } from "./components/CorrectLast";
+import type { LastDecision } from "./components/CorrectLast";
 import "./review.css";
 
 const OPERATION_LABEL: Record<ProposalOperation, string> = {
@@ -20,8 +22,14 @@ interface ReviewScreenProps {
   iteration: number;
   participantId: string;
   items: QueueItem[];
-  /** Persiste la decisión. Debe rechazar si el backend no la aceptó. */
-  onDecide: (input: RecordDecisionInput) => Promise<void>;
+  /** Persiste la decisión y devuelve su identificador. */
+  onDecide: (input: RecordDecisionInput) => Promise<number>;
+  /** Marca la decisión anterior como error de registro. */
+  onCorrect: (
+    decisionId: number,
+    intended: ReviewAction,
+    reason: string,
+  ) => Promise<void>;
 }
 
 /**
@@ -35,6 +43,7 @@ export function ReviewScreen({
   participantId,
   items,
   onDecide,
+  onCorrect,
 }: ReviewScreenProps) {
   const [index, setIndex] = useState(0);
   const [decisions, setDecisions] = useState<ReviewDecision[]>([]);
@@ -44,6 +53,9 @@ export function ReviewScreen({
   const [presentedAt, setPresentedAt] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // Solo la decisión inmediatamente anterior se puede corregir. Guardar más
+  // permitiría reescribir la historia después de ver qué vino.
+  const [last, setLast] = useState<LastDecision | null>(null);
 
   const proposal = items[index];
 
@@ -55,8 +67,9 @@ export function ReviewScreen({
       setSaving(true);
       setFailure(null);
 
+      let decisionId: number;
       try {
-        await onDecide({
+        decisionId = await onDecide({
           proposalId: proposal.id,
           participantId,
           action,
@@ -83,6 +96,12 @@ export function ReviewScreen({
           editedContent,
         },
       ]);
+      setLast({
+        decisionId,
+        proposalId: proposal.id,
+        targetId: proposal.targetId,
+        action,
+      });
       setIndex((current) => current + 1);
       setPresentedAt(Date.now());
       setSaving(false);
@@ -93,6 +112,7 @@ export function ReviewScreen({
   const restart = useCallback(() => {
     setDecisions([]);
     setIndex(0);
+    setLast(null);
     setPresentedAt(Date.now());
   }, []);
 
@@ -198,6 +218,16 @@ export function ReviewScreen({
             busy={saving}
             onDecide={decide}
           />
+
+          {last && (
+            <CorrectLast
+              key={last.decisionId}
+              last={last}
+              onCorrect={(intended, reason) =>
+                onCorrect(last.decisionId, intended, reason)
+              }
+            />
+          )}
         </div>
       </div>
     </div>

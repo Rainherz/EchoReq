@@ -267,6 +267,37 @@ export interface RecordDecisionInput {
  * infiere de la hora de llegada: eso mediría la latencia de red en lugar de
  * la atención del revisor.
  */
+export interface CorrectionInput {
+  decisionId: number;
+  participantId: string;
+  /** Qué había querido hacer en realidad. */
+  intendedAction: ReviewAction;
+  reason: string;
+}
+
+/**
+ * Marca una decisión como error de registro.
+ *
+ * No borra ni modifica la original: queda en los datos, señalada. El motivo
+ * es obligatorio y una decisión se corrige una sola vez, para que corregir no
+ * funcione como un deshacer —si corregir fuera gratis, el revisor decidiría
+ * más rápido sabiendo que puede volver atrás, y eso también contamina la
+ * medición.
+ */
+export function correctDecision(
+  input: CorrectionInput,
+): Promise<{ id: number }> {
+  return request<{ id: number }>("/decision-corrections", {
+    method: "POST",
+    body: JSON.stringify({
+      decisionId: input.decisionId,
+      participantId: input.participantId,
+      intendedAction: input.intendedAction,
+      reason: input.reason,
+    }),
+  });
+}
+
 export function recordDecision(
   input: RecordDecisionInput,
 ): Promise<{ id: number; seconds: number }> {

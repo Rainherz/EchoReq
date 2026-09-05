@@ -14,6 +14,7 @@ import psycopg
 from ...requirements.domain import rules
 from ...requirements.domain.entities import (
     ChangeProposal,
+    DecisionCorrection,
     DocumentEntry,
     IterationMetrics,
     Meeting,
@@ -29,6 +30,10 @@ from .pool import cursor
 
 class AlreadyDecided(Exception):
     """El participante ya decidió esa propuesta."""
+
+
+class AlreadyCorrected(Exception):
+    """Esa decisión ya se corrigió una vez."""
 
 
 def _to_proposal(row: dict) -> ChangeProposal:
@@ -153,7 +158,7 @@ class PostgresDecisionRepository:
         with cursor() as cur:
             cur.execute(
                 """
-                SELECT iteration, action, known_defective, seconds
+                SELECT iteration, action, known_defective, seconds, corrected
                 FROM review_timings
                 WHERE project_id = %s
                 ORDER BY iteration
@@ -162,28 +167,68 @@ class PostgresDecisionRepository:
             )
             rows = cur.fetchall()
 
+        # Las decisiones corregidas quedan fuera de las métricas: el revisor
+        # declaró que no reflejan lo que quiso hacer. Siguen en la
+        # exportación, marcadas, para que el análisis pueda revisarlas.
         by_iteration: dict[int, list[dict]] = {}
+        corrections: dict[int, int] = {}
         for row in rows:
+            if row["corrected"]:
+                corrections[row["iteration"]] = corrections.get(row["iteration"], 0) + 1
+                continue
             by_iteration.setdefault(row["iteration"], []).append(row)
 
+        # Las iteraciones salen de la unión: una donde se corrigieron todas
+        # las decisiones sigue siendo un dato, y desaparecer del reporte lo
+        # escondería justo cuando más importa.
         out: list[IterationMetrics] = []
-        for iteration in sorted(by_iteration):
-            group = by_iteration[iteration]
+        for iteration in sorted(set(by_iteration) | set(corrections)):
+            group = by_iteration.get(iteration, [])
             defective = [r for r in group if r["known_defective"]]
             out.append(
                 IterationMetrics(
                     iteration=iteration,
                     decisions=len(group),
-                    median_seconds=round(median(float(r["seconds"]) for r in group), 1),
+                    median_seconds=(
+                        round(median(float(r["seconds"]) for r in group), 1)
+                        if group
+                        else 0.0
+                    ),
                     accepted_without_edit=sum(1 for r in group if r["action"] == "accept"),
                     defective_accepted=sum(
                         1 for r in defective if r["action"] == "accept"
                     ),
                     defective_total=len(defective),
+                    corrected=corrections.get(iteration, 0),
                 )
             )
         return out
 
+
+    def correct(self, correction: DecisionCorrection) -> int:
+        """Anexa la corrección. Falla si esa decisión ya tenía una."""
+        try:
+            with cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO decision_corrections
+                        (decision_id, participant_id, intended_action, reason)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        correction.decision_id,
+                        correction.participant_id,
+                        correction.intended_action,
+                        correction.reason.strip(),
+                    ),
+                )
+                return cur.fetchone()["id"]
+        except psycopg.errors.UniqueViolation as exc:
+            raise AlreadyCorrected(
+                f"La decisión {correction.decision_id} ya se corrigió. "
+                "Corregir una corrección sería el deshacer que esto evita."
+            ) from exc
 
     def rejections(self, project_id: str) -> list[Rejection]:
         with cursor() as cur:

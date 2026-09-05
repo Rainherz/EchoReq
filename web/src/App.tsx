@@ -10,8 +10,17 @@ import { DocumentScreen } from "./requirements/document/DocumentScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { IterationsScreen } from "./requirements/iterations/IterationsScreen";
 import { ExportScreen } from "./requirements/export/ExportScreen";
-import { fetchMeetings, fetchQueue, recordDecision } from "./adapters/api/client";
-import type { Meeting, RecordDecisionInput } from "./adapters/api/client";
+import {
+  correctDecision,
+  fetchMeetings,
+  fetchQueue,
+  recordDecision,
+} from "./adapters/api/client";
+import type {
+  Meeting,
+  RecordDecisionInput,
+} from "./adapters/api/client";
+import type { ReviewAction } from "./requirements/domain/types";
 import { useResource } from "./adapters/api/useResource";
 import { discoveryCandidates, discoveryTurns } from "./mocks/descubrimiento";
 
@@ -130,8 +139,21 @@ export default function App() {
   );
 
   const persist = useCallback(async (input: RecordDecisionInput) => {
-    await recordDecision(input);
+    const { id } = await recordDecision(input);
+    return id;
   }, []);
+
+  const correct = useCallback(
+    async (decisionId: number, intended: ReviewAction, reason: string) => {
+      await correctDecision({
+        decisionId,
+        participantId: PARTICIPANT,
+        intendedAction: intended,
+        reason,
+      });
+    },
+    [],
+  );
 
   const crumb =
     route.section === "review" || route.section === "discovery"
@@ -210,6 +232,7 @@ export default function App() {
                     participantId={PARTICIPANT}
                     items={items}
                     onDecide={persist}
+                    onCorrect={correct}
                   />
                 )}
               </AsyncBoundary>

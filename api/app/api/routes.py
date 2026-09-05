@@ -9,6 +9,7 @@ from fastapi import Response
 
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.persistence.repositories import (
+    AlreadyCorrected,
     AlreadyDecided,
     PostgresCatalogRepository,
     PostgresDecisionRepository,
@@ -16,10 +17,12 @@ from ..adapters.persistence.repositories import (
     PostgresProposalRepository,
     PostgresTranscriptRepository,
 )
-from ..requirements.domain.entities import ReviewDecision
+from ..requirements.domain.entities import DecisionCorrection, ReviewDecision
 from ..requirements.use_cases import ReviewQueue, SpecificationReader, StudyMetrics
 from .schemas import (
     DecisionIn,
+    CorrectionIn,
+    CorrectionOut,
     DecisionOut,
     DocumentEntryOut,
     DriftOut,
@@ -125,6 +128,30 @@ def record_decision(payload: DecisionIn) -> DecisionOut:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return DecisionOut(id=decision_id, seconds=round(decision.seconds, 3))
+
+
+@router.post("/decision-corrections", status_code=201)
+def correct_decision(payload: CorrectionIn) -> CorrectionOut:
+    """Marca una decisión como error de registro.
+
+    No borra ni modifica la original: la decisión y su intervalo siguen en los
+    datos. Solo se puede corregir una vez, y el motivo es obligatorio, para
+    que corregir no funcione como un deshacer.
+    """
+    try:
+        correction = DecisionCorrection(
+            decision_id=payload.decision_id,
+            participant_id=payload.participant_id,
+            intended_action=payload.intended_action,  # type: ignore[arg-type]
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    try:
+        return CorrectionOut(id=_decisions.correct(correction))
+    except AlreadyCorrected as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get("/projects/{project_id}/document")

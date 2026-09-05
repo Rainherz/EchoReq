@@ -78,6 +78,17 @@ class DecisionOut(Schema):
     seconds: float
 
 
+class CorrectionIn(Schema):
+    decision_id: int
+    participant_id: str
+    intended_action: str = Field(pattern="^(accept|edit|reject)$")
+    reason: str = Field(min_length=3)
+
+
+class CorrectionOut(Schema):
+    id: int
+
+
 class DocumentEntryOut(Schema):
     requirement_id: str
     content: str
@@ -112,6 +123,7 @@ class MetricsOut(Schema):
     accepted_without_edit: int
     defective_accepted: int
     defective_total: int
+    corrected: int
 
 
 class ColumnOut(Schema):

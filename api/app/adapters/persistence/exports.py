@@ -55,6 +55,9 @@ DATASETS: dict[str, Dataset] = {
             "decided_at": "Instante de la decisión.",
             "seconds": "Intervalo de revisión. La medición de registro.",
             "was_edited": "El revisor modificó el texto propuesto.",
+            "corrected": "El revisor la marcó después como error de registro.",
+            "intended_action": "Qué había querido hacer, si se corrigió.",
+            "correction_reason": "Motivo declarado de la corrección.",
         },
         sql="""
             SELECT
@@ -70,9 +73,13 @@ DATASETS: dict[str, Dataset] = {
                 d.presented_at,
                 d.decided_at,
                 EXTRACT(EPOCH FROM (d.decided_at - d.presented_at)) AS seconds,
-                (d.edited_content IS NOT NULL)      AS was_edited
+                (d.edited_content IS NOT NULL)      AS was_edited,
+                (c.id IS NOT NULL)                  AS corrected,
+                c.intended_action,
+                c.reason                            AS correction_reason
             FROM review_decisions d
             JOIN change_proposals p ON p.id = d.proposal_id
+            LEFT JOIN decision_corrections c ON c.decision_id = d.id
             WHERE p.project_id = %(project_id)s
             ORDER BY p.iteration, d.id
         """,

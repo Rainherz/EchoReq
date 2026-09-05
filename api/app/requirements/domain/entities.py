@@ -89,6 +89,28 @@ class ReviewDecision:
 
 
 @dataclass(frozen=True, slots=True)
+class DecisionCorrection:
+    """Marca de que una decisión se registró por error.
+
+    No borra ni modifica la original: la decisión y su intervalo siguen en los
+    datos, señalados. El análisis decide si los excluye, y la tasa de
+    corrección es una medida de confiabilidad del instrumento.
+    """
+
+    decision_id: int
+    participant_id: str
+    intended_action: Action
+    reason: str
+
+    def __post_init__(self) -> None:
+        if len(self.reason.strip()) < 3:
+            raise ValueError(
+                "La corrección necesita un motivo. Sin él la marca no dice "
+                "nada al analizar, y corregir se vuelve un deshacer."
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class RequirementRevision:
     project_id: str
     requirement_id: str
@@ -156,3 +178,6 @@ class IterationMetrics:
     accepted_without_edit: int
     defective_accepted: int
     defective_total: int
+    #: Decisiones que el revisor marcó como error de registro. Excluidas de
+    #: las cifras de arriba, contadas acá.
+    corrected: int = 0

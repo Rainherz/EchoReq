@@ -153,6 +153,29 @@ por pedazos, porque es parte del método y tiene que poder citarse en el paper.
 Pendiente: transcripción de audio a turnos (WhisperX). Hoy los turnos se
 cargan directo en la base; el resto del pipeline ya corre sobre ellos.
 
+### Corrección de decisiones
+
+Las decisiones son inmutables y la pantalla de Revisión no pide confirmación
+—pedirla sumaría tiempo a la medición—, así que un clic accidental dejaría un
+dato contaminado sin arreglo.
+
+Una corrección se **anexa** en `decision_corrections`. No borra ni modifica la
+decisión original: sigue en la exportación con su intervalo, marcada como
+`corrected` junto a `intended_action` y `correction_reason`. Queda fuera de
+las métricas por iteración, que la cuentan aparte.
+
+Tres frenos para que corregir no funcione como un deshacer —si corregir fuera
+gratis, el revisor decidiría más rápido sabiendo que puede volver atrás, y eso
+contamina la medición en la dirección contraria:
+
+- el motivo es obligatorio y se guarda;
+- una decisión se corrige una sola vez;
+- la interfaz solo ofrece corregir la decisión inmediatamente anterior, así
+  que no se puede reescribir la historia después de ver qué vino.
+
+La tasa de corrección es en sí misma una medida de confiabilidad del
+instrumento y se exporta como tal.
+
 ### Inmutabilidad
 
 `requirement_revisions`, `review_decisions`, `llm_calls` y `turns` son de solo

@@ -10,6 +10,7 @@ from typing import Protocol
 
 from .entities import (
     ChangeProposal,
+    DecisionCorrection,
     DocumentEntry,
     IterationMetrics,
     Rejection,
@@ -39,6 +40,10 @@ class DecisionRepository(Protocol):
         ...
 
     def metrics_by_iteration(self, project_id: str) -> list[IterationMetrics]: ...
+
+    def correct(self, correction: DecisionCorrection) -> int:
+        """Anexa una corrección sobre una decisión ya registrada."""
+        ...
 
     def rejections(self, project_id: str) -> list[Rejection]: ...
 
