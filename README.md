@@ -119,7 +119,39 @@ cd api && .venv/bin/python seed.py --reset --with-decisions
 Esos son **datos inventados** que reproducen el patrón que el estudio busca
 detectar, no observaciones. Nunca cargarlos sobre una base con datos reales.
 
-Pendiente: pipeline de transcripción y generación de propuestas.
+## Generación de propuestas
+
+```bash
+cd api
+export ANTHROPIC_API_KEY=...
+.venv/bin/python generate.py m-2026-09-17            # genera y guarda
+.venv/bin/python generate.py m-2026-09-17 --dry-run  # muestra sin guardar
+.venv/bin/python generate.py m-2026-09-17 --replay   # relee lo ya registrado
+```
+
+**La cita obligatoria se hace cumplir en el código, no en el prompt.** Una
+propuesta que apunta a un turno inexistente, que declara una modificación
+sobre un requisito que no está, o que viene sin texto, se descarta antes de
+llegar a la cola de revisión. Las descartadas se reportan con su motivo:
+cuántas no superaron la validación es un dato sobre el comportamiento del
+agente, no ruido.
+
+### Reproducibilidad
+
+Los modelos actuales no aceptan `temperature` ni `top_p`, así que **volver a
+pedirle al modelo no devuelve lo mismo aunque el prompt sea idéntico**. La
+única reproducción exacta es `--replay`, que relee la respuesta guardada en
+`llm_calls`. Por eso esa tabla existe y por eso es de solo anexado.
+
+El identificador del modelo queda fijo en `app/adapters/llm/claude_engine.py`
+y se registra con cada llamada: un cambio de versión a mitad del estudio
+partiría la serie en dos.
+
+El prompt vive completo en `app/adapters/llm/prompts.py` en lugar de armarse
+por pedazos, porque es parte del método y tiene que poder citarse en el paper.
+
+Pendiente: transcripción de audio a turnos (WhisperX). Hoy los turnos se
+cargan directo en la base; el resto del pipeline ya corre sobre ellos.
 
 ### Inmutabilidad
 
