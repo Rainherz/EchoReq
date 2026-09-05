@@ -14,9 +14,19 @@ from dataclasses import dataclass, replace
 from typing import Protocol
 
 #: Silencio a partir del cual dos tramos del mismo hablante dejan de ser el
-#: mismo turno. Sin este corte, una persona que habla diez minutos seguidos
-#: produce un turno de diez minutos: citable en teoría, inútil como evidencia.
+#: mismo turno.
 TURN_GAP_SECONDS = 2.0
+
+#: Duración máxima de un turno. El silencio solo no alcanza: en habla
+#: espontánea las pausas de dos segundos casi no aparecen, y sin este tope una
+#: persona que habla cinco minutos seguidos produce una sola cita de cinco
+#: minutos.
+#:
+#: El número sale de para qué sirve el turno. El revisor lo lee entero para
+#: verificar una propuesta; pasados unos tres cuartos de minuto deja de leer y
+#: empieza a confiar. Y esa confianza por agotamiento es justo lo que el
+#: estudio mide: si el instrumento la induce, deja de medirla.
+MAX_TURN_SECONDS = 45.0
 
 #: Tramo que la diarización no supo atribuir. Se marca, no se adivina: darle
 #: un hablante inventado convertiría una duda en un dato.
@@ -92,10 +102,14 @@ def timestamp(seconds: float) -> str:
 def into_turns(segments: Sequence[Segment]) -> list[TranscribedTurn]:
     """Agrupa los tramos en turnos de conversación.
 
-    Dos tramos son el mismo turno si los dijo el mismo hablante y entre ellos
-    no hubo más silencio que `TURN_GAP_SECONDS`. Los identificadores se
-    asignan por orden y arrancan en 1: son los que van a quedar citados en las
-    propuestas, así que no pueden depender de en qué orden llegaron los datos.
+    Dos tramos son el mismo turno si los dijo el mismo hablante, entre ellos
+    no hubo más silencio que `TURN_GAP_SECONDS`, y el turno resultante no pasa
+    de `MAX_TURN_SECONDS`. El corte por duración cae siempre en un borde de
+    tramo, que es una pausa detectada: nunca parte una oración al medio.
+
+    Los identificadores se asignan por orden y arrancan en 1: son los que van
+    a quedar citados en las propuestas, así que no pueden depender de en qué
+    orden llegaron los datos.
 
     Los hablantes se renumeran a `S1`, `S2`… por orden de aparición. La
     diarización distingue voces, no personas: quién es cada quién es una
@@ -121,6 +135,7 @@ def into_turns(segments: Sequence[Segment]) -> list[TranscribedTurn]:
             open_turn is not None
             and open_turn[-1].speaker == speaker
             and current.start - open_turn[-1].end <= TURN_GAP_SECONDS
+            and current.end - open_turn[0].start <= MAX_TURN_SECONDS
         )
         if continues and open_turn is not None:
             open_turn.append(current)

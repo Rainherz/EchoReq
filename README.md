@@ -226,8 +226,15 @@ Las decisiones que importan para el estudio:
   deriva medida deja de ser la de los requisitos.
 
 Un turno agrupa tramos seguidos del mismo hablante separados por menos de dos
-segundos. El corte no es cosmético: el turno es la unidad de evidencia, y sin
-él una persona que habla diez minutos produce una cita de diez minutos.
+segundos, y se corta a los 45. Las dos reglas hacen falta: en habla espontánea
+las pausas de dos segundos casi no aparecen, así que el silencio solo dejaba
+turnos de minutos enteros. Verificado sobre audio real —35 tramos del modelo
+quedaban en un único turno de dos minutos.
+
+El tope sale de para qué sirve el turno. El revisor lo lee entero para
+verificar una propuesta; pasados unos tres cuartos de minuto deja de leer y
+empieza a confiar. Esa confianza por agotamiento es justo lo que el estudio
+mide, así que el instrumento no puede inducirla.
 
 Los hablantes salen como `S1`, `S2`… La diarización distingue voces, no
 personas: ponerles nombre es decisión del analista, no del modelo.
