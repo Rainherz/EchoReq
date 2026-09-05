@@ -14,6 +14,7 @@ import {
   correctDecision,
   fetchMeetings,
   fetchQueue,
+  fetchTurns,
   recordDecision,
 } from "./adapters/api/client";
 import type {
@@ -22,7 +23,6 @@ import type {
 } from "./adapters/api/client";
 import type { ReviewAction } from "./requirements/domain/types";
 import { useResource } from "./adapters/api/useResource";
-import { discoveryCandidates, discoveryTurns } from "./mocks/descubrimiento";
 
 const PROJECT = "clinica-norte";
 const PARTICIPANT = "p-analista-01";
@@ -138,6 +138,16 @@ export default function App() {
     [selectedId],
   );
 
+  // La transcripción completa: Descubrimiento la lee entera para juzgar si
+  // los candidatos cubren lo que se habló.
+  const turns = useResource(
+    useCallback(
+      () => (selectedId ? fetchTurns(selectedId) : Promise.resolve([])),
+      [selectedId],
+    ),
+    [selectedId],
+  );
+
   const persist = useCallback(async (input: RecordDecisionInput) => {
     const { id } = await recordDecision(input);
     return id;
@@ -192,11 +202,29 @@ export default function App() {
             )}
 
             {route.section === "discovery" && (
-              <DiscoveryScreen
-                participantId={PARTICIPANT}
-                turns={discoveryTurns}
-                candidates={discoveryCandidates}
-              />
+              <AsyncBoundary
+                resource={queue}
+                empty={
+                  <div className="card">
+                    <div className="card__head">Sin candidatos</div>
+                    <p style={{ margin: 0, fontSize: ".88rem", lineHeight: 1.55 }}>
+                      La reunión {iteration} no tiene candidatos pendientes.
+                      Generalos con <code>generate.py</code>, o elegí otra
+                      reunión arriba.
+                    </p>
+                  </div>
+                }
+              >
+                {(items) => (
+                  <DiscoveryScreen
+                    participantId={PARTICIPANT}
+                    iteration={iteration}
+                    items={items}
+                    turns={turns.data ?? []}
+                    onDecide={persist}
+                  />
+                )}
+              </AsyncBoundary>
             )}
 
             {route.section === "review" && (

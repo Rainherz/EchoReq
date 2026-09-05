@@ -1,8 +1,9 @@
 import { useState } from "react";
-import type { ChangeProposal, ReviewAction } from "../../domain/types";
+import type { ReviewAction } from "../../domain/types";
+import type { QueueItem } from "../../../adapters/api/client";
 
 interface CandidateCardProps {
-  candidate: ChangeProposal;
+  candidate: QueueItem;
   selected: boolean;
   decision?: ReviewAction;
   onSelect: () => void;

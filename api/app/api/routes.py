@@ -32,6 +32,7 @@ from .schemas import (
     DatasetOut,
     ProposalOut,
     RejectionOut,
+    TurnOut,
     RevisionOut,
 )
 
@@ -71,6 +72,26 @@ def meetings(project_id: str, participant: str = Query(...)) -> list[MeetingOut]
             pending_proposals=m.pending_proposals,
         )
         for m in rows
+    ]
+
+
+@router.get("/meetings/{meeting_id}/turns")
+def meeting_turns(meeting_id: str) -> list[TurnOut]:
+    """Transcripción completa. Descubrimiento la lee entera, no por ventana."""
+    turns = _transcripts.turns_for_meeting(meeting_id)
+    if not turns:
+        raise HTTPException(
+            status_code=404, detail=f"La reunión {meeting_id} no tiene turnos cargados."
+        )
+    return [
+        TurnOut(
+            id=t.turn_id,
+            meeting_id=t.meeting_id,
+            speaker=t.speaker,
+            starts_at=t.starts_at,
+            text=t.text,
+        )
+        for t in turns
     ]
 
 

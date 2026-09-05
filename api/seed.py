@@ -51,6 +51,58 @@ TURNS = [
     ("m-2026-09-17", 59, "PO", "32:02", "Eso choca con lo que definimos de cancelación, ojo."),
 ]
 
+
+# --- Reunión 1, modo descubrimiento -----------------------------------------
+# Estos turnos y candidatos vivían en un mock del frontend. Están acá porque la
+# pantalla de Descubrimiento tiene que leer lo mismo que las demás: la base.
+TURNS_D1 = [
+    ("m-2026-08-20", 44, "AN", "11:58", "Contame cómo sacan turno hoy los pacientes."),
+    ("m-2026-08-20", 45, "CL", "12:01", "Llaman por teléfono, o vienen directamente al mostrador."),
+    ("m-2026-08-20", 46, "PO", "12:04", "¿Y eso les genera problemas?"),
+    ("m-2026-08-20", 47, "CL", "12:06", "Lo ideal sería que el paciente lo saque solo desde el celular, sin llamar a nadie."),
+    ("m-2026-08-20", 48, "CL", "12:14", "Claro, y que vea los horarios que están libres."),
+    ("m-2026-08-20", 49, "PO", "12:21", "Eso. Y si después no puede venir, que cancele ahí mismo."),
+    ("m-2026-08-20", 50, "CL", "12:30", "Pero ojo con las cancelaciones de último momento, eh."),
+    ("m-2026-08-20", 51, "CL", "12:41", "Si avisan con menos de un día ya no llegamos a llenar el hueco. Ahí habría que cobrarles algo, la mitad digamos."),
+    ("m-2026-08-20", 61, "CL", "18:05", "Igual la recepcionista va a tener que poder cargar turnos a mano, porque los pacientes grandes no usan la app ni loco."),
+    ("m-2026-08-20", 62, "AN", "18:19", "¿Los carga con los mismos datos?"),
+    ("m-2026-08-20", 63, "CL", "18:24", "Sí, nombre y obra social. A veces el teléfono no lo pedimos."),
+    ("m-2026-08-20", 72, "CL", "22:40", "A la mañana lo primero que hace la recepcionista es mirar quién viene ese día, para acomodar la sala."),
+    ("m-2026-08-20", 73, "PO", "22:52", "O sea que necesita la agenda del día a mano."),
+    ("m-2026-08-20", 95, "CL", "29:15", "Y algo que ayudaría un montón: mandarles un recordatorio por WhatsApp el día anterior."),
+    ("m-2026-08-20", 96, "AN", "29:28", "¿Con cuánta anticipación?"),
+    ("m-2026-08-20", 97, "CL", "29:31", "Un día antes está bien."),
+    ("m-2026-08-20", 112, "CL", "34:02", "Ah, y los médicos necesitan poder marcar cuando no van a estar."),
+    ("m-2026-08-20", 118, "CL", "34:20", "Si el doctor avisa que se toma la semana, esos horarios no se tienen que poder reservar."),
+    ("m-2026-08-20", 131, "CL", "38:44", "Después vemos lo de los estudios que necesitan preparación previa, que es otro tema."),
+    ("m-2026-08-20", 132, "PO", "38:55", "Lo dejamos para la próxima entonces."),
+]
+
+AMBIGUO_COBRO = {
+    "rule": "unambiguous",
+    "label": "Ambiguo",
+    "detail": "No se dijo cómo se cobra, ni si aplica cuando no hubo pago previo. El requisito queda incompleto a propósito: completar el hueco sería inventar la política.",
+}
+AMBIGUO_DATOS = {
+    "rule": "unambiguous",
+    "label": "Ambiguo",
+    "detail": "«A veces el teléfono no lo pedimos» no establece una regla. Sin el teléfono el paciente queda fuera del circuito de recordatorios.",
+}
+
+# (id, operación, objetivo, contenido, turnos, justificación, señales, tema)
+CANDIDATES_D1 = [
+    ("c-01-01", "create", "R-01", "Como paciente quiero reservar un turno desde el celular, para no tener que llamar por teléfono.", [44, 45, 47], "El cliente describe el canal telefónico como el problema a resolver.", [], "Reserva"),
+    ("c-01-02", "create", "R-02", "Como paciente quiero ver los horarios disponibles al reservar, para elegir el que me sirve.", [48], "Visibilidad de disponibilidad enunciada explícitamente.", [], "Reserva"),
+    ("c-01-03", "create", "R-03", "Como paciente quiero cancelar un turno desde la aplicación, para liberar el horario si no puedo asistir.", [49], "Cancelación autogestionada mencionada como continuación de la reserva.", [], "Cancelación"),
+    ("c-01-04", "create", "R-04", "Si la cancelación ocurre con menos de 24 h de anticipación, el sistema aplica un cargo del 50% del valor de la consulta.", [50, 51], "El cliente enuncia el plazo y el porcentaje.", [], "Cancelación"),
+    ("c-01-05", "create", "R-05", "El sistema debe definir cómo se cobra el cargo por cancelación tardía.", [51], "Se enuncia el cargo pero no el medio de cobro.", [AMBIGUO_COBRO], "Cancelación"),
+    ("c-01-06", "create", "R-06", "Como recepcionista quiero cargar turnos tomados por teléfono, para atender a pacientes que no usan la aplicación.", [61, 62, 63], "Canal manual requerido por el perfil de paciente mayor.", [], "Carga manual"),
+    ("c-01-07", "create", "R-07", "El sistema debe registrar qué datos son obligatorios al cargar un turno manualmente.", [63], "Se mencionan nombre y obra social, y el teléfono como opcional, sin definir la regla.", [AMBIGUO_DATOS], "Carga manual"),
+    ("c-01-08", "create", "R-08", "Como recepcionista quiero ver la agenda del día para organizar la sala de espera.", [72, 73], "Rutina de inicio de jornada descrita por el cliente.", [], "Agenda"),
+    ("c-01-09", "create", "R-09", "El sistema debe enviar un recordatorio por WhatsApp 24 h antes del turno.", [95, 96, 97], "Canal y anticipación enunciados explícitamente.", [], "Recordatorios"),
+    ("c-01-10", "create", "R-10", "Como médico quiero bloquear franjas horarias por ausencia, para que no se puedan reservar.", [112, 118], "Bloqueo de disponibilidad por ausencia del profesional.", [], "Disponibilidad"),
+]
+
 R02_R1 = "Como paciente quiero cancelar un turno hasta 24 h antes sin costo. Si la cancelación ocurre con menos de 24 h, se aplica un cargo del 50%."
 R02_R2 = R02_R1[:-1] + ", excepto cuando la cancelación la origina el profesional."
 R02_R3 = R02_R2[:-1] + ", en cuyo caso el paciente puede reprogramar desde la notificación recibida."
@@ -181,7 +233,20 @@ def seed() -> None:
         cur.executemany(
             "INSERT INTO turns (meeting_id, turn_id, speaker, starts_at, text) "
             "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-            TURNS,
+            TURNS + TURNS_D1,
+        )
+        cur.executemany(
+            "INSERT INTO change_proposals "
+            "(id, project_id, meeting_id, iteration, operation, target_id, "
+            " content, source_turn_ids, rationale, signals, theme) "
+            "VALUES (%s, %s, %s, 1, %s, %s, %s, %s, %s, %s, %s) "
+            "ON CONFLICT DO NOTHING",
+            [
+                (pid, PROJECT, "m-2026-08-20", op, target, content, turns,
+                 rationale, json.dumps(signals), theme)
+                for pid, op, target, content, turns, rationale, signals, theme
+                in CANDIDATES_D1
+            ],
         )
         cur.executemany(
             "INSERT INTO requirement_revisions "

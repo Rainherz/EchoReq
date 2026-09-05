@@ -168,6 +168,26 @@ export async function fetchQueue(
   }));
 }
 
+export async function fetchTurns(meetingId: string): Promise<Turn[]> {
+  const raw = await request<
+    Array<{
+      id: number;
+      meetingId: string;
+      speaker: string;
+      startsAt: string;
+      text: string;
+    }>
+  >(`/meetings/${encodeURIComponent(meetingId)}/turns`);
+
+  return raw.map((turn) => ({
+    id: turn.id,
+    meetingId: turn.meetingId,
+    speaker: turn.speaker as Turn["speaker"],
+    startsAt: turn.startsAt,
+    text: turn.text,
+  }));
+}
+
 export function fetchDocument(
   projectId: string,
   revision: number,
