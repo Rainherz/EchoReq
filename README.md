@@ -61,7 +61,7 @@ Fase 1 — interfaces sobre datos mock, sin backend.
 | Documento | `#document` | Lista |
 | Trazabilidad | `#traceability` | Lista |
 | Exportar | `#export` | Lista |
-| Iteraciones | `#iterations` | Pendiente |
+| Iteraciones | `#iterations` | Lista |
 
 Fase 2 — backend sobre PostgreSQL, con la interfaz conectada. Revisión,
 Documento y Trazabilidad leen y escriben contra la API; Descubrimiento y
@@ -99,8 +99,27 @@ Las columnas que dependen de reglas de calidad —`responsibilities`— se
 calculan en Python con la misma función que usa el resto del sistema, no se
 reimplementan en SQL.
 
-Pendiente: pipeline de transcripción y generación de propuestas, y la
-pantalla de Iteraciones.
+### Panel del estudio
+
+`#iterations` muestra la deriva del documento y el tiempo de decisión en
+**gráficos separados**, no en dos ejes verticales: responsabilidades y
+segundos no comparten escala, y superponerlos haría que el cruce de las
+curvas parezca un hallazgo cuando solo depende de las escalas elegidas. Cada
+serie lleva su tabla de números al pie.
+
+Con menos de dos puntos no se dibuja una curva: se muestra el valor y qué
+falta para que haya tendencia.
+
+Para ver las curvas con serie completa:
+
+```bash
+cd api && .venv/bin/python seed.py --reset --with-decisions
+```
+
+Esos son **datos inventados** que reproducen el patrón que el estudio busca
+detectar, no observaciones. Nunca cargarlos sobre una base con datos reales.
+
+Pendiente: pipeline de transcripción y generación de propuestas.
 
 ### Inmutabilidad
 

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { AppShell, ScreenStub } from "./shell/AppShell";
+import { AppShell } from "./shell/AppShell";
 import type { Section } from "./shell/AppShell";
 import { AsyncBoundary } from "./shell/AsyncBoundary";
 import { CaptureScreen } from "./requirements/capture/CaptureScreen";
 import { DiscoveryScreen } from "./requirements/discovery/DiscoveryScreen";
 import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
+import { IterationsScreen } from "./requirements/iterations/IterationsScreen";
 import { ExportScreen } from "./requirements/export/ExportScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { fetchQueue, recordDecision } from "./adapters/api/client";
@@ -38,10 +39,6 @@ const CRUMB: Record<Section, string> = {
   traceability: "/ Trazabilidad",
   iterations: "/ Iteraciones",
   export: "/ Exportar",
-};
-
-const STUB_TITLE: Record<string, string> = {
-  iterations: "Iteraciones del estudio",
 };
 
 const SECTIONS = Object.keys(CRUMB) as Section[];
@@ -145,7 +142,7 @@ export default function App() {
 
       {section === "export" && <ExportScreen projectId={PROJECT} />}
 
-      {section === "iterations" && <ScreenStub title={STUB_TITLE[section]} />}
+      {section === "iterations" && <IterationsScreen projectId={PROJECT} />}
     </AppShell>
   );
 }

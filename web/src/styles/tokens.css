@@ -22,8 +22,11 @@
   --warn: #a9631c;
   --warn-wash: #f5eade;
 
-  --stop: #a3382a;
-  --stop-wash: #f7e5e1;
+  /* Rojo corrido hacia el rosa para separarlo del ocre: en la matriz de
+     trazabilidad las marcas M y R comparten celda. Contrastado con el
+     validador de paletas; la letra queda como codificación secundaria. */
+  --stop: #ad2b45;
+  --stop-wash: #f8e4e8;
 
   --shadow: 0 1px 2px rgba(20, 32, 30, 0.05);
 
@@ -54,8 +57,8 @@
     --warn: #d69a51;
     --warn-wash: #271f11;
 
-    --stop: #e08a78;
-    --stop-wash: #2b1613;
+    --stop: #e8657f;
+    --stop-wash: #2c1620;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 
@@ -83,8 +86,8 @@
   --warn: #d69a51;
   --warn-wash: #271f11;
 
-  --stop: #e08a78;
-  --stop-wash: #2b1613;
+  --stop: #e8657f;
+  --stop-wash: #2c1620;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 

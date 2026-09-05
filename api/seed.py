@@ -7,7 +7,13 @@ La propuesta ``p-02`` va marcada como ``known_defective``: el guion de
 inyección sabe que colapsar el reembolso dentro de R-02 es incorrecto. Esa
 marca es el denominador de la métrica de aceptación de propuestas defectuosas.
 
-Uso:  .venv/bin/python seed.py [--reset]
+Uso:  .venv/bin/python seed.py [--reset] [--with-decisions]
+
+``--with-decisions`` agrega propuestas y decisiones en las iteraciones 1 y 2
+para que las curvas del panel del estudio tengan serie. Son datos INVENTADOS
+con fines de demostración, no observaciones: reproducen el patrón que el
+estudio busca detectar en lugar de medirlo. Nunca cargarlos sobre una base
+con datos reales.
 """
 
 from __future__ import annotations
@@ -96,6 +102,51 @@ PROPOSALS = [
 ]
 
 
+# Propuestas de las iteraciones 1 y 2, solo para la demostración.
+DEMO_PROPOSALS = [
+    ("d-101", 1, "m-2026-08-20", "create", "R-05", None, "Como médico quiero bloquear franjas horarias por ausencia.", [112, 118], "Bloqueo de disponibilidad.", False),
+    ("d-102", 1, "m-2026-08-20", "create", "R-06", None, "Como recepcionista quiero cargar turnos tomados por teléfono.", [61], "Canal manual.", False),
+    ("d-103", 1, "m-2026-08-20", "create", "R-01", None, "Como paciente quiero reservar un turno desde el celular.", [44, 47], "Autogestión de reserva.", False),
+    ("d-201", 2, "m-2026-09-03", "modify", "R-04", R04_R1, R04_R2, [23], "SMS de respaldo.", False),
+    ("d-202", 2, "m-2026-09-03", "modify", "R-02", R02_R1, R02_R2, [88], "Excepción del profesional.", True),
+    ("d-203", 2, "m-2026-09-03", "create", "R-08", None, "El sistema debe registrar el motivo de cada cancelación.", [91], "Trazabilidad de cancelaciones.", False),
+]
+
+# (propuesta, acción, segundos). El tiempo baja iteración a iteración y la
+# defectuosa d-202 se aprueba sin editar: es la forma que el estudio busca.
+DEMO_DECISIONS = [
+    ("d-103", "accept", 96), ("d-101", "accept", 78), ("d-102", "edit", 112),
+    ("d-201", "accept", 61), ("d-202", "accept", 34), ("d-203", "reject", 47),
+]
+
+
+def seed_demo_decisions() -> None:
+    """Carga la serie de demostración. Datos inventados, no observaciones."""
+    with cursor() as cur:
+        cur.executemany(
+            "INSERT INTO change_proposals "
+            "(id, project_id, meeting_id, iteration, operation, target_id, previous_content, "
+            " content, source_turn_ids, rationale, signals, known_defective) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            [
+                (pid, PROJECT, mid, it, op, target, previous, content, turns,
+                 rationale, json.dumps([]), defective)
+                for pid, it, mid, op, target, previous, content, turns, rationale, defective
+                in DEMO_PROPOSALS
+            ],
+        )
+        now = datetime.now(timezone.utc)
+        cur.executemany(
+            "INSERT INTO review_decisions "
+            "(proposal_id, participant_id, action, presented_at, decided_at) "
+            "VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            [
+                (pid, "p-analista-01", action, now - timedelta(seconds=secs), now)
+                for pid, action, secs in DEMO_DECISIONS
+            ],
+        )
+
+
 def reset() -> None:
     """Vacía el fixture.
 
@@ -164,6 +215,9 @@ if __name__ == "__main__":
             print("fixture vaciado")
         seed()
         print(f"fixture cargado: {PROJECT}")
+        if "--with-decisions" in sys.argv:
+            seed_demo_decisions()
+            print("serie de demostración cargada (datos inventados, no observaciones)")
     finally:
         # Python 3.14 no permite unir hilos durante la finalización del
         # intérprete: el pool tiene que cerrarse antes de salir.

@@ -1,0 +1,205 @@
+.iterations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: 1080px;
+}
+
+/* fichas de resumen */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.7rem;
+}
+
+.tile__label {
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  display: block;
+  margin-bottom: 0.45rem;
+}
+
+.tile__value {
+  font-family: var(--f-mono);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.tile__value--warn {
+  color: var(--warn);
+}
+
+.tile__value--stop {
+  color: var(--stop);
+}
+
+.tile__note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0.4rem 0 0;
+}
+
+/* gráficos */
+.chart {
+  margin: 0;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart__grid line {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.chart__tick {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  fill: var(--faint);
+}
+
+.chart__axis {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  fill: var(--faint);
+}
+
+.chart__line {
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart__dot {
+  stroke: var(--card);
+  stroke-width: 2;
+}
+
+.chart__endlabel {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chart__threshold {
+  stroke: var(--warn);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.chart__threshold-label {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  fill: var(--warn);
+}
+
+.chart__crosshair {
+  stroke: var(--faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chart__caption {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 0.6rem;
+  min-height: 1.3rem;
+}
+
+.chart__caption strong {
+  color: var(--ink);
+  font-family: var(--f-mono);
+  font-weight: 600;
+}
+
+/* aviso cuando todavía no hay serie */
+.notyet {
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  padding: 1.4rem 1.1rem;
+  text-align: center;
+}
+
+.notyet__value {
+  font-family: var(--f-mono);
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.notyet__label {
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.notyet__note {
+  font-size: 0.83rem;
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 46ch;
+  margin: 0.6rem auto 0;
+}
+
+/* tabla de números */
+.numbers {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.numbers th {
+  text-align: left;
+  font-family: var(--f-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 500;
+  padding: 0 0.7rem 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.numbers th:not(:first-child),
+.numbers td:not(:first-child) {
+  text-align: right;
+}
+
+.numbers td {
+  padding: 0.5rem 0.7rem 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.numbers tr:last-child td {
+  border-bottom: none;
+}
+
+.numbers td:last-child,
+.numbers th:last-child {
+  padding-right: 0;
+}
+
+.numbers .num {
+  font-family: var(--f-mono);
+}
