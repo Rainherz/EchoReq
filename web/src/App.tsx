@@ -4,6 +4,7 @@ import type { Section } from "./shell/AppShell";
 import { AsyncBoundary } from "./shell/AsyncBoundary";
 import { MeetingPicker } from "./shell/MeetingPicker";
 import { CaptureScreen } from "./requirements/capture/CaptureScreen";
+import { NewMeeting } from "./requirements/capture/NewMeeting";
 import { DiscoveryScreen } from "./requirements/discovery/DiscoveryScreen";
 import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
@@ -221,6 +222,8 @@ function ProjectApp({
     [selectedId],
   );
 
+  const [addingMeeting, setAddingMeeting] = useState(false);
+
   const persist = useCallback(async (input: RecordDecisionInput) => {
     const { id } = await recordDecision(input);
     return id;
@@ -265,9 +268,38 @@ function ProjectApp({
       <AsyncBoundary resource={meetings}>
         {() => (
           <>
-            {route.section === "sessions" && selected && (
-              <CaptureScreen meeting={selected} onChanged={meetings.reload} />
-            )}
+            {route.section === "sessions" &&
+              (addingMeeting || !selected ? (
+                <div className="capture">
+                  {!selected && (
+                    <div className="screen__head">
+                      <span className="screen__title">
+                        Este proyecto todavía no tiene reuniones
+                      </span>
+                      <span className="screen__meta">
+                        Creá la primera para empezar a cargar audio
+                      </span>
+                    </div>
+                  )}
+                  <NewMeeting
+                    projectId={projectId}
+                    participantId={PARTICIPANT}
+                    nextIteration={(meetings.data?.length ?? 0) + 1}
+                    onCreated={(created) => {
+                      setAddingMeeting(false);
+                      setMeetingId(created.id);
+                      meetings.reload();
+                    }}
+                    onCancel={selected ? () => setAddingMeeting(false) : undefined}
+                  />
+                </div>
+              ) : (
+                <CaptureScreen
+                  meeting={selected}
+                  onChanged={meetings.reload}
+                  onAddMeeting={() => setAddingMeeting(true)}
+                />
+              ))}
 
             {route.section === "discovery" && (
               <AsyncBoundary

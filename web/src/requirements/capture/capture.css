@@ -350,3 +350,35 @@
 .consent:disabled {
   cursor: default;
 }
+
+/* alta de reunión */
+.newmeeting {
+  max-width: 560px;
+}
+
+.newmeeting__spaced {
+  margin-top: 1rem;
+}
+
+.newmeeting__date {
+  max-width: 15rem;
+}
+
+.newmeeting__hint {
+  font-size: 0.79rem;
+  line-height: 1.55;
+  color: var(--faint);
+  margin: 0.7rem 0 0;
+  max-width: 62ch;
+}
+
+.newmeeting__failure {
+  border-left: 3px solid var(--stop);
+  background: var(--stop-wash);
+  color: var(--ink-soft);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0.9rem 0 0;
+}

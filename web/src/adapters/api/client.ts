@@ -158,6 +158,29 @@ export async function recordConsent(meetingId: string): Promise<void> {
   }
 }
 
+export interface NewMeeting {
+  label: string;
+  /** ISO 8601. */
+  heldAt: string;
+  participantId: string;
+}
+
+/**
+ * Crea la próxima reunión del proyecto.
+ *
+ * La iteración y el modo no se mandan: los deriva el servidor, porque son
+ * reglas del estudio y no opciones de quien la crea.
+ */
+export function createMeeting(
+  projectId: string,
+  input: NewMeeting,
+): Promise<Meeting> {
+  return request<Meeting>(`/projects/${projectId}/meetings`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export interface Project {
   id: string;
   name: string;

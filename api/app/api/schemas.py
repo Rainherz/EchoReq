@@ -31,6 +31,12 @@ class MeetingOut(Schema):
     transcription_error: str | None
 
 
+class MeetingIn(Schema):
+    label: str = Field(min_length=2, max_length=120)
+    held_at: datetime
+    participant_id: str
+
+
 class MeetingAudioOut(Schema):
     filename: str
     size_bytes: int

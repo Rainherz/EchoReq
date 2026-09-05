@@ -41,6 +41,8 @@ interface CaptureScreenProps {
   meeting: Meeting;
   /** Recarga la reunión desde la API después de un cambio. */
   onChanged: () => void;
+  /** Abre el alta de una reunión nueva. */
+  onAddMeeting: () => void;
 }
 
 /**
@@ -51,7 +53,11 @@ interface CaptureScreenProps {
  * cambiaría la entrada que el estudio mide, y la deriva ya no podría
  * separarse de la influencia del asistente.
  */
-export function CaptureScreen({ meeting, onChanged }: CaptureScreenProps) {
+export function CaptureScreen({
+  meeting,
+  onChanged,
+  onAddMeeting,
+}: CaptureScreenProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -109,6 +115,11 @@ export function CaptureScreen({ meeting, onChanged }: CaptureScreenProps) {
             dateStyle: "long",
             timeStyle: "short",
           })}
+        </span>
+        <span className="screen__ops">
+          <button type="button" className="btn btn--small" onClick={onAddMeeting}>
+            Nueva reunión
+          </button>
         </span>
       </div>
 

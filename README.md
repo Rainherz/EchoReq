@@ -219,6 +219,20 @@ Al crearlo se definen tres cosas:
 cada formato se evalúa con criterios de calidad distintos, y mezclarlos haría
 incomparables las curvas de deriva.
 
+### Reuniones
+
+Se crean desde el proyecto, pidiendo solo nombre y fecha. **La iteración y el
+modo no se eligen: los deriva el servidor.** La primera reunión de un proyecto
+es de descubrimiento porque no hay documento contra el cual comparar; las
+siguientes son de documentación viva.
+
+Dejarlo a criterio de quien la crea permitiría una cadena con dos
+descubrimientos, o con ninguno, y la curva de deriva dejaría de significar lo
+mismo.
+
+El identificador lleva el proyecto adentro —`clinica-norte-r4`— porque
+`m-<fecha>` colisionaba entre proyectos y entre dos reuniones del mismo día.
+
 El último proyecto abierto se reabre solo. Va en `localStorage` y no en la
 URL, al revés que la sección: un enlace a un requisito tiene que poder
 compartirse, pero en qué proyecto estaba trabajando cada uno es contexto

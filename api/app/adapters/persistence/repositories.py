@@ -78,6 +78,14 @@ class PostgresCatalogRepository:
             )
             return [Project(**row) for row in cur.fetchall()]
 
+    def project_exists(self, project_id: str) -> bool:
+        with cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM projects WHERE id = %s AND archived_at IS NULL",
+                (project_id,),
+            )
+            return cur.fetchone() is not None
+
     def create_project(self, name: str, fmt: str, domain: str) -> Project:
         """Crea el workspace. El identificador sale del nombre.
 
@@ -134,18 +142,35 @@ class PostgresCatalogRepository:
 class PostgresMeetingRepository:
     """Escritura sobre la reunión: consentimiento y audio."""
 
-    def create(
-        self, project_id: str, iteration: int, label: str, held_at, mode: str
-    ) -> str:
-        meeting_id = f"m-{held_at:%Y-%m-%d}"
+    def create(self, project_id: str, label: str, held_at) -> str:
+        """Crea la próxima reunión del proyecto.
+
+        La iteración y el modo NO los elige quien crea: la primera reunión de
+        un proyecto es de descubrimiento porque no hay documento contra el
+        cual comparar, y las siguientes son de documentación viva. Dejarlo a
+        criterio del usuario permitiría una cadena con dos descubrimientos, o
+        con ninguno, y la curva de deriva dejaría de significar lo mismo.
+
+        El identificador lleva el proyecto adentro: `m-<fecha>` colisionaba
+        entre proyectos y entre dos reuniones del mismo día.
+        """
         with cursor() as cur:
+            cur.execute(
+                "SELECT coalesce(max(iteration), 0) + 1 AS next "
+                "FROM meetings WHERE project_id = %s",
+                (project_id,),
+            )
+            iteration = cur.fetchone()["next"]
+            mode = "discovery" if iteration == 1 else "living"
+            meeting_id = f"{project_id}-r{iteration}"
+
             cur.execute(
                 """
                 INSERT INTO meetings (id, project_id, iteration, label, held_at, mode)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING id
                 """,
-                (meeting_id, project_id, iteration, label, held_at, mode),
+                (meeting_id, project_id, iteration, label.strip(), held_at, mode),
             )
             return cur.fetchone()["id"]
 

@@ -30,6 +30,7 @@ from .schemas import (
     DocumentEntryOut,
     DriftOut,
     MeetingAudioOut,
+    MeetingIn,
     MeetingOut,
     MetricsOut,
     ProjectIn,
@@ -80,10 +81,28 @@ def create_project(payload: ProjectIn) -> ProjectOut:
 @router.get("/projects/{project_id}/meetings")
 def meetings(project_id: str, participant: str = Query(...)) -> list[MeetingOut]:
     """Reuniones del proyecto, con cuántas propuestas le quedan al participante."""
-    rows = _catalog.meetings(project_id, participant)
-    if not rows:
-        raise HTTPException(status_code=404, detail=f"No hay reuniones en {project_id}.")
-    return [MeetingOut(**asdict(m)) for m in rows]
+    # Un proyecto recién creado no tiene reuniones. Eso es un estado válido,
+    # no un error: la interfaz muestra el vacío y ofrece crear la primera.
+    return [MeetingOut(**asdict(m)) for m in _catalog.meetings(project_id, participant)]
+
+
+@router.post("/projects/{project_id}/meetings", status_code=201)
+def create_meeting(project_id: str, payload: MeetingIn) -> MeetingOut:
+    """Crea la próxima reunión del proyecto.
+
+    La iteración y el modo se derivan: son reglas del estudio, no opciones.
+    """
+    if not _catalog.project_exists(project_id):
+        raise HTTPException(
+            status_code=404, detail=f"No existe el proyecto {project_id}."
+        )
+
+    meeting_id = _meetings_repo.create(project_id, payload.label, payload.held_at)
+    created = next(
+        m for m in _catalog.meetings(project_id, payload.participant_id)
+        if m.id == meeting_id
+    )
+    return MeetingOut(**asdict(created))
 
 
 @router.post("/meetings/{meeting_id}/consent", status_code=204)
