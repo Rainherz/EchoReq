@@ -113,6 +113,29 @@ class DocumentEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class Meeting:
+    """Una reunión procesada del proyecto."""
+
+    id: str
+    project_id: str
+    iteration: int
+    label: str
+    mode: Mode
+    held_at: datetime
+    has_consent: bool
+    turn_count: int
+    pending_proposals: int
+
+
+@dataclass(frozen=True, slots=True)
+class Project:
+    id: str
+    name: str
+    format: str
+    meeting_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class Rejection:
     """Propuesta rechazada. La ausencia que deja es un dato del estudio."""
 

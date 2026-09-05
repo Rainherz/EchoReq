@@ -16,6 +16,8 @@ from ...requirements.domain.entities import (
     ChangeProposal,
     DocumentEntry,
     IterationMetrics,
+    Meeting,
+    Project,
     QualitySignal,
     Rejection,
     RequirementRevision,
@@ -45,6 +47,49 @@ def _to_proposal(row: dict) -> ChangeProposal:
         theme=row["theme"],
         known_defective=row["known_defective"],
     )
+
+
+class PostgresCatalogRepository:
+    """Proyectos y reuniones. Es el contexto que elige el revisor antes de
+    ponerse a trabajar."""
+
+    def projects(self) -> list[Project]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT p.id, p.name, p.format, count(m.id) AS meeting_count
+                FROM projects p
+                LEFT JOIN meetings m ON m.project_id = p.id
+                GROUP BY p.id, p.name, p.format
+                ORDER BY p.name
+                """
+            )
+            return [Project(**row) for row in cur.fetchall()]
+
+    def meetings(self, project_id: str, participant_id: str) -> list[Meeting]:
+        """Reuniones del proyecto, con lo que le queda pendiente al participante."""
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    m.id, m.project_id, m.iteration, m.label, m.mode, m.held_at,
+                    (m.consent_at IS NOT NULL) AS has_consent,
+                    (SELECT count(*) FROM turns t WHERE t.meeting_id = m.id)
+                        AS turn_count,
+                    (SELECT count(*) FROM change_proposals cp
+                      WHERE cp.meeting_id = m.id
+                        AND NOT EXISTS (
+                            SELECT 1 FROM review_decisions d
+                            WHERE d.proposal_id = cp.id
+                              AND d.participant_id = %s
+                        )) AS pending_proposals
+                FROM meetings m
+                WHERE m.project_id = %s
+                ORDER BY m.iteration
+                """,
+                (participant_id, project_id),
+            )
+            return [Meeting(**row) for row in cur.fetchall()]
 
 
 class PostgresProposalRepository:

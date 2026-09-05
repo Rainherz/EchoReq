@@ -16,6 +16,24 @@ class Schema(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class MeetingOut(Schema):
+    id: str
+    iteration: int
+    label: str
+    mode: str
+    held_at: datetime
+    has_consent: bool
+    turn_count: int
+    pending_proposals: int
+
+
+class ProjectOut(Schema):
+    id: str
+    name: str
+    format: str
+    meeting_count: int
+
+
 class TurnOut(Schema):
     id: int
     meeting_id: str

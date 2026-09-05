@@ -16,13 +16,24 @@ interface NavEntry {
   count?: number;
 }
 
-const PROJECT_NAV: NavEntry[] = [
-  { id: "sessions", label: "Sesiones", count: 3 },
-  { id: "discovery", label: "Descubrimiento", count: 10 },
-  { id: "review", label: "Revisión", count: 5 },
-  { id: "document", label: "Documento" },
-  { id: "traceability", label: "Trazabilidad" },
-];
+/** Los contadores salen del estado real; escribirlos a mano los deja
+    mintiendo apenas cambian los datos. */
+function projectNav(counts: NavCounts): NavEntry[] {
+  return [
+    { id: "sessions", label: "Sesiones", count: counts.meetings },
+    // Sin contador: Descubrimiento todavía corre sobre datos de ejemplo, y
+    // un número que no corresponde a lo que hay adentro miente.
+    { id: "discovery", label: "Descubrimiento" },
+    { id: "review", label: "Revisión", count: counts.pendingReview },
+    { id: "document", label: "Documento" },
+    { id: "traceability", label: "Trazabilidad" },
+  ];
+}
+
+interface NavCounts {
+  meetings: number;
+  pendingReview: number;
+}
 
 const STUDY_NAV: NavEntry[] = [
   { id: "iterations", label: "Iteraciones" },
@@ -34,6 +45,8 @@ interface AppShellProps {
   crumb: string;
   active: Section;
   onNavigate: (section: Section) => void;
+  pendingReview?: number;
+  meetingCount?: number;
   toolbar?: ReactNode;
   children: ReactNode;
 }
@@ -43,9 +56,12 @@ export function AppShell({
   crumb,
   active,
   onNavigate,
+  pendingReview = 0,
+  meetingCount = 0,
   toolbar,
   children,
 }: AppShellProps) {
+  const PROJECT_NAV = projectNav({ meetings: meetingCount, pendingReview });
   const renderNav = (entries: NavEntry[]) =>
     entries.map((entry) => (
       <button
@@ -57,7 +73,7 @@ export function AppShell({
       >
         <span className="navitem__dot" aria-hidden="true" />
         {entry.label}
-        {entry.count !== undefined && (
+        {entry.count !== undefined && entry.count > 0 && (
           <span className="navitem__count">{entry.count}</span>
         )}
       </button>

@@ -15,6 +15,8 @@ interface DocumentScreenProps {
   projectId: string;
   currentRevision: number;
   meetingLabels: Record<string, string>;
+  /** Requisito a abrir al entrar, si la ruta lo trae. */
+  focusRequirementId?: string | null;
 }
 
 /**
@@ -29,11 +31,21 @@ export function DocumentScreen({
   projectId,
   currentRevision,
   meetingLabels,
+  focusRequirementId = null,
 }: DocumentScreenProps) {
   const [revision, setRevision] = useState(currentRevision);
   const [query, setQuery] = useState("");
   const [onlyFlagged, setOnlyFlagged] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // La matriz de trazabilidad navega acá con el requisito en la ruta. La
+  // selección se deriva durante el render en vez de sincronizarse con un
+  // efecto: un efecto que llama a setState dispara un render en cascada.
+  const [picked, setPicked] = useState<string | null>(null);
+  const [lastFocus, setLastFocus] = useState(focusRequirementId);
+  if (focusRequirementId !== lastFocus) {
+    setLastFocus(focusRequirementId);
+    setPicked(null);
+  }
+  const selectedId = picked ?? focusRequirementId;
 
   const document = useResource(
     useCallback(() => fetchDocument(projectId, revision), [projectId, revision]),
@@ -140,9 +152,7 @@ export function DocumentScreen({
             <RequirementTable
               entries={visible}
               selectedId={selectedId}
-              onSelect={(id) =>
-                setSelectedId((current) => (current === id ? null : id))
-              }
+              onSelect={(id) => setPicked(selectedId === id ? "" : id)}
             />
           </div>
         )}

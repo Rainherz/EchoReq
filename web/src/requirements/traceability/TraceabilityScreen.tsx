@@ -30,6 +30,8 @@ interface TraceabilityScreenProps {
   projectId: string;
   currentRevision: number;
   meetingDates: Record<number, string>;
+  /** Abre la historia del requisito en Documento. */
+  onOpenRequirement: (requirementId: string) => void;
 }
 
 interface MatrixData {
@@ -49,6 +51,7 @@ export function TraceabilityScreen({
   projectId,
   currentRevision,
   meetingDates,
+  onOpenRequirement,
 }: TraceabilityScreenProps) {
   const resource = useResource<MatrixData>(
     useCallback(
@@ -75,7 +78,14 @@ export function TraceabilityScreen({
       </div>
 
       <AsyncBoundary resource={resource}>
-        {(data) => <Matrix data={data} columns={columns} meetingDates={meetingDates} />}
+        {(data) => (
+          <Matrix
+            data={data}
+            columns={columns}
+            meetingDates={meetingDates}
+            onOpenRequirement={onOpenRequirement}
+          />
+        )}
       </AsyncBoundary>
     </div>
   );
@@ -85,10 +95,12 @@ function Matrix({
   data,
   columns,
   meetingDates,
+  onOpenRequirement,
 }: {
   data: MatrixData;
   columns: number[];
   meetingDates: Record<number, string>;
+  onOpenRequirement: (requirementId: string) => void;
 }) {
   const { revisions, snapshots, rejections } = data;
 
@@ -179,7 +191,16 @@ function Matrix({
                 const reopened = (touchedCount.get(id) ?? 0) >= REOPEN_THRESHOLD;
                 return (
                   <tr key={id} className={reopened ? "matrix__row--reopened" : undefined}>
-                    <td className="matrix__id">{id}</td>
+                    <td className="matrix__id">
+                      <button
+                        type="button"
+                        className="matrix__open"
+                        onClick={() => onOpenRequirement(id)}
+                        title={`Abrir la historia de ${id} en Documento`}
+                      >
+                        {id}
+                      </button>
+                    </td>
                     {columns.map((revision) => {
                       const marks = marksFor(id, revision);
                       return (

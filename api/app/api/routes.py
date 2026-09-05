@@ -10,6 +10,7 @@ from fastapi import Response
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.persistence.repositories import (
     AlreadyDecided,
+    PostgresCatalogRepository,
     PostgresDecisionRepository,
     PostgresDocumentRepository,
     PostgresProposalRepository,
@@ -22,7 +23,9 @@ from .schemas import (
     DecisionOut,
     DocumentEntryOut,
     DriftOut,
+    MeetingOut,
     MetricsOut,
+    ProjectOut,
     DatasetOut,
     ProposalOut,
     RejectionOut,
@@ -35,10 +38,37 @@ _proposals = PostgresProposalRepository()
 _decisions = PostgresDecisionRepository()
 _documents = PostgresDocumentRepository()
 _transcripts = PostgresTranscriptRepository()
+_catalog = PostgresCatalogRepository()
 
 _queue = ReviewQueue(_proposals, _transcripts, _decisions)
 _spec = SpecificationReader(_documents)
 _metrics = StudyMetrics(_decisions)
+
+
+@router.get("/projects")
+def projects() -> list[ProjectOut]:
+    return [ProjectOut(**asdict(row)) for row in _catalog.projects()]
+
+
+@router.get("/projects/{project_id}/meetings")
+def meetings(project_id: str, participant: str = Query(...)) -> list[MeetingOut]:
+    """Reuniones del proyecto, con cuántas propuestas le quedan al participante."""
+    rows = _catalog.meetings(project_id, participant)
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No hay reuniones en {project_id}.")
+    return [
+        MeetingOut(
+            id=m.id,
+            iteration=m.iteration,
+            label=m.label,
+            mode=m.mode,
+            held_at=m.held_at,
+            has_consent=m.has_consent,
+            turn_count=m.turn_count,
+            pending_proposals=m.pending_proposals,
+        )
+        for m in rows
+    ]
 
 
 @router.get("/projects/{project_id}/iterations/{iteration}/queue")

@@ -103,7 +103,40 @@ interface RawRevision {
   summary: string;
 }
 
+export interface Meeting {
+  id: string;
+  iteration: number;
+  label: string;
+  mode: "discovery" | "living";
+  heldAt: string;
+  hasConsent: boolean;
+  turnCount: number;
+  /** Propuestas que este participante todavía no decidió. */
+  pendingProposals: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  format: string;
+  meetingCount: number;
+}
+
 /* --------------------------------------------------------------- lecturas */
+
+export function fetchProjects(): Promise<Project[]> {
+  return request<Project[]>("/projects");
+}
+
+export function fetchMeetings(
+  projectId: string,
+  participantId: string,
+): Promise<Meeting[]> {
+  return request<Meeting[]>(
+    `/projects/${projectId}/meetings?participant=${encodeURIComponent(participantId)}`,
+  );
+}
+
 
 export async function fetchQueue(
   projectId: string,

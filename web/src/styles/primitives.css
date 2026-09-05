@@ -191,3 +191,39 @@
   background: var(--ok);
   border-color: var(--ok);
 }
+
+/* selector de contexto en la barra superior */
+.picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.picker__label {
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.picker__select {
+  font-family: var(--f-body);
+  font-size: 0.78rem;
+  padding: 0.3em 1.6em 0.3em 0.6em;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--card);
+  color: var(--ink);
+  max-width: 22rem;
+}
+
+.picker__badge {
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  background: var(--ok);
+  color: var(--on-ok);
+  border-radius: 9px;
+  padding: 0.1em 0.45em;
+}
