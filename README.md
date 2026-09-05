@@ -161,6 +161,35 @@ convención del código. Un `UPDATE` accidental sobre una decisión de revisión
 destruiría datos que no se pueden reconstruir. La única vía de reinicio es
 `TRUNCATE`, y solo sobre una base de prueba.
 
+## Color
+
+La paleta es [Radix Colors](https://www.radix-ui.com/colors): escalas de 12
+pasos con rol asignado —1-2 fondos, 3-5 componentes interactivos, 6-8 bordes,
+9-10 sólidos, 11-12 texto— y su par de modo oscuro ya afinado.
+
+| Escala | Para qué |
+| --- | --- |
+| `sage` | Neutros gris verdosos |
+| `jade` | Acento |
+| `amber` | Advertencias |
+| `crimson` | Conflictos y rechazos |
+
+`src/styles/tokens.css` mapea esos pasos a tokens semánticos —`--ink`, `--ok`,
+`--line`— y los componentes usan solo esos. Cambiar de escala es tocar ese
+archivo y nada más; no quedan hexadecimales sueltos fuera de él.
+
+Dos reglas que el sistema hace explícitas y antes se mezclaban:
+
+- **El paso 9 es sólido, el 11 es texto.** Un mismo valor para las dos cosas
+  lee apagado como relleno y flojo como texto. Por eso hay `--ok` y
+  `--ok-text` separados.
+- **Los estados salen de pasos, no de filtros.** El hover es `--ok-hover`
+  (paso 10), no `filter: brightness()`.
+
+`amber` merece una advertencia: su paso 9 es un amarillo pensado para llevar
+texto oscuro encima, y sobre fondo claro mide 1.49:1. Sirve como relleno,
+nunca como borde ni como trazo — para eso va el paso de texto.
+
 ## Estructura
 
 ```

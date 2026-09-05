@@ -67,9 +67,9 @@
 .timer {
   font-family: var(--f-mono);
   font-size: 0.72rem;
-  color: var(--warn);
+  color: var(--warn-text);
   background: var(--warn-wash);
-  border: 1px solid var(--warn);
+  border: 1px solid var(--warn-text);
   border-radius: 4px;
   padding: 0.2em 0.55em;
   display: inline-flex;
@@ -82,7 +82,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--warn);
+  background: var(--warn-text);
 }
 
 /* diff: dos columnas, vigente contra propuesto */
@@ -137,7 +137,7 @@
 .diff__added {
   background: var(--ok-wash);
   text-decoration: underline;
-  text-decoration-color: var(--ok);
+  text-decoration-color: var(--ok-text);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
   padding: 0.08em 0.1em;
@@ -145,9 +145,9 @@
 }
 
 .diff__removed {
-  color: var(--stop);
+  color: var(--stop-text);
   text-decoration: line-through;
-  text-decoration-color: var(--stop);
+  text-decoration-color: var(--stop-text);
   opacity: 0.85;
 }
 
@@ -216,7 +216,7 @@
 }
 
 .turn--cited .turn__meta {
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .speaker {
@@ -234,12 +234,12 @@
 
 .speaker--CL {
   background: var(--warn-wash);
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .speaker--PO {
   background: var(--ok-wash);
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .speaker--AN {
@@ -250,7 +250,7 @@
 /* signals */
 .signal {
   border: 1px solid var(--line);
-  border-left: 3px solid var(--warn);
+  border-left: 3px solid var(--warn-text);
   border-radius: 5px;
   background: var(--warn-wash);
   padding: 0.55rem 0.65rem;

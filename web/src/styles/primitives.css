@@ -44,17 +44,17 @@
 
 .tag--ok {
   background: var(--ok-wash);
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .tag--warn {
   background: var(--warn-wash);
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .tag--stop {
   background: var(--stop-wash);
-  color: var(--stop);
+  color: var(--stop-text);
 }
 
 .btn {
@@ -78,8 +78,8 @@
 }
 
 .btn--primary:hover {
-  filter: brightness(1.06);
-  background: var(--ok);
+  background: var(--ok-hover);
+  border-color: var(--ok-hover);
 }
 
 .btn--small {
@@ -96,7 +96,7 @@
 .btn--chip[aria-pressed="true"] {
   background: var(--ok-wash);
   border-color: var(--ok);
-  color: var(--ok);
+  color: var(--ok-text);
   font-weight: 600;
 }
 
@@ -169,5 +169,5 @@
 .btn--primary:disabled,
 .btn--primary:disabled:hover {
   background: var(--ok);
-  filter: none;
+  border-color: var(--ok);
 }

@@ -32,11 +32,11 @@
 }
 
 .tile__value--warn {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .tile__value--stop {
-  color: var(--stop);
+  color: var(--stop-text);
 }
 
 .tile__note {
@@ -95,7 +95,7 @@
 }
 
 .chart__threshold {
-  stroke: var(--warn);
+  stroke: var(--warn-text);
   stroke-width: 1;
   stroke-dasharray: 4 4;
 }
@@ -103,7 +103,7 @@
 .chart__threshold-label {
   font-family: var(--f-mono);
   font-size: 10px;
-  fill: var(--warn);
+  fill: var(--warn-text);
 }
 
 .chart__crosshair {

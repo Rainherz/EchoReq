@@ -1,36 +1,67 @@
-/* Design tokens and base layer.
-   Every colour is declared here in the bare :root block first, so the
-   un-stamped (system-default) theme always resolves to a complete palette. */
+/* Escalas de color: Radix Colors — https://www.radix-ui.com/colors
 
+   Cada escala son 12 pasos con rol asignado —1-2 fondos, 3-5 componentes
+   interactivos, 6-8 bordes, 9-10 sólidos, 11-12 texto— y su par de modo
+   oscuro ya afinado. Reemplaza a los hexadecimales que veníamos eligiendo a
+   ojo, donde el hover era `filter: brightness()` y el deshabilitado era
+   `opacity` porque no existían los pasos intermedios.
+
+     sage      neutros gris verdosos, el gris que Radix aparea con jade
+     jade      acento
+     amber     advertencias
+     crimson   conflictos y rechazos */
+
+@import "@radix-ui/colors/sage.css";
+@import "@radix-ui/colors/sage-dark.css";
+@import "@radix-ui/colors/jade.css";
+@import "@radix-ui/colors/jade-dark.css";
+@import "@radix-ui/colors/amber.css";
+@import "@radix-ui/colors/amber-dark.css";
+@import "@radix-ui/colors/crimson.css";
+@import "@radix-ui/colors/crimson-dark.css";
+
+/* Los tokens semánticos se definen en términos de los pasos, nunca de
+   valores sueltos. Los componentes siguen usando --ink, --ok, --line: para
+   cambiar de escala se toca este bloque y nada más. */
 :root {
-  --ink: #14201e;
-  --ink-soft: #2c3a36;
-  --muted: #59665f;
-  --faint: #8a968f;
+  /* Texto. Radix expone dos pasos de texto, 11 y 12. La jerarquía entre
+     secundario y terciario la hace el tamaño, no un gris más claro: seguir
+     bajando el contraste es como veníamos teniendo etiquetas por debajo del
+     mínimo legible. */
+  --ink: var(--sage-12);
+  --ink-soft: var(--sage-11);
+  --muted: var(--sage-11);
+  --faint: var(--sage-11);
 
-  --chrome: #e2e7e1;
-  --bg: #f8f9f7;
-  --card: #ffffff;
-  --line: #d5ddd4;
-  --hover: #eef1ed;
-  --sunken: #ecefea;
+  /* Superficies */
+  --bg: var(--sage-2);
+  --card: var(--sage-1);
+  --chrome: var(--sage-3);
+  --sunken: var(--sage-3);
+  --hover: var(--sage-4);
+  --line: var(--sage-6);
 
-  /* Saturación subida: el valor anterior (#1d6b5e, croma 0.077) quedaba por
-     debajo del piso y leía gris. Verificado con el validador de paletas. */
-  --ok: #0e8f76;
-  --ok-wash: #ddf0e9;
-  --on-ok: #f7fbf9;
+  /* Acento. El paso 9 es el sólido —rellenos, marcas— y el 11 es el texto.
+     Usar un mismo valor para las dos cosas es lo que hacía que el acento
+     leyera apagado como relleno o quedara flojo como texto. */
+  --ok: var(--jade-9);
+  --ok-hover: var(--jade-10);
+  --ok-text: var(--jade-11);
+  --ok-wash: var(--jade-3);
+  --ok-line: var(--jade-6);
+  --on-ok: var(--jade-12);
 
-  --warn: #a9631c;
-  --warn-wash: #f5eade;
+  --warn: var(--amber-9);
+  --warn-text: var(--amber-11);
+  --warn-wash: var(--amber-3);
+  --warn-line: var(--amber-6);
 
-  /* Rojo corrido hacia el rosa para separarlo del ocre: en la matriz de
-     trazabilidad las marcas M y R comparten celda. Contrastado con el
-     validador de paletas; la letra queda como codificación secundaria. */
-  --stop: #ad2b45;
-  --stop-wash: #f8e4e8;
+  --stop: var(--crimson-9);
+  --stop-text: var(--crimson-11);
+  --stop-wash: var(--crimson-3);
+  --stop-line: var(--crimson-6);
 
-  --shadow: 0 1px 2px rgba(20, 32, 30, 0.05);
+  --shadow: 0 1px 2px rgba(26, 33, 30, 0.06);
 
   --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -38,61 +69,29 @@
   color-scheme: light;
 }
 
+/* Radix aplica sus escalas oscuras bajo `.dark`; la clase se pone en el
+   elemento raíz. Los tokens de arriba apuntan a los mismos nombres de paso,
+   así que se recalculan solos y acá solo se reasignan las superficies, que
+   invierten su rol. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ink: #e6ebe7;
-    --ink-soft: #c8d1cb;
-    --muted: #93a099;
-    --faint: #6b7a73;
-
-    --chrome: #151e1b;
-    --bg: #121b18;
-    --card: #1a2421;
-    --line: #2a3833;
-    --hover: #1f2c28;
-    --sunken: #141d1a;
-
-    --ok: #3cc4a2;
-    --ok-wash: #14291f;
-    --on-ok: #071310;
-
-    --warn: #d69a51;
-    --warn-wash: #271f11;
-
-    --stop: #e8657f;
-    --stop-wash: #2c1620;
-
+    --bg: var(--sage-1);
+    --card: var(--sage-2);
+    --chrome: var(--sage-2);
+    --sunken: var(--sage-1);
+    --on-ok: var(--jade-1);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --ink: #e6ebe7;
-  --ink-soft: #c8d1cb;
-  --muted: #93a099;
-  --faint: #6b7a73;
-
-  --chrome: #151e1b;
-  --bg: #121b18;
-  --card: #1a2421;
-  --line: #2a3833;
-  --hover: #1f2c28;
-  --sunken: #141d1a;
-
-  --ok: #3cc4a2;
-  --ok-wash: #14291f;
-  --on-ok: #071310;
-
-  --warn: #d69a51;
-  --warn-wash: #271f11;
-
-  --stop: #e8657f;
-  --stop-wash: #2c1620;
-
+  --bg: var(--sage-1);
+  --card: var(--sage-2);
+  --chrome: var(--sage-2);
+  --sunken: var(--sage-1);
+  --on-ok: var(--jade-1);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-
   color-scheme: dark;
 }
 

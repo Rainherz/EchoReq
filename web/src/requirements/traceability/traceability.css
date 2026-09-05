@@ -63,7 +63,7 @@
   font-family: var(--f-mono);
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--ok);
+  color: var(--ok-text);
   text-align: left !important;
   white-space: nowrap;
 }
@@ -77,7 +77,7 @@
 }
 
 .matrix__trend b {
-  color: var(--warn);
+  color: var(--warn-text);
   font-weight: 600;
 }
 
@@ -101,15 +101,15 @@
 
 .mark--modify {
   background: var(--warn-wash);
-  color: var(--warn);
-  border-color: var(--warn);
+  color: var(--warn-text);
+  border-color: var(--warn-text);
 }
 
 .mark--conflict,
 .mark--rejected {
   background: var(--stop-wash);
-  color: var(--stop);
-  border-color: var(--stop);
+  color: var(--stop-text);
+  border-color: var(--stop-text);
 }
 
 .mark--none {
@@ -163,11 +163,10 @@
 
 .matrix__row--reopened:hover td {
   background: var(--warn-wash);
-  filter: brightness(1.04);
 }
 
 .matrix__row--reopened .matrix__id {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .matrix__finding {
@@ -186,7 +185,7 @@
   width: 9px;
   height: 9px;
   border-radius: 2px;
-  background: var(--warn);
+  background: var(--warn-text);
   flex: none;
   transform: translateY(1px);
 }

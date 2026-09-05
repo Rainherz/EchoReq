@@ -91,7 +91,7 @@
 .step__hint {
   font-family: var(--f-mono);
   font-size: 0.72rem;
-  color: var(--warn);
+  color: var(--warn-text);
   margin: 0.65rem 0 0;
   line-height: 1.5;
 }
@@ -241,7 +241,7 @@
 .consent__stamp {
   font-family: var(--f-mono);
   font-size: 0.71rem;
-  color: var(--ok);
+  color: var(--ok-text);
   display: block;
   margin-top: 0.35rem;
 }
@@ -268,7 +268,7 @@
 }
 
 .stage--active {
-  color: var(--ok);
+  color: var(--ok-text);
   font-weight: 500;
 }
 

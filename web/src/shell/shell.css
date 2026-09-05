@@ -36,7 +36,7 @@
   height: 23px;
   border-radius: 50%;
   background: var(--ok-wash);
-  color: var(--ok);
+  color: var(--ok-text);
   font-family: var(--f-mono);
   font-size: 0.63rem;
   font-weight: 600;
@@ -101,7 +101,7 @@
 
 .navitem[aria-current="page"] {
   background: var(--ok-wash);
-  color: var(--ok);
+  color: var(--ok-text);
   font-weight: 600;
 }
 
