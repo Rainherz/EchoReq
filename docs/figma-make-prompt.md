@@ -117,9 +117,10 @@ Hay tres hablantes con color propio: CL cliente, PO product owner, AN analista.
 Lo que hay hoy y quiero conservar como base:
 
 - Neutros gris verdosos fríos, no grises puros.
-- Verde azulado profundo `#1d6b5e` como acento principal.
-- Ocre apagado `#a9631c` para advertencias, ladrillo `#a3382a` para conflictos
-  y rechazos. Son colores semánticos, distintos del acento.
+- Verde azulado `#0e8f76` en claro y `#3cc4a2` en oscuro como acento
+  principal. Saturado a propósito: la versión apagada anterior leía gris.
+- Ocre `#a9631c` para advertencias, rojo rosado `#ad2b45` en claro y `#e8657f`
+  en oscuro para conflictos y rechazos. Son colores semánticos, distintos del acento.
 - IBM Plex Sans para texto, IBM Plex Mono para identificadores, tiempos,
   números y etiquetas.
 - Tema claro y oscuro, los dos igual de cuidados.

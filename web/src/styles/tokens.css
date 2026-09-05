@@ -15,9 +15,11 @@
   --hover: #eef1ed;
   --sunken: #ecefea;
 
-  --ok: #1d6b5e;
-  --ok-wash: #e2ede9;
-  --on-ok: #f6f8f6;
+  /* Saturación subida: el valor anterior (#1d6b5e, croma 0.077) quedaba por
+     debajo del piso y leía gris. Verificado con el validador de paletas. */
+  --ok: #0e8f76;
+  --ok-wash: #ddf0e9;
+  --on-ok: #f7fbf9;
 
   --warn: #a9631c;
   --warn-wash: #f5eade;
@@ -50,9 +52,9 @@
     --hover: #1f2c28;
     --sunken: #141d1a;
 
-    --ok: #63b3a3;
-    --ok-wash: #16261f;
-    --on-ok: #0c1412;
+    --ok: #3cc4a2;
+    --ok-wash: #14291f;
+    --on-ok: #071310;
 
     --warn: #d69a51;
     --warn-wash: #271f11;
@@ -79,9 +81,9 @@
   --hover: #1f2c28;
   --sunken: #141d1a;
 
-  --ok: #63b3a3;
-  --ok-wash: #16261f;
-  --on-ok: #0c1412;
+  --ok: #3cc4a2;
+  --ok-wash: #14291f;
+  --on-ok: #071310;
 
   --warn: #d69a51;
   --warn-wash: #271f11;
