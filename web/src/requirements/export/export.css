@@ -77,15 +77,17 @@
   pointer-events: none;
 }
 
-/* codebook */
+/* diccionario de datos, colapsado por defecto */
 .codebook {
   grid-column: 1 / -1;
   border-top: 1px solid var(--line);
-  padding-top: 0.7rem;
-  margin-top: 0.1rem;
+  margin-top: 0.2rem;
 }
 
 .codebook summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--f-mono);
   font-size: 0.7rem;
   letter-spacing: 0.06em;
@@ -93,6 +95,7 @@
   color: var(--faint);
   cursor: pointer;
   list-style: none;
+  padding: 0.7rem 0 0.1rem;
 }
 
 .codebook summary::marker,
@@ -100,36 +103,43 @@
   display: none;
 }
 
-.codebook summary::before {
-  content: "▸ ";
+.codebook summary:hover {
+  color: var(--ink-soft);
+}
+
+/* Afordancia de más/menos en vez de un triángulo: la fila entera se lee
+   como algo que se abre. */
+.codebook summary::after {
+  content: "+";
+  margin-left: auto;
+  font-size: 1rem;
+  line-height: 1;
   color: var(--ok);
 }
 
-.codebook[open] summary::before {
-  content: "▾ ";
+.codebook[open] summary::after {
+  content: "−";
+}
+
+.codebook__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+  gap: 0 1.6rem;
+  padding: 0.5rem 0 0.7rem;
 }
 
 .codebook__row {
   display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr);
-  gap: 0.8rem;
-  padding: 0.35rem 0;
-  font-size: 0.82rem;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: 0.7rem;
+  padding: 0.3rem 0;
+  font-size: 0.8rem;
   line-height: 1.5;
-  border-bottom: 1px solid var(--line);
-}
-
-.codebook__row:last-child {
-  border-bottom: none;
-}
-
-.codebook__row:first-of-type {
-  margin-top: 0.6rem;
 }
 
 .codebook__name {
   font-family: var(--f-mono);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: var(--ok);
   word-break: break-word;
 }

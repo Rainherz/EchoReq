@@ -137,10 +137,12 @@ export function ReviewScreen({
         </span>
       </div>
 
-      <div className="card">
+      <div className="card card--primary">
         <div className="card__head">
           {isConflict ? "Conflicto detectado" : "Cambio propuesto"}
-          <span className="card__count">iteración {iteration}</span>
+          <span className="card__count">
+            origen: turnos {proposal.sourceTurnIds.join(", ")}
+          </span>
         </div>
         <ProposalDiff
           before={proposal.previousContent}
@@ -160,11 +162,11 @@ export function ReviewScreen({
       </div>
 
       <div className="review__split">
-        <div className="card">
+        <div className="card card--support">
           <div className="card__head">
-            Origen · contexto de la cita
+            Evidencia de origen
             <span className="card__count">
-              turnos {proposal.sourceTurnIds.join(", ")}
+              {proposal.contextTurns.length} turnos de contexto
             </span>
           </div>
           <TurnContext
@@ -173,10 +175,14 @@ export function ReviewScreen({
           />
         </div>
 
-        <div className="card">
+        <div className="card card--support">
           <div className="card__head">
             Señales del sistema
-            <span className="card__count">{proposal.signals.length}</span>
+            <span className="card__count">
+              {proposal.signals.length === 0
+                ? "sin observaciones"
+                : `${proposal.signals.length} para revisar`}
+            </span>
           </div>
           <SystemSignals signals={proposal.signals} />
 

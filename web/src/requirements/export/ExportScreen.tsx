@@ -98,13 +98,15 @@ function DatasetCard({ dataset, href }: { dataset: Dataset; href: string }) {
       </div>
 
       <details className="codebook">
-        <summary>Diccionario de datos</summary>
-        {dataset.columns.map((column) => (
-          <div key={column.name} className="codebook__row">
-            <span className="codebook__name">{column.name}</span>
-            <span className="codebook__meaning">{column.meaning}</span>
-          </div>
-        ))}
+        <summary>Diccionario de columnas</summary>
+        <div className="codebook__grid">
+          {dataset.columns.map((column) => (
+            <div key={column.name} className="codebook__row">
+              <span className="codebook__name">{column.name}</span>
+              <span className="codebook__meaning">{column.meaning}</span>
+            </div>
+          ))}
+        </div>
       </details>
     </div>
   );
