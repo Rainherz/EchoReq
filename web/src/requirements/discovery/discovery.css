@@ -1,15 +1,20 @@
+/* Ocupa el alto disponible: es una superficie de trabajo, no una tarjeta
+   flotando sobre media pantalla vacía. */
 .discovery {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
   max-width: 1180px;
+  height: 100%;
+  min-height: 0;
 }
 
 .discovery__split {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
   gap: 0.7rem;
-  align-items: start;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 900px) {
@@ -18,9 +23,21 @@
   }
 }
 
+/* Los dos paneles comparten alto y cada uno desplaza el suyo. Antes tenían
+   tope fijo y quedaban desparejos, con la transcripción terminando a mitad
+   de la lista de candidatos. */
 .discovery__pane {
-  max-height: 30rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.discovery__scroll {
   overflow-y: auto;
+  min-height: 0;
+  margin: 0 -0.2rem;
+  padding: 0 0.2rem;
 }
 
 .bar {
@@ -91,6 +108,11 @@
 .candidate--selected {
   border-color: var(--ok);
   box-shadow: 0 0 0 2px var(--ok-wash);
+  background: var(--card);
+}
+
+.candidate:not(.candidate--selected) {
+  cursor: pointer;
 }
 
 .candidate--decided {
@@ -124,11 +146,24 @@
   color: var(--ink-soft);
 }
 
+/* Las acciones aparecen en el candidato seleccionado. Con diez candidatos
+   en pantalla, treinta botones a la vez son ruido: se elige uno, se decide,
+   se sigue. */
 .candidate__actions {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
   margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--line);
+}
+
+.candidate__decision {
+  margin-left: auto;
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  color: var(--faint);
+  align-self: center;
 }
 
 .candidate__editor {
@@ -153,4 +188,21 @@
   border-radius: 0 5px 5px 0;
   font-size: 0.86rem;
   line-height: 1.55;
+}
+
+/* pie del panel de candidatos */
+.discovery__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discovery__scroll {
+    scroll-behavior: auto;
+  }
 }

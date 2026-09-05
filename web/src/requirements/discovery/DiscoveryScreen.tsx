@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeProposal, ReviewAction, ReviewDecision, Turn } from "../domain/types";
 import { TurnContext } from "../review/components/TurnContext";
 import { CandidateCard } from "./components/CandidateCard";
@@ -43,16 +43,16 @@ export function DiscoveryScreen({
 
   const selected = candidates.find((c) => c.id === selectedId) ?? null;
 
-  const contextTurns = useMemo(() => {
-    if (!selected) return turns.slice(0, 8);
-    const positions = selected.sourceTurnIds
-      .map((id) => turns.findIndex((t) => t.id === id))
-      .filter((p) => p >= 0);
-    if (positions.length === 0) return turns.slice(0, 8);
-    const from = Math.max(0, Math.min(...positions) - 2);
-    const to = Math.min(turns.length, Math.max(...positions) + 3);
-    return turns.slice(from, to);
-  }, [selected, turns]);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+
+  // En descubrimiento se lee la reunión entera: lo que se evalúa es si los
+  // candidatos cubren lo que se habló, no si una cita puntual es correcta.
+  // Al elegir un candidato, sus turnos se traen a la vista.
+  useEffect(() => {
+    if (!selected || !transcriptRef.current) return;
+    const first = transcriptRef.current.querySelector(".turn--cited");
+    first?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [selected]);
 
   const decide = (
     candidate: ChangeProposal,
@@ -85,31 +85,30 @@ export function DiscoveryScreen({
         <span className="screen__meta">
           reunión 1 · modo descubrimiento · {turns.length} turnos
         </span>
-        <span className="screen__ops">
+        <span className="screen__ops discovery__progress">
           <span className="bar">
             <i
               className="bar__fill"
               style={{ width: `${(decidedCount / candidates.length) * 100}%` }}
             />
           </span>
-          <span className="screen__meta">
-            {decidedCount} de {candidates.length}
-          </span>
+          {decidedCount} de {candidates.length} decididos
         </span>
       </div>
 
       <div className="discovery__split">
         <div className="card discovery__pane">
           <div className="card__head">
-            Transcripción
+            Transcripción completa
             <span className="card__count">
-              {selected ? `turnos ${selected.sourceTurnIds.join(", ")}` : "—"}
+              {selected
+                ? `resaltados: turnos ${selected.sourceTurnIds.join(", ")}`
+                : `${turns.length} turnos`}
             </span>
           </div>
-          <TurnContext
-            turns={contextTurns}
-            citedIds={selected?.sourceTurnIds ?? []}
-          />
+          <div className="discovery__scroll" ref={transcriptRef}>
+            <TurnContext turns={turns} citedIds={selected?.sourceTurnIds ?? []} />
+          </div>
         </div>
 
         <div className="card discovery__pane">
@@ -120,6 +119,7 @@ export function DiscoveryScreen({
             </span>
           </div>
 
+          <div className="discovery__scroll">
           {themes.map(([theme, items]) => (
             <div key={theme}>
               <div className="group">
@@ -139,6 +139,7 @@ export function DiscoveryScreen({
               ))}
             </div>
           ))}
+          </div>
         </div>
       </div>
 

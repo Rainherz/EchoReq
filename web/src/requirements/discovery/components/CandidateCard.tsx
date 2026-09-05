@@ -16,11 +16,15 @@ const DECISION_TAG: Record<ReviewAction, { cls: string; label: string }> = {
 };
 
 /**
- * One requirement candidate proposed from the transcript.
+ * Un candidato a requisito propuesto desde la transcripción.
  *
- * Ambiguous candidates show the gap instead of a filled-in rule: the agent
- * reports what was not said rather than inventing a policy to complete the
- * template.
+ * Los ambiguos muestran el hueco en vez de una regla completa: el agente
+ * reporta lo que no se dijo en lugar de inventar una política para que la
+ * plantilla quede llena.
+ *
+ * Se selecciona con un click, no al pasar por encima: el hover no existe en
+ * pantallas táctiles, y elegir un candidato resalta sus turnos en la
+ * transcripción, así que tiene que ser deliberado.
  */
 export function CandidateCard({
   candidate,
@@ -31,6 +35,7 @@ export function CandidateCard({
 }: CandidateCardProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const ambiguous = candidate.signals.some((s) => s.rule === "unambiguous");
+  const editing = draft !== null;
 
   const classes = [
     "candidate",
@@ -42,7 +47,18 @@ export function CandidateCard({
     .join(" ");
 
   return (
-    <div className={classes} onMouseEnter={onSelect} onFocus={onSelect}>
+    <div
+      className={classes}
+      onClick={selected ? undefined : onSelect}
+      role={selected ? undefined : "button"}
+      tabIndex={selected ? undefined : 0}
+      onKeyDown={(event) => {
+        if (!selected && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+    >
       <div className="candidate__head">
         <span className={ambiguous ? "tag tag--warn" : "tag tag--ok"}>
           {ambiguous ? "Ambiguo" : "Candidato"}
@@ -55,15 +71,15 @@ export function CandidateCard({
         )}
       </div>
 
-      {draft === null ? candidate.content : null}
-
-      {draft !== null && (
+      {editing ? (
         <textarea
           className="candidate__editor"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           aria-label={`Editar ${candidate.targetId}`}
         />
+      ) : (
+        candidate.content
       )}
 
       {candidate.signals.map((signal) => (
@@ -77,9 +93,26 @@ export function CandidateCard({
         turnos {candidate.sourceTurnIds.join(", ")}
       </div>
 
-      {!decision && (
+      {selected && !decision && (
         <div className="candidate__actions">
-          {draft === null ? (
+          {editing ? (
+            <>
+              <button
+                type="button"
+                className="btn btn--small btn--primary"
+                onClick={() => onDecide("edit", draft)}
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={() => setDraft(null)}
+              >
+                Cancelar
+              </button>
+            </>
+          ) : (
             <>
               <button
                 type="button"
@@ -101,23 +134,6 @@ export function CandidateCard({
                 onClick={() => onDecide("reject")}
               >
                 Descartar
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="btn btn--small btn--primary"
-                onClick={() => onDecide("edit", draft)}
-              >
-                Guardar
-              </button>
-              <button
-                type="button"
-                className="btn btn--small"
-                onClick={() => setDraft(null)}
-              >
-                Cancelar
               </button>
             </>
           )}
