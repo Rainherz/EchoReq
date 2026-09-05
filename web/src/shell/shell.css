@@ -17,6 +17,18 @@
 .topbar__project {
   font-size: 0.82rem;
   font-weight: 600;
+  border: none;
+  background: none;
+  padding: 0.15rem 0.35rem;
+  margin-left: -0.35rem;
+  border-radius: 4px;
+  color: inherit;
+  font-family: inherit;
+}
+
+.topbar__project:hover {
+  background: var(--hover);
+  color: var(--ok-text);
 }
 
 .topbar__crumb {

@@ -201,6 +201,29 @@ convención del código. Un `UPDATE` accidental sobre una decisión de revisión
 destruiría datos que no se pueden reconstruir. La única vía de reinicio es
 `TRUNCATE`, y solo sobre una base de prueba.
 
+## Proyectos
+
+La aplicación entra por la lista de proyectos. Un proyecto es el workspace de
+un sistema cuya especificación se mantiene a lo largo de sus reuniones: todo
+lo demás —reuniones, propuestas, decisiones, métricas— cuelga de uno.
+
+Al crearlo se definen tres cosas:
+
+| Campo | Para qué |
+| --- | --- |
+| Nombre | Identifica el workspace. El identificador sale de ahí, sin acentos, porque aparece en las URLs y en los nombres de los CSV exportados. |
+| Dominio | Qué sistema es. Entra en el prompt de generación, así el agente distingue un requisito de una conversación en ese dominio. |
+| Formato | `user-story` o `ieee830`. Se fija una vez para todo el proyecto. |
+
+**El formato no se elige por reunión.** La cadena que se mide usa uno solo:
+cada formato se evalúa con criterios de calidad distintos, y mezclarlos haría
+incomparables las curvas de deriva.
+
+El último proyecto abierto se reabre solo. Va en `localStorage` y no en la
+URL, al revés que la sección: un enlace a un requisito tiene que poder
+compartirse, pero en qué proyecto estaba trabajando cada uno es contexto
+personal.
+
 ## Color
 
 La paleta es [Radix Colors](https://www.radix-ui.com/colors): escalas de 12

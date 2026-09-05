@@ -42,7 +42,16 @@ class ProjectOut(Schema):
     id: str
     name: str
     format: str
+    domain: str
     meeting_count: int
+    created_at: datetime | None = None
+
+
+class ProjectIn(Schema):
+    name: str = Field(min_length=2, max_length=80)
+    format: str = Field(default="user-story", pattern="^(user-story|ieee830)$")
+    #: Qué sistema se está especificando. Entra en el prompt de generación.
+    domain: str = Field(default="", max_length=600)
 
 
 class TurnOut(Schema):

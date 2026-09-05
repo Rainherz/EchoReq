@@ -162,7 +162,23 @@ export interface Project {
   id: string;
   name: string;
   format: string;
+  /** Qué sistema se especifica. Entra en el prompt de generación. */
+  domain: string;
   meetingCount: number;
+  createdAt: string | null;
+}
+
+export interface NewProject {
+  name: string;
+  format: string;
+  domain: string;
+}
+
+export function createProject(input: NewProject): Promise<Project> {
+  return request<Project>("/projects", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 /* --------------------------------------------------------------- lecturas */

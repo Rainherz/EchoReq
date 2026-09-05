@@ -45,6 +45,8 @@ interface AppShellProps {
   crumb: string;
   active: Section;
   onNavigate: (section: Section) => void;
+  /** Vuelve a la lista de proyectos. */
+  onLeaveProject: () => void;
   pendingReview?: number;
   meetingCount?: number;
   toolbar?: ReactNode;
@@ -56,6 +58,7 @@ export function AppShell({
   crumb,
   active,
   onNavigate,
+  onLeaveProject,
   pendingReview = 0,
   meetingCount = 0,
   toolbar,
@@ -82,7 +85,14 @@ export function AppShell({
   return (
     <div className="shell">
       <header className="topbar">
-        <span className="topbar__project">{project}</span>
+        <button
+          type="button"
+          className="topbar__project"
+          onClick={onLeaveProject}
+          title="Cambiar de proyecto"
+        >
+          {project}
+        </button>
         <span className="topbar__crumb">{crumb}</span>
         <div className="topbar__right">
           {toolbar}

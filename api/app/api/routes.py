@@ -12,6 +12,7 @@ from ..adapters.storage import audio as audio_store
 from ..adapters.persistence.repositories import (
     AlreadyCorrected,
     AlreadyDecided,
+    DuplicateProject,
     PostgresCatalogRepository,
     PostgresDecisionRepository,
     PostgresMeetingRepository,
@@ -31,6 +32,7 @@ from .schemas import (
     MeetingAudioOut,
     MeetingOut,
     MetricsOut,
+    ProjectIn,
     ProjectOut,
     DatasetOut,
     ProposalOut,
@@ -56,6 +58,23 @@ _metrics = StudyMetrics(_decisions)
 @router.get("/projects")
 def projects() -> list[ProjectOut]:
     return [ProjectOut(**asdict(row)) for row in _catalog.projects()]
+
+
+@router.post("/projects", status_code=201)
+def create_project(payload: ProjectIn) -> ProjectOut:
+    """Crea un workspace.
+
+    El formato se fija acá y no por reunión: la cadena que se mide usa uno
+    solo, porque cada formato se evalúa con criterios de calidad distintos y
+    mezclarlos haría incomparables las curvas de deriva.
+    """
+    try:
+        project = _catalog.create_project(
+            payload.name, payload.format, payload.domain
+        )
+    except DuplicateProject as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ProjectOut(**asdict(project))
 
 
 @router.get("/projects/{project_id}/meetings")

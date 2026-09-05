@@ -153,12 +153,24 @@ class Meeting:
     transcription_error: str | None = None
 
 
+#: Formatos en los que se puede especificar. La cadena que se mide usa uno
+#: solo: mezclarlos haría incomparables las curvas de deriva, porque cada
+#: formato se evalúa con criterios de calidad distintos.
+FORMATS = ("user-story", "ieee830")
+
+
 @dataclass(frozen=True, slots=True)
 class Project:
+    """Un workspace: un proyecto de software cuya especificación se mantiene."""
+
     id: str
     name: str
     format: str
+    #: Qué sistema se está especificando. Entra en el prompt de generación,
+    #: así el agente sabe de qué dominio se habla.
+    domain: str
     meeting_count: int
+    created_at: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

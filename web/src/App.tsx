@@ -10,22 +10,29 @@ import { DocumentScreen } from "./requirements/document/DocumentScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { IterationsScreen } from "./requirements/iterations/IterationsScreen";
 import { ExportScreen } from "./requirements/export/ExportScreen";
+import { WorkspacesScreen } from "./workspaces/WorkspacesScreen";
 import {
   correctDecision,
   fetchMeetings,
+  fetchProjects,
   fetchQueue,
   fetchTurns,
   recordDecision,
 } from "./adapters/api/client";
 import type {
   Meeting,
+  Project,
   RecordDecisionInput,
 } from "./adapters/api/client";
 import type { ReviewAction } from "./requirements/domain/types";
 import { useResource } from "./adapters/api/useResource";
 
-const PROJECT = "clinica-norte";
 const PARTICIPANT = "p-analista-01";
+
+/** Último proyecto abierto. Es contexto del usuario, no de la URL: la sección
+    sí va en el hash porque un enlace a un requisito tiene que poder
+    compartirse. */
+const LAST_PROJECT = "echoreq.project";
 
 const SECTIONS: Section[] = [
   "sessions",
@@ -65,8 +72,74 @@ function routeFromHash(): Route {
 }
 
 export default function App() {
+  const [project, setProject] = useState<Project | null>(null);
   const [route, setRoute] = useState<Route>(routeFromHash);
   const [meetingId, setMeetingId] = useState<string | null>(null);
+
+  // El último proyecto abierto se reabre solo: quien vuelve a la herramienta
+  // sigue en el proyecto donde estaba, no en una lista.
+  const projects = useResource(useCallback(() => fetchProjects(), []), []);
+  const [restored, setRestored] = useState(false);
+
+  if (!restored && projects.data) {
+    setRestored(true);
+    const remembered = window.localStorage.getItem(LAST_PROJECT);
+    const match = projects.data.find((p) => p.id === remembered);
+    if (match) setProject(match);
+  }
+
+  const openProject = (next: Project) => {
+    window.localStorage.setItem(LAST_PROJECT, next.id);
+    setMeetingId(null);
+    setProject(next);
+  };
+
+  const leaveProject = () => {
+    window.localStorage.removeItem(LAST_PROJECT);
+    setProject(null);
+  };
+
+  // Sin proyecto abierto la aplicación no tiene contexto: ni reuniones, ni
+  // cola, ni documento. La lista de proyectos es la entrada real.
+  if (project === null) {
+    return (
+      <WorkspacesScreen
+        projects={projects}
+        onOpen={openProject}
+      />
+    );
+  }
+
+  return (
+    <ProjectApp
+      project={project}
+      onLeave={leaveProject}
+      route={route}
+      setRoute={setRoute}
+      meetingId={meetingId}
+      setMeetingId={setMeetingId}
+    />
+  );
+}
+
+interface ProjectAppProps {
+  project: Project;
+  onLeave: () => void;
+  route: Route;
+  setRoute: (route: Route) => void;
+  meetingId: string | null;
+  setMeetingId: (id: string) => void;
+}
+
+function ProjectApp({
+  project,
+  onLeave,
+  route,
+  setRoute,
+  meetingId,
+  setMeetingId,
+}: ProjectAppProps) {
+  const projectId = project.id;
 
   // El routing por hash evita que un refresh saque al revisor de su pantalla
   // en medio de la cola.
@@ -74,7 +147,7 @@ export default function App() {
     const sync = () => setRoute(routeFromHash());
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
-  }, []);
+  }, [setRoute]);
 
   const navigate = (section: Section, focus?: string) => {
     window.location.hash = focus
@@ -84,8 +157,8 @@ export default function App() {
   };
 
   const meetings = useResource(
-    useCallback(() => fetchMeetings(PROJECT, PARTICIPANT), []),
-    [],
+    useCallback(() => fetchMeetings(projectId, PARTICIPANT), [projectId]),
+    [projectId],
   );
 
   // Al abrir se elige la primera reunión con trabajo pendiente; si no queda
@@ -132,8 +205,8 @@ export default function App() {
       () =>
         selectedIteration === undefined
           ? Promise.resolve([])
-          : fetchQueue(PROJECT, selectedIteration, PARTICIPANT),
-      [selectedIteration],
+          : fetchQueue(projectId, selectedIteration, PARTICIPANT),
+      [projectId, selectedIteration],
     ),
     [selectedId],
   );
@@ -172,10 +245,11 @@ export default function App() {
 
   return (
     <AppShell
-      project="Clínica Norte"
+      project={project.name}
       crumb={crumb}
       active={route.section}
       onNavigate={(section) => navigate(section)}
+      onLeaveProject={onLeave}
       pendingReview={selected?.pendingProposals ?? 0}
       meetingCount={meetings.data?.length ?? 0}
       toolbar={
@@ -262,7 +336,7 @@ export default function App() {
 
             {route.section === "document" && (
               <DocumentScreen
-                projectId={PROJECT}
+                projectId={projectId}
                 currentRevision={currentRevision}
                 meetingLabels={meetingLabels}
                 focusRequirementId={route.focus}
@@ -271,7 +345,7 @@ export default function App() {
 
             {route.section === "traceability" && (
               <TraceabilityScreen
-                projectId={PROJECT}
+                projectId={projectId}
                 currentRevision={currentRevision}
                 meetingDates={meetingDates}
                 onOpenRequirement={(id) => navigate("document", id)}
@@ -279,10 +353,10 @@ export default function App() {
             )}
 
             {route.section === "iterations" && (
-              <IterationsScreen projectId={PROJECT} />
+              <IterationsScreen projectId={projectId} />
             )}
 
-            {route.section === "export" && <ExportScreen projectId={PROJECT} />}
+            {route.section === "export" && <ExportScreen projectId={projectId} />}
           </>
         )}
       </AsyncBoundary>

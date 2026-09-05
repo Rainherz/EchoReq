@@ -12,6 +12,7 @@ from statistics import median
 import psycopg
 
 from ...requirements.domain import rules
+from ...requirements.domain.slug import slugify
 from ...requirements.domain.entities import (
     ChangeProposal,
     DecisionCorrection,
@@ -34,6 +35,10 @@ class AlreadyDecided(Exception):
 
 class AlreadyCorrected(Exception):
     """Esa decisión ya se corrigió una vez."""
+
+
+class DuplicateProject(Exception):
+    """Ya existe un workspace con ese nombre."""
 
 
 def _to_proposal(row: dict) -> ChangeProposal:
@@ -62,14 +67,41 @@ class PostgresCatalogRepository:
         with cursor() as cur:
             cur.execute(
                 """
-                SELECT p.id, p.name, p.format, count(m.id) AS meeting_count
+                SELECT p.id, p.name, p.format, p.domain, p.created_at,
+                       count(m.id) AS meeting_count
                 FROM projects p
                 LEFT JOIN meetings m ON m.project_id = p.id
-                GROUP BY p.id, p.name, p.format
-                ORDER BY p.name
+                WHERE p.archived_at IS NULL
+                GROUP BY p.id, p.name, p.format, p.domain, p.created_at
+                ORDER BY p.created_at DESC
                 """
             )
             return [Project(**row) for row in cur.fetchall()]
+
+    def create_project(self, name: str, fmt: str, domain: str) -> Project:
+        """Crea el workspace. El identificador sale del nombre.
+
+        Un identificador derivado del nombre se lee en la URL y en el nombre
+        de los archivos exportados, que es donde el analista lo va a ver.
+        """
+        project_id = slugify(name)
+        try:
+            with cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO projects (id, name, format, domain)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id, name, format, domain, created_at
+                    """,
+                    (project_id, name.strip(), fmt, domain.strip()),
+                )
+                row = cur.fetchone()
+        except psycopg.errors.UniqueViolation as exc:
+            raise DuplicateProject(
+                f"Ya existe un proyecto llamado «{name.strip()}»."
+            ) from exc
+
+        return Project(**row, meeting_count=0)
 
     def meetings(self, project_id: str, participant_id: str) -> list[Meeting]:
         """Reuniones del proyecto, con lo que le queda pendiente al participante."""
