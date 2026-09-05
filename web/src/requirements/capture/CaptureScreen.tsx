@@ -11,12 +11,32 @@ const PARTICIPANTS: Participant[] = [
   { code: "AN", name: "Analista", share: 0.17 },
 ];
 
-/** Pipeline stages, in the order the backend will run them. */
+/** Etapas del pipeline, en el orden en que corren. */
 const STAGES = [
-  { id: "transcribe", label: "Transcripción", output: "WhisperX" },
-  { id: "diarize", label: "Diarización de hablantes", output: "pyannote" },
-  { id: "segment", label: "Segmentación en turnos", output: "turn_id estable" },
-  { id: "analyze", label: "Análisis y propuestas", output: "change_proposals" },
+  {
+    id: "transcribe",
+    label: "Transcripción",
+    detail: "El audio pasa a texto.",
+    output: "WhisperX",
+  },
+  {
+    id: "diarize",
+    label: "Diarización",
+    detail: "Se separa quién dijo qué.",
+    output: "pyannote",
+  },
+  {
+    id: "segment",
+    label: "Segmentación en turnos",
+    detail: "Cada turno recibe el identificador que después se cita.",
+    output: "turn_id",
+  },
+  {
+    id: "analyze",
+    label: "Análisis y propuestas",
+    detail: "El agente compara lo dicho contra la especificación vigente.",
+    output: "change_proposals",
+  },
 ] as const;
 
 const STAGE_MS = 900;
@@ -28,12 +48,12 @@ interface CaptureScreenProps {
 }
 
 /**
- * Capture: the only screen that touches the meeting itself.
+ * Captura: la única pantalla que toca la reunión misma.
  *
- * Deliberately inert. There is no live copilot and no in-meeting suggestion:
- * anything that shapes what participants say would change the input the study
- * measures downstream, and the drift signal could no longer be separated from
- * the assistant's influence on the conversation.
+ * Deliberadamente inerte. No hay copiloto en vivo ni sugerencias durante la
+ * sesión: cualquier cosa que influya en lo que dicen los participantes
+ * cambiaría la entrada que el estudio mide, y la deriva ya no podría
+ * separarse de la influencia del asistente.
  */
 export function CaptureScreen({ meetingLabel, date, onFinished }: CaptureScreenProps) {
   const [loaded, setLoaded] = useState(false);
@@ -83,7 +103,6 @@ export function CaptureScreen({ meetingLabel, date, onFinished }: CaptureScreenP
             type="button"
             className="btn btn--small btn--primary"
             disabled={!canProcess}
-            style={canProcess ? undefined : { opacity: 0.45, cursor: "not-allowed" }}
             onClick={() => setStage(0)}
           >
             {finished ? "Procesada" : running ? "Procesando…" : "Procesar reunión"}
@@ -91,69 +110,60 @@ export function CaptureScreen({ meetingLabel, date, onFinished }: CaptureScreenP
         </span>
       </div>
 
-      <div className="capture__split">
-        <div className="card">
-          <div className="card__head">
-            Audio de la sesión
-            <span className="card__count">{loaded ? "42:18" : "sin cargar"}</span>
+      {/* Los pasos van numerados porque la captura es una secuencia real: sin
+          audio no hay qué consentir, y sin consentimiento no se procesa. */}
+      <Step index={1} title="Audio de la sesión" done={loaded}>
+        {loaded ? (
+          <>
+            <Waveform />
+            <div className="audio__meta">
+              <button type="button" className="btn btn--small">
+                ▶ Reproducir
+              </button>
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={() => setLoaded(false)}
+              >
+                Quitar
+              </button>
+              <span className="audio__file">
+                reunion-01.m4a · 42:18 · 38 MB
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="dropzone">
+            <p className="dropzone__text">
+              Arrastrá el archivo acá, o grabá directamente.
+              <br />
+              <span className="dropzone__formats">
+                mp3, m4a, wav · también sirve la exportación de Meet o Zoom
+              </span>
+            </p>
+            <div className="audio__meta">
+              <button
+                type="button"
+                className="btn btn--small btn--primary"
+                onClick={() => setLoaded(true)}
+              >
+                Subir archivo
+              </button>
+              <button type="button" className="btn btn--small">
+                Grabar ahora
+              </button>
+            </div>
           </div>
+        )}
+      </Step>
 
-          {loaded ? (
-            <>
-              <Waveform />
-              <div className="audio__meta">
-                <button type="button" className="btn btn--small">
-                  ▶ Reproducir
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => setLoaded(false)}
-                >
-                  Quitar
-                </button>
-                <span className="audio__file">reunion-01.m4a · 38 MB</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="audio__empty">
-                Arrastrá el archivo acá, o grabá directamente.
-                <br />
-                Formatos: mp3, m4a, wav. También sirve la exportación de Meet o Zoom.
-              </p>
-              <div className="audio__meta">
-                <button
-                  type="button"
-                  className="btn btn--small btn--primary"
-                  onClick={() => setLoaded(true)}
-                >
-                  Subir archivo
-                </button>
-                <button type="button" className="btn btn--small">
-                  Grabar ahora
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="card__head">
-            Participantes
-            <span className="card__count">{finished ? PARTICIPANTS.length : "—"}</span>
-          </div>
-          <ParticipantList participants={PARTICIPANTS} ready={finished} />
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card__head">Consentimiento</div>
+      <Step index={2} title="Consentimiento" done={consent} blocked={!loaded}>
         <button
           type="button"
           className="consent"
           aria-pressed={consent}
           onClick={toggleConsent}
+          disabled={!loaded}
         >
           <span className={consent ? "consent__box consent__box--on" : "consent__box"}>
             ✓
@@ -168,35 +178,83 @@ export function CaptureScreen({ meetingLabel, date, onFinished }: CaptureScreenP
             )}
           </span>
         </button>
-
         {!consent && (
-          <p className="consent__blocked">
+          <p className="step__hint">
             Sin consentimiento registrado no se habilita el procesamiento.
           </p>
         )}
-      </div>
+      </Step>
 
-      {stage >= 0 && (
-        <div className="card">
-          <div className="card__head">
-            Procesamiento
-            <span className="card__count">
-              {finished ? "completo" : `${stage + 1} de ${STAGES.length}`}
-            </span>
-          </div>
-          {STAGES.map((item, position) => {
-            const state =
-              position < stage ? "done" : position === stage ? "active" : "pending";
-            return (
-              <div key={item.id} className={`stage stage--${state}`}>
-                <span className="stage__mark">✓</span>
-                <span>{item.label}</span>
-                <span className="stage__out">{item.output}</span>
-              </div>
-            );
-          })}
-        </div>
+      {/* Las etapas se muestran antes de procesar, no solo durante: hay que
+          poder saber qué va a pasar antes de apretar el botón. */}
+      <Step
+        index={3}
+        title="Procesamiento"
+        done={finished}
+        count={
+          finished
+            ? "completo"
+            : running
+              ? `${stage + 1} de ${STAGES.length}`
+              : `${STAGES.length} etapas`
+        }
+      >
+        {STAGES.map((item, position) => {
+          const state =
+            position < stage ? "done" : position === stage ? "active" : "pending";
+          return (
+            <div key={item.id} className={`stage stage--${state}`}>
+              <span className="stage__mark">✓</span>
+              <span>
+                {item.label}
+                <span className="stage__detail">{item.detail}</span>
+              </span>
+              <span className="stage__out">{item.output}</span>
+            </div>
+          );
+        })}
+      </Step>
+
+      {finished && (
+        <Step index={4} title="Hablantes detectados" done>
+          <ParticipantList participants={PARTICIPANTS} ready />
+        </Step>
       )}
     </div>
+  );
+}
+
+function Step({
+  index,
+  title,
+  done,
+  blocked = false,
+  count,
+  children,
+}: {
+  index: number;
+  title: string;
+  done: boolean;
+  blocked?: boolean;
+  count?: string;
+  children: React.ReactNode;
+}) {
+  const classes = [
+    "step",
+    done ? "step--done" : "",
+    blocked ? "step--blocked" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <section className={classes}>
+      <div className="step__head">
+        <span className="step__index">{done ? "✓" : index}</span>
+        <span className="step__title">{title}</span>
+        {count && <span className="step__count">{count}</span>}
+      </div>
+      <div className="step__body">{children}</div>
+    </section>
   );
 }
