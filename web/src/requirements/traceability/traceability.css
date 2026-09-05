@@ -153,3 +153,40 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Fila de un requisito que se reabre iteración tras iteración. El resaltado
+   sale del dato, no es decoración: marca exactamente lo que esta pantalla
+   existe para mostrar. */
+.matrix__row--reopened td {
+  background: var(--warn-wash);
+}
+
+.matrix__row--reopened:hover td {
+  background: var(--warn-wash);
+  filter: brightness(1.04);
+}
+
+.matrix__row--reopened .matrix__id {
+  color: var(--warn);
+}
+
+.matrix__finding {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0.9rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.matrix__finding-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--warn);
+  flex: none;
+  transform: translateY(1px);
+}

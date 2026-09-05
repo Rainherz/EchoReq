@@ -11,6 +11,14 @@ import { AsyncBoundary } from "../../shell/AsyncBoundary";
 import { ATOMIC_LIMIT } from "../document/components/ClauseMeter";
 import "./traceability.css";
 
+/**
+ * Iteraciones tocadas a partir de las cuales un requisito se considera
+ * reabierto con frecuencia. Es el tema de esta pantalla: no cuánto acumuló
+ * un requisito —eso lo cubre Documento— sino cuántas veces se volvió sobre
+ * él.
+ */
+const REOPEN_THRESHOLD = 3;
+
 const MARK: Record<ProposalOperation, { cls: string; text: string }> = {
   create: { cls: "mark mark--create", text: "A" },
   modify: { cls: "mark mark--modify", text: "M" },
@@ -105,6 +113,21 @@ function Matrix({
     [requirementIds, snapshots],
   );
 
+  /** Iteraciones distintas en que se tocó cada requisito. */
+  const touchedCount = useMemo(() => {
+    const seen = new Map<string, Set<number>>();
+    for (const row of revisions) {
+      const set = seen.get(row.requirementId) ?? new Set<number>();
+      set.add(row.revision);
+      seen.set(row.requirementId, set);
+    }
+    return new Map([...seen].map(([id, set]) => [id, set.size]));
+  }, [revisions]);
+
+  const reopenedIds = requirementIds.filter(
+    (id) => (touchedCount.get(id) ?? 0) >= REOPEN_THRESHOLD,
+  );
+
   /**
    * Marcas de una celda.
    *
@@ -142,7 +165,7 @@ function Matrix({
                 <th>Requisito</th>
                 {columns.map((revision) => (
                   <th key={revision}>
-                    r{revision}
+                    Reunión {revision}
                     <small>{meetingDates[revision] ?? ""}</small>
                   </th>
                 ))}
@@ -153,8 +176,9 @@ function Matrix({
               {requirementIds.map((id) => {
                 const trend = trends.get(id) ?? [];
                 const last = trend.at(-1);
+                const reopened = (touchedCount.get(id) ?? 0) >= REOPEN_THRESHOLD;
                 return (
-                  <tr key={id}>
+                  <tr key={id} className={reopened ? "matrix__row--reopened" : undefined}>
                     <td className="matrix__id">{id}</td>
                     {columns.map((revision) => {
                       const marks = marksFor(id, revision);
@@ -186,6 +210,16 @@ function Matrix({
             </tbody>
           </table>
         </div>
+
+        {reopenedIds.length > 0 && (
+          <p className="matrix__finding">
+            <span className="matrix__finding-swatch" aria-hidden="true" />
+            {reopenedIds.join(", ")}{" "}
+            {reopenedIds.length === 1 ? "se reabrió" : "se reabrieron"} en{" "}
+            {REOPEN_THRESHOLD} iteraciones o más. Abrí la historia del requisito
+            en Documento para ver qué se le fue agregando.
+          </p>
+        )}
 
         <div className="legend">
           <span>
