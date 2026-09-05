@@ -34,6 +34,34 @@ interface WorkspacesScreenProps {
 export function WorkspacesScreen({ projects, onOpen }: WorkspacesScreenProps) {
   const [creating, setCreating] = useState(false);
 
+  // Mientras se crea, la lista no se muestra: el alta es un formulario, no
+  // una tarjeta más. Verla debajo hacía parecer que el proyecto ya existía.
+  if (creating) {
+    return (
+      <div className="workspaces">
+        <header className="workspaces__head">
+          <div>
+            <p className="workspaces__eyebrow">EchoReq · instrumento de estudio</p>
+            <h1 className="workspaces__title">Nuevo proyecto</h1>
+            <p className="workspaces__lead">
+              Un proyecto agrupa las reuniones de un sistema y la especificación
+              que se mantiene con ellas.
+            </p>
+          </div>
+        </header>
+
+        <NewProjectForm
+          onCancel={() => setCreating(false)}
+          onCreated={(project) => {
+            setCreating(false);
+            projects.reload();
+            onOpen(project);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="workspaces">
       <header className="workspaces__head">
@@ -46,27 +74,14 @@ export function WorkspacesScreen({ projects, onOpen }: WorkspacesScreenProps) {
             cuelgan de acá.
           </p>
         </div>
-        {!creating && (
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => setCreating(true)}
-          >
-            Nuevo proyecto
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => setCreating(true)}
+        >
+          Nuevo proyecto
+        </button>
       </header>
-
-      {creating && (
-        <NewProjectForm
-          onCancel={() => setCreating(false)}
-          onCreated={(project) => {
-            setCreating(false);
-            projects.reload();
-            onOpen(project);
-          }}
-        />
-      )}
 
       <AsyncBoundary
         resource={projects}
@@ -156,7 +171,7 @@ function NewProjectForm({
         className="field"
         value={name}
         autoFocus
-        placeholder="Clínica Norte"
+        placeholder="Nombre del sistema o del cliente"
         onChange={(event) => setName(event.target.value)}
       />
 
