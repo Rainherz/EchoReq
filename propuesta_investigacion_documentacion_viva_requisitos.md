@@ -110,6 +110,78 @@ Diseñar, implementar y evaluar experimentalmente una pipeline híbrida (agente 
 
 **Entorno experimental:** proyectos universitarios o de laboratorio con 5-10 reuniones reales o simuladas; Docker para servicios; APIs de LLM (Claude, GPT u open-source); motor de indexación vectorial para RAG (FAISS/pgvector).
 
+### 5.1 Inyección controlada de propuestas defectuosas
+
+**Por qué es necesaria.** Medir si el revisor detecta los errores del agente exige
+saber cuáles propuestas son incorrectas. En una corrida puramente observacional
+ese dato no existe: si el revisor acepta todas las propuestas de una iteración,
+la observación es compatible con dos explicaciones opuestas —que el agente no
+cometió errores, o que el revisor no los examinó— y nada en los datos permite
+separarlas. Sembrar defectos conocidos provee el denominador que hace medible la
+tasa de detección.
+
+**Operacionalización.** Tras la generación y antes de la revisión, una proporción
+fija de las propuestas de cada iteración se sustituye por una versión defectuosa
+de sí misma. La proporción se fija en **25%** y no se modifica una vez iniciada la
+corrida. Con 10 a 12 iteraciones y entre 7 y 10 propuestas por iteración, el
+procedimiento produce del orden de 20 a 30 propuestas defectuosas, magnitud
+mínima para estimar una tasa de detección con un intervalo de confianza
+informativo.
+
+**Tipos de defecto.** Se emplean cuatro, elegidos porque cada uno exige una
+conducta distinta para ser detectado. Esa diferencia es el objeto de medición: no
+se busca una tasa global, sino distinguir qué clase de verificación realiza el
+revisor.
+
+| Tipo | Alteración | Conducta que exige detectarlo |
+| --- | --- | --- |
+| Cita desplazada | se reemplazan los turnos citados; el texto no cambia | abrir el contexto y contrastar la evidencia |
+| Precisión inventada | se agrega un valor concreto ausente de la transcripción | advertir que ese dato nunca se enunció |
+| Rol desplazado | se atribuye la necesidad a otro participante de la reunión | conocer quién declaró qué |
+| Cláusula colapsada | se absorbe la obligación de otro requisito | reconocer que son responsabilidades distintas |
+
+Los tipos se rotan entre propuestas. Si todos los defectos de una corrida fueran
+del mismo tipo, el revisor aprendería el patrón y las iteraciones tardías
+medirían aprendizaje en lugar de vigilancia.
+
+**Construcción de los defectos.** Cada propuesta defectuosa se deriva por
+transformación determinista de una propuesta real generada por el agente, no se
+redacta de cero. Una propuesta redactada aparte presenta vocabulario y registro
+distintos del resto de la cola, y resulta identificable por su forma antes que
+por su contenido; en ese caso se estaría midiendo la factura del experimento y
+no la vigilancia del revisor.
+
+La versión defectuosa **sustituye** a la correcta en la cola en lugar de añadirse.
+La coexistencia de dos propuestas casi idénticas sobre el mismo requisito
+delataría la manipulación. La salida original del modelo no se pierde: queda
+registrada íntegra en la bitácora de llamadas, que es de solo anexado.
+
+**Reproducibilidad.** El procedimiento es determinista respecto de una semilla
+aleatoria. La semilla y la proporción se registran junto con los datos y se
+reportan, de modo que la asignación de defectos de cualquier corrida puede
+reconstruirse.
+
+**Salvaguardas.** El procedimiento se rechaza a sí mismo en dos situaciones: si la
+iteración ya contiene propuestas sembradas —una segunda inyección alteraría la
+proporción sin dejar constancia de cuál era la planificada— y si la iteración ya
+registra decisiones, porque modificar el texto de una propuesta ya decidida
+dejaría el intervalo de decisión asociado a un contenido que el revisor nunca
+vio.
+
+**Registro.** Cada propuesta sembrada conserva su tipo de defecto y una nota de la
+alteración exacta. Las exportaciones incluyen ambos campos, lo que permite
+desagregar la tasa de detección por tipo. Reportar «se detectó el 80% de las
+citas desplazadas y el 40% de las precisiones inventadas» constituye un
+resultado; reportar una tasa agregada, no.
+
+**Amenaza a la validez y deber de reporte.** Este procedimiento convierte una
+corrida observacional en un experimento. Los requisitos aprobados en iteraciones
+con inyección no representan la salida del agente sino una mezcla deliberada, y
+la especificación resultante no debe interpretarse como producto del sistema. El
+informe declara explícitamente que la cola contenía propuestas fabricadas, en qué
+proporción y de qué tipos; omitirlo permitiría leer los errores sembrados como
+errores del modelo.
+
 ---
 
 ## 6. Riesgos y límites identificados (sin maquillar)
