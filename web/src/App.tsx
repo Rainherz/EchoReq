@@ -170,6 +170,7 @@ export default function App() {
       project={project}
       participantId={participantId}
       identity={identity}
+      otherReviewers={Math.max(0, (participants.data?.length ?? 1) - 1)}
       onLeave={leaveProject}
       route={route}
       setRoute={setRoute}
@@ -183,6 +184,8 @@ interface ProjectAppProps {
   project: Project;
   participantId: string;
   identity: React.ReactNode;
+  /** Cuántas otras personas pueden revisar la misma cola. */
+  otherReviewers: number;
   onLeave: () => void;
   route: Route;
   setRoute: (route: Route) => void;
@@ -194,6 +197,7 @@ function ProjectApp({
   project,
   participantId,
   identity,
+  otherReviewers,
   onLeave,
   route,
   setRoute,
@@ -413,7 +417,27 @@ function ProjectApp({
                 />
               ))}
 
-            {route.section === "discovery" && (
+            {route.section === "discovery" && selected?.mode !== "discovery" && (
+              <div className="card">
+                <div className="card__head">Esta reunión no es de descubrimiento</div>
+                <p style={{ margin: "0 0 .7rem", fontSize: ".88rem", lineHeight: 1.55 }}>
+                  Descubrimiento muestra todos los candidatos a la vez, porque un
+                  primer borrador se juzga como conjunto. La reunión {iteration} es
+                  de documentación viva y sus propuestas se deciden de a una, en
+                  Revisión. Usar este layout acá cambiaría cómo se toman las
+                  decisiones y la medición dejaría de ser comparable.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => navigate("review")}
+                >
+                  Ir a Revisión
+                </button>
+              </div>
+            )}
+
+            {route.section === "discovery" && selected?.mode === "discovery" && (
               <AsyncBoundary
                 resource={queue}
                 empty={
@@ -424,6 +448,7 @@ function ProjectApp({
                       iteration={iteration}
                       meeting={selected}
                       what="candidatos"
+                      otherReviewers={otherReviewers}
                     />
                   )
                 }
@@ -453,6 +478,7 @@ function ProjectApp({
                       meeting={selected}
                       what="propuestas"
                       onReload={queue.reload}
+                      otherReviewers={otherReviewers}
                     />
                   )
                 }
@@ -536,11 +562,13 @@ function EmptyQueue({
   meeting,
   what,
   onReload,
+  otherReviewers = 0,
 }: {
   iteration: number;
   meeting: Meeting;
   what: string;
   onReload?: () => void;
+  otherReviewers?: number;
 }) {
   const generated = meeting.proposalCount > 0;
 
@@ -552,9 +580,20 @@ function EmptyQueue({
       <p style={{ margin: "0 0 .7rem", fontSize: ".88rem", lineHeight: 1.55 }}>
         {generated ? (
           <>
-            La reunión {iteration} tiene {meeting.proposalCount} {what} y este
-            participante ya decidió todo lo que había. La cola es de cada
-            persona: para verlas sin decidir, elegí otro participante arriba.
+            La reunión {iteration} tiene {meeting.proposalCount} {what} y ya las
+            decidiste todas.{" "}
+            {otherReviewers > 0 ? (
+              <>
+                La cola es de cada persona, así que{" "}
+                {otherReviewers === 1 ? "el otro participante" : "los otros participantes"}{" "}
+                todavía {otherReviewers === 1 ? "la tiene" : "la tienen"} sin
+                decidir.
+              </>
+            ) : (
+              <>
+                Seguí con el documento, o cargá la próxima reunión en Sesiones.
+              </>
+            )}
           </>
         ) : (
           <>
