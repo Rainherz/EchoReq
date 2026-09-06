@@ -322,10 +322,21 @@ function ProjectApp({
 
   const [addingMeeting, setAddingMeeting] = useState(false);
 
-  const persist = useCallback(async (input: RecordDecisionInput) => {
-    const { id } = await recordDecision(input);
-    return id;
-  }, []);
+  const { reload: reloadMeetings } = meetings;
+
+  const persist = useCallback(
+    async (input: RecordDecisionInput) => {
+      const { id } = await recordDecision(input);
+      // Los contadores de la barra y del selector salen de la lista de
+      // reuniones, no de la cola. Sin refrescarla seguían mostrando lo que
+      // faltaba antes de decidir, y una cola terminada figuraba con
+      // pendientes. Refrescar acá es seguro: la lista no alimenta la pantalla
+      // de revisión, así que no le mueve las propuestas al revisor.
+      reloadMeetings();
+      return id;
+    },
+    [reloadMeetings],
+  );
 
   const correct = useCallback(
     async (decisionId: number, intended: ReviewAction, reason: string) => {
