@@ -382,3 +382,48 @@
   line-height: 1.5;
   margin: 0.9rem 0 0;
 }
+
+/* Identificación de voces */
+.voice {
+  border-top: 1px solid var(--line);
+  padding: 0.8rem 0 0.2rem;
+}
+
+.voice:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.voice__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.voice__meta {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--faint);
+}
+
+.voice__samples {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.voice__quote {
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0.5rem 0 0.6rem;
+}
+
+.voice__form {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}

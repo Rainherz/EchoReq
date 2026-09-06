@@ -54,7 +54,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    iteration, mode, turns = store.load_meeting(args.project, args.meeting_id)
+    iteration, mode, turns, voices = store.load_meeting(args.project, args.meeting_id)
     if not turns:
         print(f"La reunión {args.meeting_id} no tiene turnos cargados.")
         return 1
@@ -70,6 +70,7 @@ def main() -> int:
         mode=mode,  # type: ignore[arg-type]
         turns=turns,
         baseline=baseline,
+        speakers=voices,
     )
 
     if args.replay:
@@ -98,6 +99,13 @@ def main() -> int:
         f"Reunión {iteration} · modo {mode} · {len(turns)} turnos · "
         f"{len(baseline)} requisitos vigentes"
     )
+    if voices:
+        print(f"  voces identificadas: {', '.join(sorted(voices.values()))}")
+    else:
+        print(
+            "  voces sin identificar: el agente no va a poder distinguir quién\n"
+            "  pide de quién pregunta. Etiquetalas en la pantalla de Sesiones."
+        )
     print(
         "Releyendo lo registrado…"
         if args.replay

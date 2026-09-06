@@ -273,8 +273,38 @@ verificar una propuesta; pasados unos tres cuartos de minuto deja de leer y
 empieza a confiar. Esa confianza por agotamiento es justo lo que el estudio
 mide, así que el instrumento no puede inducirla.
 
-Los hablantes salen como `S1`, `S2`… La diarización distingue voces, no
-personas: ponerles nombre es decisión del analista, no del modelo.
+Los hablantes salen como `S1`, `S2`. La diarización distingue voces, no
+personas: separa cuántas hay y cuándo habló cada una, pero no puede saber cuál
+es el cliente.
+
+### Quién es cada voz
+
+En la pantalla de Sesiones, una vez transcripta la reunión, se escucha un
+recorte de cada voz y se la identifica. El servidor recorta el fragmento con
+ffmpeg —doce segundos pesan 384 KB contra los 74 MB del archivo entero— y la
+etiqueta se guarda en `speaker_labels`.
+
+Va aparte de `turns` porque son dos afirmaciones de distinto origen. Que la
+voz de un tramo sea la 00 lo observó el modelo, y por eso `turns` es de solo
+anexado. Que esa voz sea la del especialista lo interpretó una persona
+escuchando: puede estar equivocada y tiene que poder corregirse sin tocar el
+registro de lo que el modelo observó.
+
+**No es cosmético.** La etiqueta entra en el prompt de generación:
+
+```
+[3] 00:49 Analista entrevistador: ¿usted qué cargo desempeña ahora mismo?
+[4] 00:58 Especialista UGEL: hasta el año pasado yo estuve como especialista…
+```
+
+Sin ella el agente lee `S1` y `S2`, y no puede distinguir **un requisito que
+el cliente pidió de una idea que el entrevistador introdujo al preguntar**.
+Con ella puede, y la regla 5 del prompt le pide marcar con una señal las
+propuestas cuya idea no salió del cliente.
+
+Conviene el rol antes que el nombre propio: le da al agente el mismo contexto
+sin convertir la transcripción en datos identificados de las personas
+entrevistadas.
 
 ### Corrección de decisiones
 

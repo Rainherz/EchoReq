@@ -99,6 +99,20 @@ def timestamp(seconds: float) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 
+def seconds_from(mark: str) -> float:
+    """Inverso de `timestamp`: de la marca guardada a segundos.
+
+    Los turnos guardan la marca como texto porque es lo que se lee en
+    pantalla y lo que se cita. Para recortar el audio de un turno hace falta
+    volver al número.
+    """
+    parts = [int(piece) for piece in mark.strip().split(":")]
+    total = 0
+    for piece in parts:
+        total = total * 60 + piece
+    return float(total)
+
+
 def into_turns(segments: Sequence[Segment]) -> list[TranscribedTurn]:
     """Agrupa los tramos en turnos de conversación.
 

@@ -16,6 +16,30 @@ class Schema(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class SpeakerSampleOut(Schema):
+    turn_id: int
+    starts_at: str
+    ends_at: str | None
+    start_seconds: float
+    end_seconds: float
+    text: str
+
+
+class SpeakerOut(Schema):
+    code: str
+    label: str | None
+    turns: int
+    characters: int
+    # Modelo tipado y no `list[dict]`: la conversión a camelCase del esquema
+    # solo alcanza a sus propios campos, así que un diccionario suelto viajaba
+    # en snake_case y el cliente leía `undefined`.
+    samples: list[SpeakerSampleOut]
+
+
+class SpeakerIn(Schema):
+    label: str = Field(min_length=2, max_length=60)
+
+
 class ParticipantOut(Schema):
     id: str
     display_name: str

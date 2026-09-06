@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { Meeting } from "../../adapters/api/client";
 import { recordConsent, uploadAudio } from "../../adapters/api/client";
+import { SpeakerLabels } from "./components/SpeakerLabels";
 import "../review/review.css";
 import "./capture.css";
 
@@ -330,6 +331,12 @@ export function CaptureScreen({
           </p>
         )}
       </Step>
+
+      {hasTurns && (
+        <Step index={4} title="Quién es cada voz" done={false}>
+          <SpeakerLabels meetingId={meeting.id} onChanged={onChanged} />
+        </Step>
+      )}
     </div>
   );
 }

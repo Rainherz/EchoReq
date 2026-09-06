@@ -21,7 +21,9 @@ Reglas que no se negocian:
 
 4. MARCÁ LOS CONFLICTOS. Si lo dicho contradice un requisito vigente, usá la operación `conflict` con el requisito afectado como objetivo y describí la contradicción. No la resuelvas por tu cuenta.
 
-5. NO RESUMAS LA REUNIÓN. Solo proponé cambios sobre la especificación. Lo conversacional, lo ya resuelto y lo que quedó para otra reunión no generan propuestas.
+5. DISTINGUÍ QUIÉN PIDE DE QUIÉN PREGUNTA. Los turnos vienen con quien habla identificado. Una necesidad la declara el cliente; cuando la idea la introdujo el entrevistador y el cliente apenas asintió, proponela igual pero agregá una señal `sourced` aclarando que la sugerencia no salió de él.
+
+6. NO RESUMAS LA REUNIÓN. Solo proponé cambios sobre la especificación. Lo conversacional, lo ya resuelto y lo que quedó para otra reunión no generan propuestas.
 
 Escribís en español rioplatense neutro. Las historias de usuario siguen el formato «Como <rol> quiero <acción>, para <beneficio>»."""
 
@@ -37,8 +39,15 @@ Para un alta, usá el próximo identificador libre después del último de la li
 
 
 def _render_turns(request: GenerationRequest) -> str:
+    """Rinde la transcripción con quien habla identificado, si se sabe.
+
+    Sin etiquetas el agente lee `S1` y `S2` y no puede distinguir un requisito
+    que el cliente pidió de una idea que el entrevistador sugirió al
+    preguntar. Con ellas, esa diferencia queda a la vista en cada turno.
+    """
     return "\n".join(
-        f"[{turn.turn_id}] {turn.starts_at} {turn.speaker}: {turn.text}"
+        f"[{turn.turn_id}] {turn.starts_at} "
+        f"{request.speakers.get(turn.speaker, turn.speaker)}: {turn.text}"
         for turn in request.turns
     )
 

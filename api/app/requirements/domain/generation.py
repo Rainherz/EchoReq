@@ -7,7 +7,7 @@ revisión.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
@@ -57,6 +57,10 @@ class GenerationRequest:
     turns: list[Turn]
     #: Especificación vigente. Vacía en modo descubrimiento.
     baseline: list[tuple[str, str]]
+    #: Quién es cada voz, según el analista. Vacío mientras no se etiquetaron:
+    #: ahí el agente ve los códigos crudos y no puede distinguir quién pide de
+    #: quién pregunta.
+    speakers: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

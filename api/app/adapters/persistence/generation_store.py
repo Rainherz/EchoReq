@@ -6,13 +6,16 @@ import json
 
 from ...requirements.domain.entities import ChangeProposal, Turn
 from ...requirements.domain.generation import GenerationResult
+from . import speakers
 from .pool import cursor
 
 STAGE = "propose"
 
 
-def load_meeting(project_id: str, meeting_id: str) -> tuple[int, str, list[Turn]]:
-    """Iteración, modo y turnos de una reunión."""
+def load_meeting(
+    project_id: str, meeting_id: str
+) -> tuple[int, str, list[Turn], dict[str, str]]:
+    """Iteración, modo, turnos y quién es cada voz."""
     with cursor() as cur:
         cur.execute(
             "SELECT iteration, mode FROM meetings WHERE id = %s AND project_id = %s",
@@ -31,7 +34,7 @@ def load_meeting(project_id: str, meeting_id: str) -> tuple[int, str, list[Turn]
         )
         turns = [Turn(**row) for row in cur.fetchall()]
 
-    return meeting["iteration"], meeting["mode"], turns
+    return meeting["iteration"], meeting["mode"], turns, speakers.labels_for(meeting_id)
 
 
 def load_baseline(project_id: str, up_to_revision: int) -> list[tuple[str, str]]:

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import subprocess
 from dataclasses import asdict
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi import Response
 
+from ..adapters.persistence import speakers
+from ..adapters.persistence import transcript_store
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.storage import audio as audio_store
 from ..adapters.persistence.repositories import (
@@ -25,6 +28,9 @@ from ..adapters.persistence.repositories import (
 from ..requirements.domain.entities import DecisionCorrection, ReviewDecision
 from ..requirements.use_cases import ReviewQueue, SpecificationReader, StudyMetrics
 from .schemas import (
+    SpeakerIn,
+    SpeakerOut,
+    SpeakerSampleOut,
     ParticipantIn,
     ParticipantOut,
     DecisionIn,
@@ -55,6 +61,10 @@ _transcripts = PostgresTranscriptRepository()
 _catalog = PostgresCatalogRepository()
 _meetings_repo = PostgresMeetingRepository()
 _participants = PostgresParticipantRepository()
+
+#: Tope del recorte de audio. Alcanza para reconocer una voz y evita que el
+#: endpoint se vuelva una vía para descargar la reunión entera de a pedazos.
+MAX_CLIP_SECONDS = 45.0
 
 _queue = ReviewQueue(_proposals, _transcripts, _decisions)
 _spec = SpecificationReader(_documents)
@@ -175,6 +185,79 @@ def upload_audio(meeting_id: str, file: UploadFile = File(...)) -> MeetingAudioO
         sha256=stored.sha256,
         transcription_status="pending",
     )
+
+
+@router.get("/meetings/{meeting_id}/speakers")
+def meeting_speakers(meeting_id: str) -> list[SpeakerOut]:
+    """Voces de la reunión, con turnos para escucharlas y quién es cada una."""
+    if not _meetings_repo.exists(meeting_id):
+        raise HTTPException(
+            status_code=404, detail=f"No existe la reunión {meeting_id}."
+        )
+    return [
+        SpeakerOut(
+            code=voice.code,
+            label=voice.label,
+            turns=voice.turns,
+            characters=voice.characters,
+            samples=[SpeakerSampleOut(**asdict(sample)) for sample in voice.samples],
+        )
+        for voice in speakers.for_meeting(meeting_id)
+    ]
+
+
+@router.put("/meetings/{meeting_id}/speakers/{code}", status_code=204)
+def label_speaker(meeting_id: str, code: str, payload: SpeakerIn) -> None:
+    """Nombra una voz, o corrige el nombre que tenía.
+
+    Se puede pisar a diferencia de la transcripción: quién es cada voz es la
+    interpretación de una persona, no lo que observó el modelo.
+    """
+    if not _meetings_repo.exists(meeting_id):
+        raise HTTPException(
+            status_code=404, detail=f"No existe la reunión {meeting_id}."
+        )
+    speakers.label(meeting_id, code, payload.label)
+
+
+@router.get("/meetings/{meeting_id}/audio/clip", response_model=None)
+def audio_clip(
+    meeting_id: str,
+    start: float = Query(ge=0),
+    seconds: float = Query(default=10.0, gt=0, le=MAX_CLIP_SECONDS),
+) -> Response:
+    """Un recorte del audio, para reconocer una voz.
+
+    Se recorta en el servidor en lugar de servir el archivo entero: la
+    reunión pesa decenas de megabytes y de acá solo se necesitan segundos.
+    La ruta sale de la base, nunca del pedido.
+    """
+    audio = transcript_store.load(meeting_id)
+    if audio.path is None:
+        raise HTTPException(
+            status_code=404, detail=f"La reunión {meeting_id} no tiene audio."
+        )
+
+    try:
+        cut = subprocess.run(
+            ["ffmpeg", "-v", "error", "-ss", str(start), "-t", str(seconds),
+             "-i", audio.path, "-ac", "1", "-f", "wav", "-"],
+            capture_output=True,
+            timeout=30,
+            check=True,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Falta ffmpeg en el servidor; sin él no se puede recortar el audio.",
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"ffmpeg falló: {exc.stderr.decode()[:200]}",
+        ) from exc
+
+    return Response(content=cut.stdout, media_type="audio/wav")
 
 
 @router.get("/meetings/{meeting_id}/turns")

@@ -66,6 +66,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(response.status, detail);
   }
 
+  // Las respuestas sin cuerpo —204 de un alta de consentimiento o de una
+  // etiqueta— no se pueden parsear como JSON.
+  if (response.status === 204) return undefined as T;
+
   return response.json() as Promise<T>;
 }
 
@@ -124,6 +128,48 @@ interface RawRevision {
   content: string;
   sourceTurnIds: number[];
   summary: string;
+}
+
+export interface SpeakerSample {
+  turnId: number;
+  startsAt: string;
+  endsAt: string | null;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+}
+
+export interface Speaker {
+  code: string;
+  /** Quién es, según el analista. Nulo mientras nadie lo dijo. */
+  label: string | null;
+  turns: number;
+  characters: number;
+  samples: SpeakerSample[];
+}
+
+export const fetchSpeakers = (meetingId: string): Promise<Speaker[]> =>
+  request<Speaker[]>(`/meetings/${encodeURIComponent(meetingId)}/speakers`);
+
+export async function labelSpeaker(
+  meetingId: string,
+  code: string,
+  label: string,
+): Promise<void> {
+  await request<void>(
+    `/meetings/${encodeURIComponent(meetingId)}/speakers/${encodeURIComponent(code)}`,
+    { method: "PUT", body: JSON.stringify({ label }) },
+  );
+}
+
+/** URL de un recorte del audio. El servidor lo corta; acá solo se reproduce. */
+export function clipUrl(
+  meetingId: string,
+  startSeconds: number,
+  seconds: number,
+): string {
+  const dur = Math.min(Math.max(seconds, 1), 45);
+  return `/api/meetings/${encodeURIComponent(meetingId)}/audio/clip?start=${startSeconds}&seconds=${dur}`;
 }
 
 export interface Participant {
