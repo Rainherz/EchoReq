@@ -65,7 +65,15 @@ function Panels({ data }: { data: Panel }) {
     detail: `${row.meanResponsibilities} responsabilidades por requisito en promedio · máximo ${row.maxResponsibilities} · ${row.overAtomicLimit} sobre el límite`,
   }));
 
-  const timeSeries: TrendPoint[] = metrics.map((row) => ({
+  // La curva de decisión excluye descubrimiento. Ahí los candidatos se
+  // muestran todos a la vez y el revisor entra y sale de ellos, así que el
+  // intervalo mide cuánto estuvo uno al frente — no cuánto costó decidirlo.
+  // Graficar las dos cosas juntas mostraría una caída que es de la interfaz,
+  // no del revisor.
+  const comparable = metrics.filter((row) => row.mode !== "discovery");
+  const calibration = metrics.find((row) => row.mode === "discovery");
+
+  const timeSeries: TrendPoint[] = comparable.map((row) => ({
     x: row.iteration,
     y: row.medianSeconds,
     label: `Reunión ${row.iteration}`,
@@ -148,11 +156,13 @@ function Panels({ data }: { data: Panel }) {
         ) : (
           <NotYet
             label="Mediana de decisión"
-            value={metrics.length === 1 ? `${metrics[0].medianSeconds} s` : "—"}
+            value={comparable.length === 1 ? `${comparable[0].medianSeconds} s` : "—"}
             note={
-              metrics.length === 0
-                ? "Todavía no hay decisiones registradas. Revisá una cola en la pantalla de Revisión para que aparezca el primer punto."
-                : "Una sola iteración revisada. La fatiga de revisión es una tendencia: hace falta al menos otra para poder leerla."
+              comparable.length === 0 && calibration
+                ? `La reunión ${calibration.iteration} es de descubrimiento: sus ${calibration.decisions} candidatos se mostraron todos juntos, así que su intervalo no mide lo mismo y queda fuera de la curva. Procesá una reunión de documentación viva para el primer punto.`
+                : comparable.length === 0
+                  ? "Todavía no hay decisiones registradas. Revisá una cola en la pantalla de Revisión para que aparezca el primer punto."
+                  : "Una sola iteración revisada. La fatiga de revisión es una tendencia: hace falta al menos otra para poder leerla."
             }
           />
         )}

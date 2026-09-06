@@ -151,6 +151,7 @@ class MetricsOut(Schema):
     defective_accepted: int
     defective_total: int
     corrected: int
+    mode: str
 
 
 class ColumnOut(Schema):

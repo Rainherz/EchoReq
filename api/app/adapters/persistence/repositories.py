@@ -287,7 +287,8 @@ class PostgresDecisionRepository:
         with cursor() as cur:
             cur.execute(
                 """
-                SELECT iteration, action, known_defective, seconds, corrected
+                SELECT iteration, action, known_defective, seconds, corrected,
+                       mode
                 FROM review_timings
                 WHERE project_id = %s
                 ORDER BY iteration
@@ -329,6 +330,7 @@ class PostgresDecisionRepository:
                     ),
                     defective_total=len(defective),
                     corrected=corrections.get(iteration, 0),
+                    mode=group[0]["mode"] if group else "living",
                 )
             )
         return out

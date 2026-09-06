@@ -195,6 +195,9 @@ class IterationMetrics:
 
     iteration: int
     decisions: int
+    #: Mediana del intervalo entre presentar y decidir. Solo es comparable
+    #: entre iteraciones del mismo modo: en descubrimiento los candidatos se
+    #: muestran todos juntos y el intervalo mide otra cosa.
     median_seconds: float
     accepted_without_edit: int
     defective_accepted: int
@@ -202,3 +205,6 @@ class IterationMetrics:
     #: Decisiones que el revisor marcó como error de registro. Excluidas de
     #: las cifras de arriba, contadas acá.
     corrected: int = 0
+    #: `discovery` o `living`. La curva que compara iteraciones arranca en la
+    #: primera de documentación viva.
+    mode: str = "living"

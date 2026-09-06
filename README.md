@@ -415,6 +415,17 @@ preferencias de diseño y **no pueden cambiarse durante una corrida**:
 
 - **Una propuesta por vez.** El intervalo `presented_at` → `decided_at` es la
   medición de registro. Abrir el editor no reinicia el reloj.
+- **Cada propuesta lleva su propio reloj.** Un instante compartido por toda la
+  pantalla convierte la latencia en tiempo transcurrido desde que se abrió, que
+  crece solo y no mide ninguna decisión. Ya se rompió una vez sin que nada
+  avisara, así que ahora hay una comprobación: `make timing` maneja las dos
+  pantallas en un navegador real, intercepta las decisiones sin escribirlas y
+  falla si dos comparten reloj.
+- **La latencia solo se compara dentro del mismo modo.** En descubrimiento los
+  candidatos se muestran todos juntos y el revisor entra y sale de ellos, así
+  que el intervalo mide cuánto estuvo uno al frente. La curva de la pantalla de
+  Iteraciones excluye esas iteraciones en lugar de promediarlas con las de
+  documentación viva.
 - **Sin aceptar en lote.** Un botón de "aceptar todas" registraría la
   existencia del atajo, no la vigilancia del revisor.
 - **Sin atajos de teclado.** Un acelerador baja el costo de aprobar mucho más

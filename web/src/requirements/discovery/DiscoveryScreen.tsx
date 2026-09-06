@@ -39,7 +39,15 @@ export function DiscoveryScreen({
 }: DiscoveryScreenProps) {
   const [decisions, setDecisions] = useState<Record<string, ReviewAction>>({});
   const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null);
-  const [presentedAt] = useState(() => Date.now());
+  // Cuándo se le puso enfrente cada candidato.
+  //
+  // En descubrimiento todos están a la vista al mismo tiempo, así que el
+  // momento de presentación de uno es cuando el revisor lo trae al frente:
+  // al seleccionarlo, sus turnos se resaltan en la transcripción. Un solo
+  // valor para toda la pantalla convertía la latencia en tiempo transcurrido
+  // desde que se abrió, que crece solo y no mide ninguna decisión.
+  const [openedAt] = useState(() => Date.now());
+  const presentedAt = useRef(new Map<string, number>());
   const [failure, setFailure] = useState<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +71,13 @@ export function DiscoveryScreen({
     first?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [selected]);
 
+  // El reloj de un candidato arranca cada vez que vuelve al frente, no la
+  // primera: si el revisor lo dejó y volvió, lo que se mide es la vuelta en
+  // la que decidió.
+  useEffect(() => {
+    if (selectedId) presentedAt.current.set(selectedId, Date.now());
+  }, [selectedId]);
+
   const decide = useCallback(
     async (candidate: QueueItem, action: ReviewAction, editedContent?: string) => {
       setFailure(null);
@@ -71,7 +86,11 @@ export function DiscoveryScreen({
           proposalId: candidate.id,
           participantId,
           action,
-          presentedAt,
+          // Sin selección previa el candidato se decidió sin traerlo al
+          // frente. Se cuenta desde que se abrió la pantalla, que es lo único
+          // cierto: nunca estuvo solo delante del revisor.
+          presentedAt:
+            presentedAt.current.get(candidate.id) ?? openedAt,
           decidedAt: Date.now(),
           editedContent,
         });
@@ -83,7 +102,7 @@ export function DiscoveryScreen({
       }
       setDecisions((current) => ({ ...current, [candidate.id]: action }));
     },
-    [onDecide, participantId, presentedAt],
+    [onDecide, participantId, openedAt],
   );
 
   const decidedCount = Object.keys(decisions).length;

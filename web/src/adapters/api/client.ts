@@ -80,6 +80,9 @@ export interface IterationMetrics {
   iteration: number;
   decisions: number;
   medianSeconds: number;
+  /** `discovery` o `living`. La latencia solo se compara entre iteraciones
+      del mismo modo. */
+  mode: "discovery" | "living";
   acceptedWithoutEdit: number;
   defectiveAccepted: number;
   defectiveTotal: number;
