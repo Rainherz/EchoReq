@@ -113,6 +113,8 @@ export interface Meeting {
   turnCount: number;
   /** Propuestas que este participante todavía no decidió. */
   pendingProposals: number;
+  /** Total que produjo la generación, decididas o no. */
+  proposalCount: number;
   audioFilename: string | null;
   audioBytes: number | null;
   transcriptionStatus: "pending" | "running" | "done" | "failed";

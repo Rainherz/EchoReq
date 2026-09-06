@@ -73,6 +73,10 @@ export function CaptureScreen({
   const transcribed = hasAudio && status === "done";
   const running = hasAudio && status === "running";
   const failed = hasAudio && status === "failed";
+  // La generación ya corrió si dejó propuestas. No se mira cuántas quedan
+  // pendientes: bajan a cero al terminar de revisar, y la pantalla volvería a
+  // pedir que se genere algo que ya está.
+  const analyzed = meeting.proposalCount > 0;
 
   const send = async (file: File) => {
     setUploading(true);
@@ -107,10 +111,13 @@ export function CaptureScreen({
       return running ? "active" : "pending";
     }
     // El análisis es un paso aparte, con su propio comando.
+    if (analyzed) return "done";
     return transcribed ? "active" : "pending";
   };
 
-  const processingCount = transcribed
+  const processingCount = analyzed
+    ? `${meeting.proposalCount} propuestas`
+    : transcribed
     ? `${meeting.turnCount} turnos`
     : running
       ? "transcribiendo…"
@@ -304,12 +311,22 @@ export function CaptureScreen({
           </p>
         )}
 
-        {transcribed && (
+        {transcribed && !analyzed && (
           <p className="step__hint">
             {meeting.turnCount} turnos listos para citar. El análisis es el
             siguiente paso, desde <code>api/</code>:
             <br />
             <code>.venv/bin/python generate.py {meeting.id} --project …</code>
+          </p>
+        )}
+
+        {analyzed && (
+          <p className="step__hint">
+            {meeting.proposalCount} propuestas generadas sobre {meeting.turnCount}{" "}
+            turnos.{" "}
+            {meeting.pendingProposals > 0
+              ? `Quedan ${meeting.pendingProposals} sin decidir en Revisión.`
+              : "Todas decididas."}
           </p>
         )}
       </Step>

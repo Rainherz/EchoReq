@@ -25,6 +25,7 @@ class MeetingOut(Schema):
     has_consent: bool
     turn_count: int
     pending_proposals: int
+    proposal_count: int
     audio_filename: str | None
     audio_bytes: int | None
     transcription_status: str

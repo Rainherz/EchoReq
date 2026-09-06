@@ -146,7 +146,12 @@ class Meeting:
     held_at: datetime
     has_consent: bool
     turn_count: int
+    #: Pendientes de decidir por el participante que consulta.
     pending_proposals: int
+    #: Total que produjo la generación. Es lo que dice si el análisis ya
+    #: corrió: las pendientes bajan a cero cuando se termina de revisar, y la
+    #: pantalla no puede leer eso como que falta generar.
+    proposal_count: int = 0
     audio_filename: str | None = None
     audio_bytes: int | None = None
     transcription_status: str = "pending"

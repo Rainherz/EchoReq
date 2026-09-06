@@ -129,7 +129,9 @@ class PostgresCatalogRepository:
                             SELECT 1 FROM review_decisions d
                             WHERE d.proposal_id = cp.id
                               AND d.participant_id = %s
-                        )) AS pending_proposals
+                        )) AS pending_proposals,
+                    (SELECT count(*) FROM change_proposals cp
+                      WHERE cp.meeting_id = m.id) AS proposal_count
                 FROM meetings m
                 WHERE m.project_id = %s
                 ORDER BY m.iteration
