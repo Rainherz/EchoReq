@@ -275,6 +275,22 @@ function ProjectApp({
     [selectedId],
   );
 
+  // La cola cambia con cada decisión, y hay dos pantallas que la consumen.
+  // Decidir en Descubrimiento dejaba a Revisión con la cola de antes: las
+  // propuestas ya decididas seguían en pantalla y al aceptarlas el backend
+  // las rechazaba con 409, que es correcto pero llega tarde y sin explicar
+  // nada.
+  //
+  // Se vuelve a pedir al entrar, no después de cada decisión: refrescarla
+  // mientras alguien revisa le movería la cola bajo los pies en medio de la
+  // medición.
+  const { reload: reloadQueue } = queue;
+  useEffect(() => {
+    if (route.section === "review" || route.section === "discovery") {
+      reloadQueue();
+    }
+  }, [route.section, reloadQueue]);
+
   // Quién es cada voz. Se reparte a las pantallas que muestran turnos: sin
   // esto el revisor lee S1 y S2 y no sabe si lo citado lo dijo el cliente o
   // quien lo entrevistaba.
