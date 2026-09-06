@@ -2,6 +2,10 @@ services:
   db:
     image: pgvector/pgvector:pg17
     container_name: echoreq-db
+    # Vuelve sola después de reiniciar la máquina. Sin esto, un reinicio deja
+    # la interfaz mostrando errores de conexión sin decir por qué, y el
+    # síntoma no se parece en nada a la causa.
+    restart: unless-stopped
     environment:
       POSTGRES_USER: echoreq
       POSTGRES_PASSWORD: echoreq
