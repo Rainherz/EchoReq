@@ -80,6 +80,20 @@ def store_turns(meeting_id: str, result: TranscriptionResult) -> int:
     params["language"] = result.language
 
     with cursor() as cur:
+        # Las huellas van en la misma transacción que los turnos: una voz
+        # guardada sin sus turnos, o al revés, dejaría el reconocimiento
+        # apuntando a una reunión que no se puede leer.
+        if result.voiceprints:
+            cur.executemany(
+                "INSERT INTO speaker_voiceprints (meeting_id, code, embedding) "
+                "VALUES (%s, %s, %s) "
+                "ON CONFLICT (meeting_id, code) DO NOTHING",
+                [
+                    (meeting_id, v.code, str(v.embedding))
+                    for v in result.voiceprints
+                ],
+            )
+
         cur.executemany(
             "INSERT INTO turns (meeting_id, turn_id, speaker, starts_at, ends_at, text) "
             "VALUES (%s, %s, %s, %s, %s, %s)",

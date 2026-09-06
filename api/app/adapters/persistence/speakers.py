@@ -27,6 +27,23 @@ class Sample:
     text: str
 
 
+#: Similitud mínima para proponer un parecido. Por debajo no se sugiere nada:
+#: una sugerencia floja es peor que ninguna, porque invita a confirmarla sin
+#: escuchar y así una identificación equivocada entra al prompt del agente.
+MIN_SIMILARITY = 0.55
+
+
+@dataclass(frozen=True, slots=True)
+class Suggestion:
+    """A quién se parece esta voz, según las reuniones anteriores."""
+
+    role: str
+    name: str | None
+    similarity: float
+    #: De qué reunión salió el parecido, para poder ir a escucharla.
+    from_meeting: str
+
+
 @dataclass(frozen=True, slots=True)
 class Speaker:
     code: str
@@ -38,6 +55,8 @@ class Speaker:
     turns: int
     characters: int
     samples: list[Sample]
+    #: Sólo para las voces sin etiquetar. Se propone, no se aplica.
+    suggestion: Suggestion | None = None
 
 
 def _sample(row) -> Sample:
@@ -62,6 +81,8 @@ def for_meeting(meeting_id: str) -> list[Speaker]:
     palabras sueltas es más difícil que por una oración entera, y quien
     etiqueta tiene que poder estar seguro.
     """
+    propuestas = suggestions(meeting_id)
+
     with cursor() as cur:
         cur.execute(
             """
@@ -101,10 +122,59 @@ def for_meeting(meeting_id: str) -> list[Speaker]:
                     turns=voice["turns"],
                     characters=voice["characters"],
                     samples=[_sample(row) for row in rows],
+                    # Sólo se propone para las que nadie identificó todavía.
+                    suggestion=(
+                        None if voice["role"] else propuestas.get(voice["speaker"])
+                    ),
                 )
             )
 
     return speakers
+
+
+def suggestions(meeting_id: str) -> dict[str, Suggestion]:
+    """A qué voz conocida del proyecto se parece cada voz de esta reunión.
+
+    Compara centroides por distancia coseno contra las voces ya etiquetadas de
+    las otras reuniones del mismo proyecto. Devuelve, por voz, el parecido más
+    alto que supere el umbral.
+
+    Es una propuesta y nada más. Quién habla decide si un requisito lo pidió el
+    cliente o lo sugirió el entrevistador, y eso entra al prompt del agente:
+    aplicarla sola convertiría un parecido acústico en un hecho del estudio.
+    """
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT DISTINCT ON (v.code)
+                   v.code,
+                   l.role,
+                   l.name,
+                   1 - (v.embedding <=> o.embedding) AS similarity,
+                   o.meeting_id AS from_meeting
+            FROM speaker_voiceprints v
+            JOIN meetings m       ON m.id = v.meeting_id
+            JOIN meetings om      ON om.project_id = m.project_id
+                                 AND om.id <> v.meeting_id
+            JOIN speaker_voiceprints o ON o.meeting_id = om.id
+            JOIN speaker_labels l ON l.meeting_id = o.meeting_id AND l.code = o.code
+            WHERE v.meeting_id = %s
+            ORDER BY v.code, similarity DESC
+            """,
+            (meeting_id,),
+        )
+        filas = cur.fetchall()
+
+    return {
+        f["code"]: Suggestion(
+            role=f["role"],
+            name=f["name"],
+            similarity=round(float(f["similarity"]), 3),
+            from_meeting=f["from_meeting"],
+        )
+        for f in filas
+        if float(f["similarity"]) >= MIN_SIMILARITY
+    }
 
 
 def label(meeting_id: str, code: str, role: str, name: str | None = None) -> None:

@@ -10,7 +10,7 @@ transcriptor.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Protocol
 
 #: Silencio a partir del cual dos tramos del mismo hablante dejan de ser el
@@ -70,6 +70,18 @@ class TranscriptionRequest:
 
 
 @dataclass(frozen=True, slots=True)
+class Voiceprint:
+    """Centroide de una voz, para reconocerla en reuniones posteriores.
+
+    Es del modelo, no del analista: describe cómo suena esa voz, no quién es.
+    Ponerle nombre sigue siendo una decisión de una persona.
+    """
+
+    code: str
+    embedding: list[float]
+
+
+@dataclass(frozen=True, slots=True)
 class TranscriptionResult:
     turns: list[TranscribedTurn]
     language: str
@@ -77,6 +89,8 @@ class TranscriptionResult:
     #: Con qué se produjo. Se registra para poder descartar que la deriva
     #: medida entre iteraciones venga de haber cambiado de transcriptor.
     params: dict[str, object]
+    #: Una por voz distinguida. Vacío si no se diarizó.
+    voiceprints: list[Voiceprint] = field(default_factory=list)
 
 
 class TranscriptionEngine(Protocol):
@@ -113,6 +127,21 @@ def seconds_from(mark: str) -> float:
     return float(total)
 
 
+def assign_codes(segments: Sequence[Segment]) -> dict[str, str]:
+    """Código estable por voz: `S1`, `S2`… en orden de aparición.
+
+    Vive aparte porque hace falta en dos lugares —al armar los turnos y al
+    guardar la huella de cada voz— y las dos tienen que coincidir. Calcularlo
+    dos veces abriría la puerta a que el turno diga `S2` y la huella se
+    guarde como `S3`.
+    """
+    labels: dict[str, str] = {}
+    for segment in segments:
+        if segment.text.strip() and segment.speaker is not None:
+            labels.setdefault(segment.speaker, f"S{len(labels) + 1}")
+    return labels
+
+
 def into_turns(segments: Sequence[Segment]) -> list[TranscribedTurn]:
     """Agrupa los tramos en turnos de conversación.
 
@@ -129,7 +158,7 @@ def into_turns(segments: Sequence[Segment]) -> list[TranscribedTurn]:
     diarización distingue voces, no personas: quién es cada quién es una
     decisión del analista, no del modelo.
     """
-    labels: dict[str, str] = {}
+    labels = assign_codes(segments)
     grouped: list[list[Segment]] = []
 
     for segment in segments:
@@ -140,7 +169,7 @@ def into_turns(segments: Sequence[Segment]) -> list[TranscribedTurn]:
         speaker = (
             UNKNOWN_SPEAKER
             if segment.speaker is None
-            else labels.setdefault(segment.speaker, f"S{len(labels) + 1}")
+            else labels[segment.speaker]
         )
         current = replace(segment, text=text, speaker=speaker)
 

@@ -139,6 +139,14 @@ export interface SpeakerSample {
   text: string;
 }
 
+export interface Suggestion {
+  role: string;
+  name: string | null;
+  /** Similitud coseno contra la voz conocida, entre 0 y 1. */
+  similarity: number;
+  fromMeeting: string;
+}
+
 export interface Speaker {
   code: string;
   /** Qué es esta voz en la reunión. Va al prompt y a las exportaciones. */
@@ -148,6 +156,8 @@ export interface Speaker {
   turns: number;
   characters: number;
   samples: SpeakerSample[];
+  /** A qué voz conocida se parece. Se propone; la confirma una persona. */
+  suggestion: Suggestion | null;
 }
 
 export const fetchSpeakers = (meetingId: string): Promise<Speaker[]> =>

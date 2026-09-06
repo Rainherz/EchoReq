@@ -25,6 +25,13 @@ class SpeakerSampleOut(Schema):
     text: str
 
 
+class SuggestionOut(Schema):
+    role: str
+    name: str | None
+    similarity: float
+    from_meeting: str
+
+
 class SpeakerOut(Schema):
     code: str
     role: str | None
@@ -35,6 +42,8 @@ class SpeakerOut(Schema):
     # solo alcanza a sus propios campos, así que un diccionario suelto viajaba
     # en snake_case y el cliente leía `undefined`.
     samples: list[SpeakerSampleOut]
+    #: A qué voz conocida se parece. Se propone; la confirma una persona.
+    suggestion: SuggestionOut | None = None
 
 
 class SpeakerIn(Schema):

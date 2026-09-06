@@ -19,6 +19,8 @@ from ...requirements.domain.transcription import (
     SpeakerSpan,
     TranscriptionRequest,
     TranscriptionResult,
+    Voiceprint,
+    assign_codes,
     assign_speakers,
     into_turns,
 )
@@ -70,6 +72,28 @@ def _load_waveform(audio_path: str, seconds: float | None = None):
         sample_rate = handle.samplerate
 
     return {"waveform": torch.from_numpy(data.T), "sample_rate": sample_rate}
+
+
+def _voiceprints(result, codes: dict[str, str]) -> list[Voiceprint]:
+    """Centroide por voz, con el mismo código que llevan los turnos.
+
+    pyannote reordena los centroides para que coincidan con el orden de
+    `diarization.labels()`, así que el i-ésimo corresponde a la i-ésima
+    etiqueta. Se traduce esa etiqueta al código estable antes de guardarla:
+    lo que se compara entre reuniones es la voz, pero lo que se nombra es el
+    código que aparece en la transcripción.
+    """
+    matriz = getattr(result, "speaker_embeddings", None)
+    if matriz is None:
+        return []
+
+    annotation = getattr(result, "speaker_diarization", result)
+    etiquetas = list(annotation.labels())
+    return [
+        Voiceprint(code=codes[etiqueta], embedding=[float(v) for v in fila])
+        for etiqueta, fila in zip(etiquetas, matriz)
+        if etiqueta in codes
+    ]
 
 
 def _speaker_spans(result) -> list[SpeakerSpan]:
@@ -181,14 +205,18 @@ class LocalTranscriptionEngine:
 
         del asr
 
+        huellas: list[Voiceprint] = []
         if self._diarize:
-            segments = assign_speakers(segments, self._voices(request.audio_path))
+            salida = self._diarize_audio(request.audio_path)
+            segments = assign_speakers(segments, _speaker_spans(salida))
+            huellas = _voiceprints(salida, assign_codes(segments))
 
         return TranscriptionResult(
             turns=into_turns(segments),
             language=language,
             model_id=self._model,
             params=self.params,
+            voiceprints=huellas,
         )
 
     def _pipeline(self):
@@ -219,10 +247,15 @@ class LocalTranscriptionEngine:
         del pipeline
         self._report("Diarización lista")
 
-    def _voices(self, audio_path: str) -> list[SpeakerSpan]:
-        """Quién habló y cuándo, sin saber qué se dijo."""
+    def _diarize_audio(self, audio_path: str):
+        """Quién habló y cuándo, sin saber qué se dijo.
+
+        Devuelve la salida completa y no sólo los tramos: de ahí salen también
+        los centroides con los que se reconoce una voz en otra reunión.
+        """
         self._report("Separando voces…")
-        spans = _speaker_spans(self._pipeline()(_load_waveform(audio_path)))
+        salida = self._pipeline()(_load_waveform(audio_path))
+        spans = _speaker_spans(salida)
         voices = len({span.speaker for span in spans})
         self._report(f"{voices} voces distinguidas en {len(spans)} tramos")
-        return spans
+        return salida

@@ -31,6 +31,7 @@ from .schemas import (
     SpeakerIn,
     SpeakerOut,
     SpeakerSampleOut,
+    SuggestionOut,
     ParticipantIn,
     ParticipantOut,
     DecisionIn,
@@ -205,6 +206,9 @@ def meeting_speakers(meeting_id: str) -> list[SpeakerOut]:
             turns=voice.turns,
             characters=voice.characters,
             samples=[SpeakerSampleOut(**asdict(sample)) for sample in voice.samples],
+            suggestion=(
+                SuggestionOut(**asdict(voice.suggestion)) if voice.suggestion else None
+            ),
         )
         for voice in speakers.for_meeting(meeting_id)
     ]

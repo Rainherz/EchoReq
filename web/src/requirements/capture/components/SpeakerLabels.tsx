@@ -154,6 +154,31 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
 
           <p className="voice__quote">“{speaker.samples[0]?.text.slice(0, 190)}…”</p>
 
+          {speaker.suggestion && (
+            <p className="voice__hint">
+              Se parece a{" "}
+              <strong>
+                {speaker.suggestion.role}
+                {speaker.suggestion.name ? ` · ${speaker.suggestion.name}` : ""}
+              </strong>{" "}
+              ({Math.round(speaker.suggestion.similarity * 100)}% de similitud).{" "}
+              <button
+                type="button"
+                className="btn btn--small"
+                onClick={() => {
+                  const s = speaker.suggestion;
+                  if (!s) return;
+                  setRoles((d) => ({ ...d, [speaker.code]: s.role }));
+                  setNames((d) => ({ ...d, [speaker.code]: s.name ?? "" }));
+                }}
+              >
+                Usar
+              </button>{" "}
+              Escuchá antes de confirmar: es un parecido acústico, no una
+              identificación.
+            </p>
+          )}
+
           <form
             className="voice__form"
             onSubmit={(event) => {

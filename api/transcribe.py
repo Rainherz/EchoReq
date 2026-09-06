@@ -58,7 +58,14 @@ def main() -> int:
 
     print(f"Reunión {audio.meeting_id} · {audio.label}")
     print(f"  audio  {audio.path or '(sin cargar)'}")
-    print(f"  estado {audio.status} · {audio.turn_count} turnos\n")
+    print(f"  estado {audio.status} · {audio.turn_count} turnos")
+    if audio.status == "running" and audio.turn_count == 0:
+        # Nada distingue una corrida en curso de una que murió: los turnos se
+        # escriben al final, así que el estado queda en «corriendo» hasta que
+        # alguien vuelva a lanzarla. Se avisa en lugar de negarse, porque
+        # negarse dejaría la reunión trabada sin salida.
+        print("  (figuraba como corriendo; se retoma desde cero)")
+    print()
 
     try:
         ensure_transcribable(audio)

@@ -308,7 +308,9 @@ export function CaptureScreen({
 
         {running && (
           <p className="step__hint">
-            Transcribiendo. Recargá para ver si terminó.
+            Transcribiendo. Recargá para ver si terminó. Los turnos se escriben
+            todos juntos al final, así que este estado también queda si la
+            corrida se interrumpió: volver a lanzarla la retoma desde cero.
           </p>
         )}
 
