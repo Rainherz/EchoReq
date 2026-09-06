@@ -98,17 +98,74 @@ Diseñar, implementar y evaluar experimentalmente una pipeline híbrida (agente 
 
 ## 5. Diseño experimental
 
-**Variable independiente:** tipo de proceso de documentación de requisitos (manual tradicional vs. asistido por la pipeline híbrida).
+El estudio no compara un método manual contra uno asistido. Compara **una
+cadena asistida consigo misma a lo largo de sus iteraciones**: el objeto de
+medición es cómo evolucionan la especificación y la conducta de quien la revisa
+a medida que el documento crece.
 
-**Variables dependientes:**
-- Calidad de los requisitos (puntuación QUS, completitud, consistencia, testabilidad).
-- Trazabilidad (precisión/recall de enlaces requisito-conversación).
-- Esfuerzo de mantenimiento (tiempo de post-edición, número de intervenciones manuales).
-- Satisfacción/confianza percibida por los stakeholders (encuesta).
+Esa elección es deliberada. Un brazo manual exigiría un equipo espejo
+documentando las mismas reuniones a mano durante todo el proyecto, esfuerzo
+fuera del alcance de una tesis de grado; y el fenómeno que se investiga
+—deterioro progresivo— no requiere un grupo de control externo, porque cada
+iteración se compara contra las anteriores de la misma cadena.
 
-**Grupo de comparación:** mismo conjunto de reuniones/proyecto, procesado en paralelo por el método manual y por el sistema asistido, o comparación entre dos grupos de estudiantes/equipos.
+**Unidad de análisis:** la propuesta de cambio decidida. Cada una aporta un
+registro con su latencia de decisión, su acción y, si fue sembrada, su tipo de
+defecto.
 
-**Entorno experimental:** proyectos universitarios o de laboratorio con 5-10 reuniones reales o simuladas; Docker para servicios; APIs de LLM (Claude, GPT u open-source); motor de indexación vectorial para RAG (FAISS/pgvector).
+**Variables dependientes, con su operacionalización.**
+
+| Variable | Cómo se mide | Instrumento |
+| --- | --- | --- |
+| Deriva estructural | responsabilidades por requisito y proporción que excede el límite de atomicidad, por revisión | consulta determinista sobre el historial de revisiones |
+| Vigilancia del revisor | intervalo entre que la propuesta aparece en pantalla y se decide | marcas `presented_at` / `decided_at`, una por propuesta |
+| Detección de error | proporción de propuestas sembradas que fueron rechazadas o corregidas | inyección controlada (§5.1) |
+| Verificación de la cita | proporción de propuestas aceptadas cuya evidencia no las sostiene | tipo de defecto `citation_drift` |
+
+**Variable de agrupamiento:** el número de iteración. No hay asignación
+aleatoria a condiciones: el diseño es longitudinal de medidas repetidas sobre
+una misma cadena.
+
+**Iteración 1 como calibración.** La primera reunión de un proyecto corre en
+modo descubrimiento: no existe documento previo, el agente redacta un primer
+borrador en lugar de proponer cambios, y los candidatos se presentan agrupados
+en vez de uno por vez. El intervalo de decisión mide algo distinto y no es
+comparable con el de las iteraciones siguientes. Por eso la iteración 1 queda
+fuera de las comparaciones de vigilancia y funciona únicamente como línea base
+del documento: la curva de deriva parte de ella, pero su serie de decisiones no
+entra en el análisis.
+
+En esta investigación la iteración 1 cumple además un segundo rol de piloto.
+Fue la corrida con la que se depuró el instrumento, y expuso cuatro defectos de
+medición que habrían invalidado sus datos: un reloj compartido entre propuestas
+que registraba tiempo de sesión en lugar de latencia de decisión, una ventana de
+contexto que mostraba tres cuartos de la transcripción para verificar una sola
+cita, un editor que arrastraba el texto de una propuesta a la siguiente, y la
+ausencia del paso que traslada las decisiones aprobadas al documento. Todos
+fueron corregidos antes de la iteración 2, y esa corrección es la razón por la
+que la cadena medida comienza allí.
+
+**Modelo generador.** El modelo queda fijo para toda la cadena medida y se
+registra con cada llamada. La iteración piloto se generó con un modelo distinto
+del que usa la cadena posterior; el registro de procedencia lo hace explícito, y
+es una razón adicional para excluirla del análisis comparativo.
+
+**Entorno.** Cadena de 10 a 12 reuniones reales de un mismo proyecto de
+software. Transcripción y diarización locales sobre CPU, con modelo y
+parámetros fijos; generación de propuestas mediante un modelo de lenguaje
+accedido por API, con prompt versionado y registro íntegro de cada llamada. El
+audio no abandona el equipo del investigador; la transcripción sí, al enviarse
+al modelo generador, lo que se declara en el apartado de consideraciones
+éticas.
+
+**Limitación de alcance sobre la generalización.** Con una sola cadena y un
+número reducido de revisores, los resultados describen el comportamiento
+observado en ese contexto y no permiten afirmar que la vigilancia decae en
+general. La afirmación defendible es que, en la cadena estudiada, la vigilancia
+evolucionó de determinada manera y esa evolución fue medible con el instrumento
+descrito. Ampliar a varios revisores sobre la misma cadena —que el instrumento
+soporta, registrando series independientes por persona— es la vía directa para
+fortalecer esa inferencia.
 
 ### 5.1 Inyección controlada de propuestas defectuosas
 
