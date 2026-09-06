@@ -16,6 +16,19 @@ class Schema(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class ParticipantOut(Schema):
+    id: str
+    display_name: str
+    role: str
+    decisions: int
+    created_at: datetime | None = None
+
+
+class ParticipantIn(Schema):
+    display_name: str = Field(min_length=2, max_length=80)
+    role: str = Field(min_length=2, max_length=40)
+
+
 class MeetingOut(Schema):
     id: str
     iteration: int

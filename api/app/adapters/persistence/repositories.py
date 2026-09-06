@@ -14,6 +14,7 @@ import psycopg
 from ...requirements.domain import rules
 from ...requirements.domain.slug import slugify
 from ...requirements.domain.entities import (
+    Participant,
     ChangeProposal,
     DecisionCorrection,
     DocumentEntry,
@@ -139,6 +140,60 @@ class PostgresCatalogRepository:
                 (participant_id, project_id),
             )
             return [Meeting(**row) for row in cur.fetchall()]
+
+
+class DuplicateParticipant(Exception):
+    """Ya hay un participante con ese nombre."""
+
+
+class PostgresParticipantRepository:
+    """Alta y listado de quienes revisan."""
+
+    def all(self) -> list[Participant]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT p.id, p.display_name, p.role, p.created_at,
+                       (SELECT count(*) FROM review_decisions d
+                         WHERE d.participant_id = p.id) AS decisions
+                FROM participants p
+                ORDER BY p.created_at
+                """
+            )
+            return [Participant(**row) for row in cur.fetchall()]
+
+    def create(self, display_name: str, role: str) -> Participant:
+        """Da de alta un participante. El identificador sale del nombre.
+
+        Queda en las exportaciones y en cada decisión registrada, así que se
+        prefiere legible a opaco: `p-maria-quispe` dice a quién pertenece una
+        serie sin tener que cruzarla contra otra tabla.
+        """
+        participant_id = f"p-{slugify(display_name)}"
+        try:
+            with cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO participants (id, display_name, role)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, display_name, role, created_at
+                    """,
+                    (participant_id, display_name.strip(), role.strip()),
+                )
+                row = cur.fetchone()
+        except psycopg.errors.UniqueViolation as exc:
+            raise DuplicateParticipant(
+                f"Ya existe un participante llamado «{display_name.strip()}»."
+            ) from exc
+
+        return Participant(**row, decisions=0)
+
+    def exists(self, participant_id: str) -> bool:
+        with cursor() as cur:
+            cur.execute(
+                "SELECT 1 FROM participants WHERE id = %s", (participant_id,)
+            )
+            return cur.fetchone() is not None
 
 
 class PostgresMeetingRepository:

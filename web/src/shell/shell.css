@@ -181,3 +181,32 @@
     display: none;
   }
 }
+
+/* Identidad de quien revisa. Comparte los estilos del selector de reunión:
+   los dos son contexto global de la barra superior. */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.identity--form {
+  gap: 0.35rem;
+}
+
+.field--inline {
+  height: 26px;
+  padding: 0 0.5rem;
+  font-size: 0.78rem;
+  width: 170px;
+}
+
+.field--narrow {
+  width: 110px;
+}
+
+.identity__failure {
+  font-size: 0.72rem;
+  color: var(--stop-text);
+  max-width: 260px;
+}

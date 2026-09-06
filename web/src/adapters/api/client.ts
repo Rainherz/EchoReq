@@ -32,6 +32,26 @@ export class ApiError extends Error {
   }
 }
 
+/** Texto legible de un `detail` de la API.
+ *
+ * Los errores propios llegan como una oración, pero los de validación de
+ * FastAPI llegan como una lista de objetos. Tratarlos a todos como texto los
+ * mostraba en pantalla como "[object Object]", que no le dice nada a quien
+ * tiene que corregir el formulario.
+ */
+function describe(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        const field = Array.isArray(item?.loc) ? item.loc.at(-1) : null;
+        return field ? `${field}: ${item.msg}` : String(item?.msg ?? item);
+      })
+      .join(" · ");
+  }
+  return JSON.stringify(detail);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     ...init,
@@ -41,7 +61,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const detail = await response
       .json()
-      .then((body) => body.detail as string)
+      .then((body) => describe(body.detail))
       .catch(() => response.statusText);
     throw new ApiError(response.status, detail);
   }
@@ -105,6 +125,30 @@ interface RawRevision {
   sourceTurnIds: number[];
   summary: string;
 }
+
+export interface Participant {
+  id: string;
+  displayName: string;
+  role: string;
+  /** Decisiones ya registradas, en todos los proyectos. */
+  decisions: number;
+  createdAt?: string | null;
+}
+
+export interface NewParticipant {
+  displayName: string;
+  role: string;
+}
+
+/** Quiénes pueden revisar. La lista es del instrumento, no de un proyecto. */
+export const fetchParticipants = (): Promise<Participant[]> =>
+  request<Participant[]>("/participants");
+
+export const createParticipant = (input: NewParticipant): Promise<Participant> =>
+  request<Participant>("/participants", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 
 export interface Meeting {
   id: string;

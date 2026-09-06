@@ -307,6 +307,31 @@ convención del código. Un `UPDATE` accidental sobre una decisión de revisión
 destruiría datos que no se pueden reconstruir. La única vía de reinicio es
 `TRUNCATE`, y solo sobre una base de prueba.
 
+## Participantes
+
+Quién revisa se elige en la barra superior y queda siempre a la vista. No es
+decoración: cada decisión se atribuye a quien esté seleccionado ahí, y
+`review_decisions` es de solo anexado, así que una atribución equivocada no se
+corrige después.
+
+El alta es desde la misma barra —nombre y rol— y el identificador sale del
+nombre: `p-ana-quispe`. Queda en cada decisión y en las exportaciones, así que
+se prefiere legible a opaco.
+
+**El bloqueo de una propuesta es por persona**, no por propuesta:
+
+```sql
+UNIQUE (proposal_id, participant_id)
+```
+
+Dos revisores sobre la misma cola producen dos series independientes, que es
+lo que permite comparar entre personas. También es la vía para rehacer una
+corrida cuyo registro salió mal, sin borrar nada ni volver a procesar el audio:
+se da de alta otro participante y la cola aparece completa.
+
+Cambiar de participante reinicia las pantallas que llevan estado de revisión.
+La cola es de la persona, no del proyecto.
+
 ## Proyectos
 
 La aplicación entra por la lista de proyectos. Un proyecto es el workspace de

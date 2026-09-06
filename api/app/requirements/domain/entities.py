@@ -165,6 +165,23 @@ FORMATS = ("user-story", "ieee830")
 
 
 @dataclass(frozen=True, slots=True)
+class Participant:
+    """Quién revisa.
+
+    La medición es por persona: una propuesta se decide una sola vez por
+    participante, y dos revisores sobre la misma cola producen dos series
+    independientes. Sin identidad no hay a quién atribuirle una decisión.
+    """
+
+    id: str
+    display_name: str
+    role: str
+    #: Decisiones que ya registró, en todos los proyectos.
+    decisions: int = 0
+    created_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class Project:
     """Un workspace: un proyecto de software cuya especificación se mantiene."""
 

@@ -10,6 +10,8 @@ from fastapi import Response
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.storage import audio as audio_store
 from ..adapters.persistence.repositories import (
+    DuplicateParticipant,
+    PostgresParticipantRepository,
     AlreadyCorrected,
     AlreadyDecided,
     DuplicateProject,
@@ -23,6 +25,8 @@ from ..adapters.persistence.repositories import (
 from ..requirements.domain.entities import DecisionCorrection, ReviewDecision
 from ..requirements.use_cases import ReviewQueue, SpecificationReader, StudyMetrics
 from .schemas import (
+    ParticipantIn,
+    ParticipantOut,
     DecisionIn,
     CorrectionIn,
     CorrectionOut,
@@ -50,10 +54,30 @@ _documents = PostgresDocumentRepository()
 _transcripts = PostgresTranscriptRepository()
 _catalog = PostgresCatalogRepository()
 _meetings_repo = PostgresMeetingRepository()
+_participants = PostgresParticipantRepository()
 
 _queue = ReviewQueue(_proposals, _transcripts, _decisions)
 _spec = SpecificationReader(_documents)
 _metrics = StudyMetrics(_decisions)
+
+
+@router.get("/participants")
+def participants() -> list[ParticipantOut]:
+    """Quiénes pueden revisar.
+
+    La lista es del instrumento, no de un proyecto: un mismo revisor puede
+    aparecer en varias cadenas y sus series se comparan entre sí.
+    """
+    return [ParticipantOut(**asdict(p)) for p in _participants.all()]
+
+
+@router.post("/participants", status_code=201)
+def create_participant(payload: ParticipantIn) -> ParticipantOut:
+    try:
+        created = _participants.create(payload.display_name, payload.role)
+    except DuplicateParticipant as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ParticipantOut(**asdict(created))
 
 
 @router.get("/projects")

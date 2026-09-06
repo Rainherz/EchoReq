@@ -15,6 +15,7 @@ import { WorkspacesScreen } from "./workspaces/WorkspacesScreen";
 import {
   correctDecision,
   fetchMeetings,
+  fetchParticipants,
   fetchProjects,
   fetchQueue,
   fetchTurns,
@@ -25,15 +26,19 @@ import type {
   Project,
   RecordDecisionInput,
 } from "./adapters/api/client";
+import { ParticipantPicker } from "./shell/ParticipantPicker";
 import type { ReviewAction } from "./requirements/domain/types";
 import { useResource } from "./adapters/api/useResource";
-
-const PARTICIPANT = "p-analista-01";
 
 /** Último proyecto abierto. Es contexto del usuario, no de la URL: la sección
     sí va en el hash porque un enlace a un requisito tiene que poder
     compartirse. */
 const LAST_PROJECT = "echoreq.project";
+
+/** Quién revisó la última vez en este navegador. Se recuerda para que no haya
+    que elegirlo en cada visita, pero nunca se adivina: si el guardado ya no
+    existe, se cae al primero de la lista y queda a la vista en la barra. */
+const LAST_PARTICIPANT = "echoreq.participant";
 
 const SECTIONS: Section[] = [
   "sessions",
@@ -89,6 +94,36 @@ export default function App() {
     if (match) setProject(match);
   }
 
+  // Los participantes son del instrumento, no del proyecto: el mismo revisor
+  // puede aparecer en varias cadenas.
+  const participants = useResource(useCallback(() => fetchParticipants(), []), []);
+  const [participantId, setParticipantId] = useState<string | null>(null);
+  const [identityRestored, setIdentityRestored] = useState(false);
+
+  if (!identityRestored && participants.data) {
+    setIdentityRestored(true);
+    const remembered = window.localStorage.getItem(LAST_PARTICIPANT);
+    const match = participants.data.find((p) => p.id === remembered);
+    setParticipantId(match?.id ?? participants.data[0]?.id ?? null);
+  }
+
+  const chooseParticipant = (next: string) => {
+    window.localStorage.setItem(LAST_PARTICIPANT, next);
+    setParticipantId(next);
+  };
+
+  const identity = participants.data ? (
+    <ParticipantPicker
+      participants={participants.data}
+      selectedId={participantId}
+      onSelect={chooseParticipant}
+      onCreated={(created) => {
+        participants.reload();
+        chooseParticipant(created.id);
+      }}
+    />
+  ) : null;
+
   const openProject = (next: Project) => {
     window.localStorage.setItem(LAST_PROJECT, next.id);
     setMeetingId(null);
@@ -104,6 +139,17 @@ export default function App() {
     setProject(null);
   };
 
+  // Sin participante no se puede atribuir una decisión, y una atribución
+  // equivocada no se corrige después. Se espera a saber quién revisa.
+  if (participantId === null) {
+    return (
+      <WorkspacesScreen
+        projects={projects}
+        onOpen={openProject}
+      />
+    );
+  }
+
   // Sin proyecto abierto la aplicación no tiene contexto: ni reuniones, ni
   // cola, ni documento. La lista de proyectos es la entrada real.
   if (project === null) {
@@ -117,7 +163,12 @@ export default function App() {
 
   return (
     <ProjectApp
+      // Cambiar de participante reinicia las pantallas que llevan estado de
+      // revisión: la cola es de la persona, no del proyecto.
+      key={participantId}
       project={project}
+      participantId={participantId}
+      identity={identity}
       onLeave={leaveProject}
       route={route}
       setRoute={setRoute}
@@ -129,6 +180,8 @@ export default function App() {
 
 interface ProjectAppProps {
   project: Project;
+  participantId: string;
+  identity: React.ReactNode;
   onLeave: () => void;
   route: Route;
   setRoute: (route: Route) => void;
@@ -138,6 +191,8 @@ interface ProjectAppProps {
 
 function ProjectApp({
   project,
+  participantId,
+  identity,
   onLeave,
   route,
   setRoute,
@@ -162,8 +217,11 @@ function ProjectApp({
   };
 
   const meetings = useResource(
-    useCallback(() => fetchMeetings(projectId, PARTICIPANT), [projectId]),
-    [projectId],
+    useCallback(
+      () => fetchMeetings(projectId, participantId),
+      [projectId, participantId],
+    ),
+    [projectId, participantId],
   );
 
   // Al abrir se elige la primera reunión con trabajo pendiente; si no queda
@@ -210,8 +268,8 @@ function ProjectApp({
       () =>
         selectedIteration === undefined
           ? Promise.resolve([])
-          : fetchQueue(projectId, selectedIteration, PARTICIPANT),
-      [projectId, selectedIteration],
+          : fetchQueue(projectId, selectedIteration, participantId),
+      [projectId, selectedIteration, participantId],
     ),
     [selectedId],
   );
@@ -237,12 +295,12 @@ function ProjectApp({
     async (decisionId: number, intended: ReviewAction, reason: string) => {
       await correctDecision({
         decisionId,
-        participantId: PARTICIPANT,
+        participantId,
         intendedAction: intended,
         reason,
       });
     },
-    [],
+    [participantId],
   );
 
   const crumb =
@@ -257,6 +315,7 @@ function ProjectApp({
       active={route.section}
       onNavigate={(section) => navigate(section)}
       onLeaveProject={onLeave}
+      identity={identity}
       pendingReview={selected?.pendingProposals ?? 0}
       meetingCount={meetings.data?.length ?? 0}
       toolbar={
@@ -289,7 +348,7 @@ function ProjectApp({
                   )}
                   <NewMeeting
                     projectId={projectId}
-                    participantId={PARTICIPANT}
+                    participantId={participantId}
                     nextIteration={(meetings.data?.length ?? 0) + 1}
                     onCreated={(created) => {
                       setAddingMeeting(false);
@@ -327,7 +386,7 @@ function ProjectApp({
               >
                 {(items) => (
                   <DiscoveryScreen
-                    participantId={PARTICIPANT}
+                    participantId={participantId}
                     iteration={iteration}
                     items={items}
                     turns={turns.data ?? []}
@@ -371,7 +430,7 @@ function ProjectApp({
                 {(items) => (
                   <ReviewScreen
                     iteration={iteration}
-                    participantId={PARTICIPANT}
+                    participantId={participantId}
                     items={items}
                     onDecide={persist}
                     onCorrect={correct}

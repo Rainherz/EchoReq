@@ -50,6 +50,8 @@ interface AppShellProps {
   pendingReview?: number;
   meetingCount?: number;
   toolbar?: ReactNode;
+  /** Quién revisa. Siempre a la vista: cada decisión se le atribuye. */
+  identity?: ReactNode;
   children: ReactNode;
 }
 
@@ -62,6 +64,7 @@ export function AppShell({
   pendingReview = 0,
   meetingCount = 0,
   toolbar,
+  identity,
   children,
 }: AppShellProps) {
   const PROJECT_NAV = projectNav({ meetings: meetingCount, pendingReview });
@@ -96,9 +99,7 @@ export function AppShell({
         <span className="topbar__crumb">{crumb}</span>
         <div className="topbar__right">
           {toolbar}
-          <span className="avatar" title="Analista">
-            AN
-          </span>
+          {identity}
         </div>
       </header>
 
