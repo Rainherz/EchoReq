@@ -93,6 +93,56 @@ def record_call(
         return cur.fetchone()["id"]
 
 
+class Decided(Exception):
+    """La iteración ya tiene decisiones registradas sobre sus propuestas."""
+
+
+def existing_proposals(project_id: str, iteration: int) -> int:
+    with cursor() as cur:
+        cur.execute(
+            "SELECT count(*) AS n FROM change_proposals "
+            "WHERE project_id = %s AND iteration = %s",
+            (project_id, iteration),
+        )
+        return cur.fetchone()["n"]
+
+
+def discard_proposals(project_id: str, iteration: int) -> int:
+    """Borra la cola de una iteración para poder regenerarla.
+
+    Se niega si alguna propuesta ya fue decidida. Una decisión mide lo que el
+    revisor vio; si el texto que vio desaparece y otro ocupa su lugar, el
+    intervalo registrado queda apuntando a algo que nunca se le mostró, y nada
+    en la base delataría la sustitución.
+
+    La llamada al modelo que produjo las propuestas viejas no se toca:
+    `llm_calls` es de solo anexado y conserva el prompt y la respuesta.
+    """
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT count(*) AS n
+            FROM review_decisions d
+            JOIN change_proposals p ON p.id = d.proposal_id
+            WHERE p.project_id = %s AND p.iteration = %s
+            """,
+            (project_id, iteration),
+        )
+        decided = cur.fetchone()["n"]
+        if decided:
+            raise Decided(
+                f"La iteración {iteration} tiene {decided} decisiones "
+                "registradas. Regenerarla dejaría esas decisiones apuntando a "
+                "propuestas que el revisor nunca vio."
+            )
+
+        cur.execute(
+            "DELETE FROM change_proposals WHERE project_id = %s AND iteration = %s",
+            (project_id, iteration),
+        )
+        return cur.rowcount
+
+
 def store_proposals(proposals: list[ChangeProposal]) -> int:
     """Guarda las propuestas admitidas. Devuelve cuántas se insertaron."""
     if not proposals:

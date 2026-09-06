@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReviewAction, Turn } from "../domain/types";
 import type { QueueItem, RecordDecisionInput } from "../../adapters/api/client";
 import { TurnContext } from "../review/components/TurnContext";
+import type { SpeakerNames } from "../review/components/TurnContext";
 import { CandidateCard } from "./components/CandidateCard";
 import "../review/review.css";
 import "./discovery.css";
@@ -13,6 +14,8 @@ interface DiscoveryScreenProps {
   items: QueueItem[];
   /** Transcripción completa de la reunión. */
   turns: Turn[];
+  /** Quién es cada voz. */
+  speakers?: SpeakerNames;
   /** Persiste la decisión y devuelve su identificador. */
   onDecide: (input: RecordDecisionInput) => Promise<number>;
 }
@@ -35,6 +38,7 @@ export function DiscoveryScreen({
   iteration,
   items,
   turns,
+  speakers,
   onDecide,
 }: DiscoveryScreenProps) {
   const [decisions, setDecisions] = useState<Record<string, ReviewAction>>({});
@@ -148,7 +152,11 @@ export function DiscoveryScreen({
             </span>
           </div>
           <div className="discovery__scroll" ref={transcriptRef}>
-            <TurnContext turns={turns} citedIds={selected?.sourceTurnIds ?? []} />
+            <TurnContext
+              turns={turns}
+              citedIds={selected?.sourceTurnIds ?? []}
+              speakers={speakers}
+            />
           </div>
         </div>
 

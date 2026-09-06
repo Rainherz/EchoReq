@@ -1,8 +1,16 @@
 import type { Turn } from "../../domain/types";
 
+/** Quién es cada voz. El rol orienta la lectura; el nombre, cuando está,
+    dice a quién se le escuchó decir eso. */
+export type SpeakerNames = Record<
+  string,
+  { role: string | null; name: string | null }
+>;
+
 interface TurnContextProps {
   turns: Turn[];
   citedIds: number[];
+  speakers?: SpeakerNames;
 }
 
 /**
@@ -17,8 +25,20 @@ interface TurnContextProps {
  * between them are drawn: a reviewer must never be able to mistake skipped
  * transcript for transcript they read.
  */
-export function TurnContext({ turns, citedIds }: TurnContextProps) {
+export function TurnContext({
+  turns,
+  citedIds,
+  speakers = {},
+}: TurnContextProps) {
   const cited = new Set(citedIds);
+
+  /** Rol y nombre, en ese orden: quién es importa más que cómo se llama para
+      juzgar si lo dicho sostiene un requisito. */
+  const who = (code: string): string | null => {
+    const person = speakers[code];
+    if (!person?.role) return null;
+    return person.name ? `${person.role} · ${person.name}` : person.role;
+  };
 
   return (
     <div>
@@ -41,6 +61,9 @@ export function TurnContext({ turns, citedIds }: TurnContextProps) {
               <span>
                 <span className="turn__meta">
                   {turn.startsAt} · turno {turn.id}
+                  {who(turn.speaker) && (
+                    <span className="turn__who"> · {who(turn.speaker)}</span>
+                  )}
                 </span>
                 {turn.text}
               </span>

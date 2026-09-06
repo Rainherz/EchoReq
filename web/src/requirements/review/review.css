@@ -457,3 +457,9 @@
   flex: 1;
   border-top: 1px dashed var(--line);
 }
+
+/* Quién habló, al lado de la marca de tiempo. Va en el mismo renglón que el
+   número de turno porque se lee junto: qué se citó y de quién salió. */
+.turn__who {
+  color: var(--ok-text);
+}

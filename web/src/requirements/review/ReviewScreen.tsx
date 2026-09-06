@@ -3,6 +3,7 @@ import type { ProposalOperation, ReviewAction, ReviewDecision } from "../domain/
 import type { QueueItem, RecordDecisionInput } from "../../adapters/api/client";
 import { ProposalDiff } from "./components/ProposalDiff";
 import { TurnContext } from "./components/TurnContext";
+import type { SpeakerNames } from "./components/TurnContext";
 import { SystemSignals } from "./components/SystemSignals";
 import { DecisionBar } from "./components/DecisionBar";
 import { ReviewTimer } from "./components/ReviewTimer";
@@ -22,6 +23,8 @@ interface ReviewScreenProps {
   iteration: number;
   participantId: string;
   items: QueueItem[];
+  /** Quién es cada voz, para que la cita se lea con su origen. */
+  speakers?: SpeakerNames;
   /** Persiste la decisión y devuelve su identificador. */
   onDecide: (input: RecordDecisionInput) => Promise<number>;
   /** Marca la decisión anterior como error de registro. */
@@ -42,6 +45,7 @@ export function ReviewScreen({
   iteration,
   participantId,
   items,
+  speakers,
   onDecide,
   onCorrect,
 }: ReviewScreenProps) {
@@ -192,6 +196,7 @@ export function ReviewScreen({
           <TurnContext
             turns={proposal.contextTurns}
             citedIds={proposal.sourceTurnIds}
+            speakers={speakers}
           />
         </div>
 

@@ -16,6 +16,7 @@ import {
   correctDecision,
   fetchMeetings,
   fetchParticipants,
+  fetchSpeakers,
   fetchProjects,
   fetchQueue,
   fetchTurns,
@@ -274,6 +275,25 @@ function ProjectApp({
     [selectedId],
   );
 
+  // Quién es cada voz. Se reparte a las pantallas que muestran turnos: sin
+  // esto el revisor lee S1 y S2 y no sabe si lo citado lo dijo el cliente o
+  // quien lo entrevistaba.
+  const voices = useResource(
+    useCallback(
+      () => (selectedId ? fetchSpeakers(selectedId) : Promise.resolve([])),
+      [selectedId],
+    ),
+    [selectedId],
+  );
+
+  const speakerNames = useMemo(
+    () =>
+      Object.fromEntries(
+        (voices.data ?? []).map((v) => [v.code, { role: v.role, name: v.name }]),
+      ),
+    [voices.data],
+  );
+
   // La transcripción completa: Descubrimiento la lee entera para juzgar si
   // los candidatos cubren lo que se habló.
   const turns = useResource(
@@ -387,6 +407,7 @@ function ProjectApp({
                     iteration={iteration}
                     items={items}
                     turns={turns.data ?? []}
+                    speakers={speakerNames}
                     onDecide={persist}
                   />
                 )}
@@ -413,6 +434,7 @@ function ProjectApp({
                   <ReviewScreen
                     iteration={iteration}
                     participantId={participantId}
+                    speakers={speakerNames}
                     items={items}
                     onDecide={persist}
                     onCorrect={correct}

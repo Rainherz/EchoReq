@@ -47,6 +47,11 @@ def main() -> int:
         help="Muestra el resultado sin guardar nada.",
     )
     parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Descarta la cola de la iteración y la vuelve a generar.",
+    )
+    parser.add_argument(
         "--engine",
         choices=("claude", "gemini"),
         default="claude",
@@ -57,6 +62,18 @@ def main() -> int:
     iteration, mode, turns, voices = store.load_meeting(args.project, args.meeting_id)
     if not turns:
         print(f"La reunión {args.meeting_id} no tiene turnos cargados.")
+        return 1
+
+    existing = store.existing_proposals(args.project, iteration)
+    if existing and not args.replace and not args.dry_run:
+        print(
+            f"La iteración {iteration} ya tiene {existing} propuestas en la cola.\n"
+            "  Los identificadores se derivan de la posición, así que generar de\n"
+            "  nuevo no reemplazaría nada: las nuevas chocarían con las viejas y\n"
+            "  se descartarían en silencio.\n"
+            "  Usá --replace para descartar la cola y volver a generarla, o\n"
+            "  --dry-run para ver qué propondría sin tocar nada."
+        )
         return 1
 
     baseline = (
@@ -135,6 +152,18 @@ def main() -> int:
     if args.dry_run:
         print("\n(--dry-run: no se guardó nada)")
         return 0
+
+    # El descarte va acá y no antes de generar a propósito: si el modelo falla
+    # —y falla, la corrida anterior murió con un 500 del proveedor— la cola
+    # vieja tiene que seguir en pie. Quedarse sin propuestas por un error
+    # transitorio del otro lado sería el peor momento para perderlas.
+    if args.replace:
+        try:
+            discarded = store.discard_proposals(args.project, iteration)
+        except store.Decided as exc:
+            print(f"\n{exc}")
+            return 1
+        print(f"\n{discarded} propuestas anteriores descartadas")
 
     if not args.replay:
         call_id = store.record_call(
