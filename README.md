@@ -153,6 +153,18 @@ API paga. Es una **sustitución declarada**, no un detalle de implementación �
 qué modelo generó las propuestas es parte del método, y `llm_calls` guarda el
 identificador real de cada llamada para que el dato pueda rastrearse.
 
+**El nivel gratuito limita, y toparse es normal.** El motor reintenta hasta
+cuatro veces ante un 429 o un 500, respetando los segundos que pide la
+respuesta en lugar de inventar una espera. Sólo reintenta esas dos: una
+credencial inválida o un esquema mal formado fallan de una, porque reintentar
+ahí escondería el problema.
+
+Si aun con los reintentos se agota, la cuota está tomada por un rato más
+largo. No se resuelve creando otra clave —la cuota es por proyecto y una clave
+nueva comparte el mismo balde— sino esperando. Generar es una llamada por
+reunión: la cuota alcanza de sobra para un estudio, y se agota probando, no
+usando.
+
 **Un solo motor por cadena.** Cambiarlo entre iteraciones mete la deriva del
 modelo adentro de la que se estudia, y las dos dejan de poder separarse. Es el
 mismo argumento que fija el transcriptor.

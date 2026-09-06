@@ -100,7 +100,7 @@ def main() -> int:
                 "  como GEMINI_API_KEY."
             )
             return 1
-        engine = GeminiProposalEngine()
+        engine = GeminiProposalEngine(on_wait=lambda m: print(f"  {m}", flush=True))
     else:
         if not anthropic_ready():
             print(
