@@ -461,5 +461,20 @@
 /* Quién habló, al lado de la marca de tiempo. Va en el mismo renglón que el
    número de turno porque se lee junto: qué se citó y de quién salió. */
 .turn__who {
-  color: var(--ok-text);
+  color: var(--muted);
 }
+
+/* Un tono por voz. La insignia lo lleva en fondo y el nombre en texto: el
+   color ayuda a barrer la transcripción, pero quién habla lo dicen el código
+   y el rol, que están siempre escritos. */
+.speaker--v1 { background: var(--voice-1-wash); color: var(--voice-1); }
+.speaker--v2 { background: var(--voice-2-wash); color: var(--voice-2); }
+.speaker--v3 { background: var(--voice-3-wash); color: var(--voice-3); }
+.speaker--v4 { background: var(--voice-4-wash); color: var(--voice-4); }
+.speaker--vx { background: var(--sunken);       color: var(--muted); }
+
+.turn__who.speaker--v1 { background: none; color: var(--voice-1); }
+.turn__who.speaker--v2 { background: none; color: var(--voice-2); }
+.turn__who.speaker--v3 { background: none; color: var(--voice-3); }
+.turn__who.speaker--v4 { background: none; color: var(--voice-4); }
+.turn__who.speaker--vx { background: none; color: var(--muted); }

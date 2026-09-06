@@ -17,6 +17,14 @@
 @import "@radix-ui/colors/jade-dark.css";
 @import "@radix-ui/colors/amber.css";
 @import "@radix-ui/colors/amber-dark.css";
+@import "@radix-ui/colors/indigo.css";
+@import "@radix-ui/colors/indigo-dark.css";
+@import "@radix-ui/colors/orange.css";
+@import "@radix-ui/colors/orange-dark.css";
+@import "@radix-ui/colors/teal.css";
+@import "@radix-ui/colors/teal-dark.css";
+@import "@radix-ui/colors/pink.css";
+@import "@radix-ui/colors/pink-dark.css";
 @import "@radix-ui/colors/crimson.css";
 @import "@radix-ui/colors/crimson-dark.css";
 
@@ -132,4 +140,33 @@ button:focus-visible,
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* --------------------------------------------------------------- voces
+   Cuatro tonos para distinguir quién habla de un vistazo.
+
+   No son decorativos ni elegidos a ojo: se validaron con el script de
+   paleta categórica, comparando todos los pares —no solo los vecinos—
+   porque en una transcripción los turnos aparecen en cualquier orden.
+
+   Resultado, en claro y en oscuro: pasan el piso de visión normal (ΔE 18,2
+   y 16,5 sobre un mínimo de 15), el piso de croma y el contraste contra la
+   superficie.
+
+   El par teal↔rosa queda por debajo del umbral de deuteranopia. Es
+   admisible acá y solo acá porque el color nunca porta la identidad solo:
+   cada turno lleva además el código de la voz y el rol escritos. Si alguna
+   vez el color queda solo, esta paleta deja de servir.
+
+   Son cuatro y no seis a propósito. Con seis el piso de visión normal se
+   cae, y una quinta voz cae al neutro en lugar de inventarle un tono. */
+:root {
+  --voice-1: var(--indigo-11);
+  --voice-1-wash: var(--indigo-3);
+  --voice-2: var(--orange-11);
+  --voice-2-wash: var(--orange-3);
+  --voice-3: var(--teal-11);
+  --voice-3-wash: var(--teal-3);
+  --voice-4: var(--pink-11);
+  --voice-4-wash: var(--pink-3);
 }

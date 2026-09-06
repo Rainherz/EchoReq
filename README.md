@@ -317,6 +317,23 @@ la convierte en estructura — `labels_for` consulta `role` y nunca `name`.
 La transcripción sí puede contener nombres, porque la gente se presenta
 hablando. Eso es otro problema y se resuelve al anonimizar el corpus, no acá.
 
+Cada voz lleva además un tono propio en la transcripción, para distinguir de un
+vistazo que cambió quien habla. Los cuatro tonos se eligieron con el validador
+de paletas categóricas comparando **todos los pares**, no solo los vecinos: en
+una transcripción los turnos aparecen en cualquier orden. Pasan el piso de
+visión normal en claro y en oscuro (ΔE 18,2 y 16,5 contra un mínimo de 15), el
+piso de croma y el contraste contra la superficie.
+
+El par teal↔rosa queda por debajo del umbral de deuteranopia, y es admisible
+sólo porque el color nunca porta la identidad solo: cada turno lleva el código
+de la voz y el rol escritos al lado. Son cuatro y no seis porque con seis el
+piso de visión normal se cae; una quinta voz cae al neutro en lugar de recibir
+un tono inventado.
+
+Los tonos de estado quedaron fuera de esa paleta a propósito: jade es aceptar,
+ámbar es señal de calidad y carmesí es conflicto. Un hablante pintado de ámbar
+competiría con un significado que ya está tomado.
+
 ### Corrección de decisiones
 
 Las decisiones son inmutables y la pantalla de Revisión no pide confirmación

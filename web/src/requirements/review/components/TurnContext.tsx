@@ -32,6 +32,19 @@ export function TurnContext({
 }: TurnContextProps) {
   const cited = new Set(citedIds);
 
+  /** Tono por voz, asignado por orden y estable dentro de la reunión.
+   *
+   *  Hay cuatro y la quinta cae al neutro: con más tonos el piso de
+   *  separación para visión normal se cae, y un color que no se distingue no
+   *  ayuda a leer. El color es una ayuda para barrer la transcripción, nunca
+   *  el portador de la identidad — esa la llevan el código y el rol escritos.
+   */
+  const orden = [...new Set(turns.map((t) => t.speaker))].sort();
+  const tono = (code: string): string => {
+    const slot = orden.indexOf(code);
+    return slot >= 0 && slot < 4 ? `speaker--v${slot + 1}` : "speaker--vx";
+  };
+
   /** Rol y nombre, en ese orden: quién es importa más que cómo se llama para
       juzgar si lo dicho sostiene un requisito. */
   const who = (code: string): string | null => {
@@ -55,14 +68,17 @@ export function TurnContext({
               </p>
             )}
             <div className={cited.has(turn.id) ? "turn turn--cited" : "turn"}>
-              <span className={`speaker speaker--${turn.speaker}`}>
+              <span className={`speaker ${tono(turn.speaker)}`}>
                 {turn.speaker}
               </span>
               <span>
                 <span className="turn__meta">
                   {turn.startsAt} · turno {turn.id}
                   {who(turn.speaker) && (
-                    <span className="turn__who"> · {who(turn.speaker)}</span>
+                    <span className={`turn__who ${tono(turn.speaker)}`}>
+                      {" · "}
+                      {who(turn.speaker)}
+                    </span>
                   )}
                 </span>
                 {turn.text}

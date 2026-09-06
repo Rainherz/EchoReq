@@ -6,7 +6,14 @@
  * schema so the frontend never invents a shape the backend does not store.
  */
 
-export type SpeakerCode = "PO" | "CL" | "AN";
+/** Código de voz tal como lo entrega la diarización: `S1`, `S2`… y `S?`
+ *  para el habla que no pudo atribuir.
+ *
+ *  Es texto libre y no una unión cerrada: el conjunto lo decide el modelo al
+ *  procesar cada reunión, no la aplicación. La unión anterior enumeraba los
+ *  tres códigos del fixture y dejó de ser cierta al cablear la transcripción
+ *  real, sin que nada lo delatara —los turnos entran por un cast de JSON. */
+export type SpeakerCode = string;
 
 /** A single speaker turn. `id` is the stable citation unit for the whole system. */
 export interface Turn {
