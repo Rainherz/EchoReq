@@ -239,6 +239,71 @@ informe declara explícitamente que la cola contenía propuestas fabricadas, en 
 proporción y de qué tipos; omitirlo permitiría leer los errores sembrados como
 errores del modelo.
 
+### 5.2 Protocolo de revisión con múltiples revisores
+
+**Asignación.** Cada revisor procesa **la cadena completa**, de forma
+independiente. No se reparten iteraciones entre personas: hacerlo confundiría
+por completo el efecto de la iteración con el de quién la revisó, y ante una
+caída de vigilancia en la iteración 5 no habría manera de saber si se debe a
+que era la quinta o a quién le tocó.
+
+La instrumentación lo permite porque el bloqueo de una propuesta es por persona
+—`UNIQUE (proposal_id, participant_id)`—, de modo que la misma cola produce
+tantas series independientes como revisores haya.
+
+**Orden de presentación.** Las propuestas se presentan en orden determinista, el
+mismo para todos los revisores. Un orden variable introduciría un efecto de
+posición imposible de separar del de la iteración.
+
+**Reglas de la sesión.** Tres condiciones sostienen la independencia de las
+series y su comparabilidad:
+
+1. **Revisión individual y sin consulta.** Ningún revisor comenta sus decisiones
+   con otro antes de terminar la cadena. Un comentario sobre una propuesta
+   concreta contamina la serie del que lo escucha.
+2. **Misma estructura temporal para todos.** Se fija de antemano cuántas
+   iteraciones se revisan por sesión y qué descanso media entre ellas, y la
+   regla es idéntica para cada revisor. La fatiga es la variable de interés: si
+   un revisor procesa la cadena de una sentada y otro la reparte en varios
+   días, sus curvas describen calendarios distintos y no vigilancias distintas.
+3. **Ciego respecto de la inyección.** Ningún revisor conoce la proporción de
+   propuestas sembradas ni los tipos de defecto. Conocerlos convierte la tarea
+   en búsqueda dirigida de errores, que no es la conducta que se quiere medir.
+
+**Documento compartido.** La especificación es una sola por proyecto: la
+construyen las decisiones del primer revisor que decide cada propuesta. Los
+demás miden vigilancia sobre el mismo material, pero sus decisiones no alteran
+el documento. Se designa por ello un **analista de referencia**, cuyas
+decisiones constituyen la especificación resultante, y se declara cuál fue.
+
+Esta separación es deliberada: la deriva se mide sobre un único documento
+—si cada revisor produjera el suyo, las cadenas divergirían y las propuestas
+dejarían de ser las mismas— mientras que la vigilancia se mide por persona.
+
+**Operación.** Los revisores trabajan por turnos en un mismo equipo, y cada uno
+selecciona su identidad al comenzar. La aplicación no implementa
+autenticación: para el número de revisores previsto, un mecanismo de
+credenciales no protegería ningún dato que no esté ya bajo control físico del
+investigador. La identidad seleccionada permanece visible durante toda la
+sesión, porque una decisión atribuida a la persona equivocada no puede
+corregirse después.
+
+**Análisis que habilita.** Con varias series sobre el mismo material pueden
+calcularse: la evolución de la latencia por revisor a lo largo de las
+iteraciones, la tasa de detección de defectos sembrados desagregada por tipo y
+por persona, y la concordancia entre revisores sobre las mismas propuestas.
+Esta última permite distinguir las propuestas cuya corrección es objeto de
+acuerdo de aquellas en que los revisores difieren, distinción que una sola
+serie no ofrece.
+
+**Amenazas remanentes.** La selección de identidad opera por convención y no por
+autenticación: una selección equivocada asignaría decisiones a la serie de otra
+persona sin que nada lo delate. Se mitiga manteniendo la identidad visible y
+verificando el recuento de decisiones por revisor al cerrar cada sesión. El
+número de revisores previsto tampoco permite inferencia poblacional; sí permite
+distinguir un patrón compartido de una particularidad individual, que es la
+distinción que una sola serie no habilita.
+
 ---
 
 ## 6. Riesgos y límites identificados (sin maquillar)
