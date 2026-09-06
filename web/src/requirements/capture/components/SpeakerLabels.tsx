@@ -56,11 +56,27 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
     };
   }, [meetingId]);
 
-  const play = (code: string, start: number, end: number) => {
+  const stop = () => {
     audio.current?.pause();
+    audio.current = null;
+    setPlaying(null);
+  };
+
+  /** Alterna: el mismo botón que arrancó el recorte lo corta.
+   *
+   *  El botón muestra que ese fragmento está sonando, así que volver a
+   *  apretarlo tiene que pararlo. Reproducirlo de nuevo desde el principio
+   *  obliga a esperar a que termine para poder escuchar otro. */
+  const play = (code: string, start: number, end: number) => {
+    const key = `${code}-${start}`;
+    if (playing === key) {
+      stop();
+      return;
+    }
+
+    stop();
     const clip = new Audio(clipUrl(meetingId, start, Math.max(end - start, 3)));
     audio.current = clip;
-    const key = `${code}-${start}`;
     setPlaying(key);
     clip.onended = () => setPlaying(null);
     clip.onerror = () => {
@@ -118,12 +134,16 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
                     className={
                       playing === key ? "btn btn--small btn--primary" : "btn btn--small"
                     }
-                    title={sample.text.slice(0, 120)}
+                    title={
+                      playing === key
+                        ? "Detener"
+                        : sample.text.slice(0, 120)
+                    }
                     onClick={() =>
                       play(speaker.code, sample.startSeconds, sample.endSeconds)
                     }
                   >
-                    {playing === key ? "♪" : "▶"} {sample.startsAt}
+                    {playing === key ? "■" : "▶"} {sample.startsAt}
                   </button>
                 );
               })}
