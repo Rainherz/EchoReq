@@ -388,6 +388,29 @@ el cliente pidió de una idea que el entrevistador introdujo al preguntar**.
 Con ella puede, y la regla 5 del prompt le pide marcar con una señal las
 propuestas cuya idea no salió del cliente.
 
+**Se reconocen entre reuniones.** La diarización numera las voces por orden de
+aparición en cada audio, así que el `S2` de una reunión no es el `S2` de la
+siguiente. Guardar el centroide que pyannote ya calcula permite comparar una
+voz nueva contra las conocidas del proyecto y proponer a quién se parece, con
+su porcentaje de similitud.
+
+Se propone y no se aplica. Quién habla decide si un requisito lo pidió el
+cliente o lo sugirió el entrevistador, y eso entra al prompt del agente: una
+identificación automática equivocada contaminaría esa señal sin dejar rastro.
+El umbral es alto por la misma razón — una sugerencia floja invita a
+confirmarla sin escuchar.
+
+Para las reuniones transcriptas antes de que esto existiera:
+
+```bash
+make voices M=<meeting_id>
+```
+
+Corre sólo la diarización, sin repetir el reconocimiento de voz. Como esa
+segunda pasada numera las voces por su cuenta, sus etiquetas se traducen a los
+códigos ya guardados por solapamiento temporal contra los turnos, que es lo
+único que las dos pasadas comparten.
+
 El rol y el nombre son campos separados porque tienen destinos distintos:
 
 | | Va al prompt | Va a las exportaciones | Para qué |

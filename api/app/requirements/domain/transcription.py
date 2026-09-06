@@ -127,6 +127,41 @@ def seconds_from(mark: str) -> float:
     return float(total)
 
 
+def match_codes(
+    spans: Sequence[SpeakerSpan], turns: Sequence[TranscribedTurn]
+) -> dict[str, str]:
+    """Traduce las etiquetas de una diarización nueva a los códigos ya guardados.
+
+    Recuperar la huella de una reunión ya transcripta exige volver a diarizar,
+    y esa segunda pasada numera las voces por su cuenta: su `SPEAKER_00` no
+    tiene por qué ser el `S1` de los turnos que están en la base. Numerar de
+    nuevo daría códigos que no corresponden a nada.
+
+    Se resuelve por el tiempo, que es lo único que las dos pasadas comparten:
+    cada etiqueta nueva se asigna al código con el que más se solapa. Si una
+    etiqueta no coincide con ninguno, se descarta en lugar de forzarla.
+    """
+    overlap: dict[str, dict[str, float]] = {}
+
+    for span in spans:
+        for turn in turns:
+            inicio = seconds_from(turn.starts_at)
+            fin = seconds_from(turn.ends_at) if turn.ends_at else inicio + 8.0
+            comun = min(span.end, fin) - max(span.start, inicio)
+            if comun <= 0:
+                continue
+            overlap.setdefault(span.speaker, {})
+            overlap[span.speaker][turn.speaker] = (
+                overlap[span.speaker].get(turn.speaker, 0.0) + comun
+            )
+
+    return {
+        etiqueta: max(por_codigo.items(), key=lambda kv: kv[1])[0]
+        for etiqueta, por_codigo in overlap.items()
+        if por_codigo
+    }
+
+
 def assign_codes(segments: Sequence[Segment]) -> dict[str, str]:
     """Código estable por voz: `S1`, `S2`… en orden de aparición.
 

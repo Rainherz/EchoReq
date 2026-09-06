@@ -46,6 +46,36 @@ def load(meeting_id: str) -> MeetingAudio:
     )
 
 
+def stored_turns(meeting_id: str):
+    """Turnos ya guardados, para mapear una diarización posterior contra ellos."""
+    from ...requirements.domain.transcription import TranscribedTurn
+
+    with cursor() as cur:
+        cur.execute(
+            "SELECT turn_id, speaker, starts_at, ends_at, text FROM turns "
+            "WHERE meeting_id = %s ORDER BY turn_id",
+            (meeting_id,),
+        )
+        return [TranscribedTurn(**row) for row in cur.fetchall()]
+
+
+def store_voiceprints(meeting_id: str, prints) -> int:
+    """Guarda las huellas de una reunión ya transcripta.
+
+    No pisa las que ya estén: una huella es una observación del modelo sobre
+    ese audio, y volver a calcularla no la mejora.
+    """
+    if not prints:
+        return 0
+    with cursor() as cur:
+        cur.executemany(
+            "INSERT INTO speaker_voiceprints (meeting_id, code, embedding) "
+            "VALUES (%s, %s, %s) ON CONFLICT (meeting_id, code) DO NOTHING",
+            [(meeting_id, v.code, str(v.embedding)) for v in prints],
+        )
+        return cur.rowcount
+
+
 def mark_running(meeting_id: str) -> None:
     with cursor() as cur:
         cur.execute(

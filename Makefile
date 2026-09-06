@@ -9,7 +9,7 @@ UVICORN := api/.venv/bin/uvicorn
 #: por qué instalarse para levantar la API.
 ASR := api/.venv-asr/bin/python
 
-.PHONY: help setup asr db api web seed reset inject smoke instrument check stop clean
+.PHONY: help setup asr db api web seed reset inject voices smoke instrument check stop clean
 
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -32,6 +32,10 @@ asr: ## Instala la pila de transcripción (torch de CPU, ~1,5 GB)
 inject: ## Siembra propuestas defectuosas · make inject M=<meeting_id> P=<project>
 	@test -n "$(M)" -a -n "$(P)" || { echo "Faltan M y P. Ej: make inject M=proy-r1 P=proy"; exit 1; }
 	cd api && ../$(PY) inject.py $(M) --project $(P) $(ARGS)
+
+voices: ## Recupera huellas de voz de una reunión ya transcripta · make voices M=<id>
+	@test -n "$(M)" || { echo "Falta M. Ejemplo: make voices M=proyecto-r2"; exit 1; }
+	cd api && ../$(ASR) voiceprints.py $(M)
 
 transcribe: ## Transcribe una reunión · make transcribe M=<meeting_id>
 	@test -n "$(M)" || { echo "Falta M. Ejemplo: make transcribe M=proyecto-r1"; exit 1; }
