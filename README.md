@@ -211,6 +211,53 @@ llegar a la cola de revisión. Las descartadas se reportan con su motivo:
 cuántas no superaron la validación es un dato sobre el comportamiento del
 agente, no ruido.
 
+### Inyección controlada
+
+```bash
+make inject M=<meeting_id> P=<project> ARGS="--rate 0.25 --seed 7 --dry-run"
+```
+
+El estudio mide si el revisor detecta cuándo el agente se equivoca, y con
+propuestas observadas eso no se puede medir: si acepta todo, no hay forma de
+distinguir que el agente estuvo bien de que el revisor no estaba mirando.
+Plantar defectos conocidos da el denominador.
+
+Los defectos se **derivan de propuestas reales**, no se escriben de cero. Una
+propuesta inventada suena distinta —otro vocabulario, otro registro— y se
+detecta por el estilo antes que por el contenido; ahí se mediría la costura
+del experimento y no la vigilancia.
+
+Y **reemplazan** a la propuesta correcta en lugar de sumarse. Dos propuestas
+casi iguales sobre el mismo requisito delatarían el defecto por su forma. Lo
+que el agente produjo no se pierde: `llm_calls` guarda la respuesta entera y
+es de solo anexado.
+
+| Tipo | Qué altera | Qué exige detectarlo |
+| --- | --- | --- |
+| `citation_drift` | los turnos citados, no el texto | abrir el contexto y leer |
+| `invented_precision` | agrega un número que nadie dijo | recordar que ese dato no apareció |
+| `role_shift` | quién declaró la necesidad | saber quién habló |
+| `clause_collapse` | mete dos obligaciones en una | notar que son cosas distintas |
+
+Los tipos rotan para que el revisor no aprenda un patrón: si todos fueran
+iguales, a la tercera iteración se mediría aprendizaje y no vigilancia. Cada
+propuesta guarda su `defect_kind` y una nota de qué se alteró, así el análisis
+reporta «detectó el 80% de las citas movidas y el 40% de las precisiones
+inventadas» en vez de una tasa sola.
+
+Es determinista: la misma semilla produce la misma inyección. **La semilla y
+la proporción van en el informe.**
+
+Se niega a inyectar dos veces sobre la misma iteración —cambiaría la
+proporción sin registro— y a inyectar sobre una iteración que ya tiene
+decisiones, porque dejaría esas decisiones apuntando a un texto que el revisor
+nunca vio.
+
+**Esto convierte una corrida observacional en un experimento.** Hay que
+declarar en el informe que la cola contenía propuestas fabricadas, cuántas y
+de qué tipo; si no, los resultados se leen como si el agente hubiera producido
+esos errores.
+
 ### Reproducibilidad
 
 Los modelos actuales no aceptan `temperature` ni `top_p`, así que **volver a

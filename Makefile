@@ -9,7 +9,7 @@ UVICORN := api/.venv/bin/uvicorn
 #: por qué instalarse para levantar la API.
 ASR := api/.venv-asr/bin/python
 
-.PHONY: help setup asr db api web seed reset smoke instrument check stop clean
+.PHONY: help setup asr db api web seed reset inject smoke instrument check stop clean
 
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -28,6 +28,10 @@ asr: ## Instala la pila de transcripción (torch de CPU, ~1,5 GB)
 	api/.venv-asr/bin/pip install -q -r api/requirements-asr.txt
 	@echo "Falta el token: aceptá la licencia de pyannote/speaker-diarization-3.1"
 	@echo "en huggingface.co y exportá HF_TOKEN=hf_..."
+
+inject: ## Siembra propuestas defectuosas · make inject M=<meeting_id> P=<project>
+	@test -n "$(M)" -a -n "$(P)" || { echo "Faltan M y P. Ej: make inject M=proy-r1 P=proy"; exit 1; }
+	cd api && ../$(PY) inject.py $(M) --project $(P) $(ARGS)
 
 transcribe: ## Transcribe una reunión · make transcribe M=<meeting_id>
 	@test -n "$(M)" || { echo "Falta M. Ejemplo: make transcribe M=proyecto-r1"; exit 1; }

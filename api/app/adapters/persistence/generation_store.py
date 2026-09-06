@@ -107,6 +107,20 @@ def existing_proposals(project_id: str, iteration: int) -> int:
         return cur.fetchone()["n"]
 
 
+def existing_decisions(project_id: str, iteration: int) -> int:
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT count(*) AS n
+            FROM review_decisions d
+            JOIN change_proposals p ON p.id = d.proposal_id
+            WHERE p.project_id = %s AND p.iteration = %s
+            """,
+            (project_id, iteration),
+        )
+        return cur.fetchone()["n"]
+
+
 def discard_proposals(project_id: str, iteration: int) -> int:
     """Borra la cola de una iteración para poder regenerarla.
 
@@ -141,6 +155,61 @@ def discard_proposals(project_id: str, iteration: int) -> int:
             (project_id, iteration),
         )
         return cur.rowcount
+
+
+def load_proposals(project_id: str, iteration: int) -> list[ChangeProposal]:
+    """Las propuestas de una iteración, para poder alterarlas."""
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, project_id, meeting_id, iteration, operation, target_id,
+                   source_turn_ids, content, previous_content, rationale,
+                   theme, known_defective
+            FROM change_proposals
+            WHERE project_id = %s AND iteration = %s
+            ORDER BY id
+            """,
+            (project_id, iteration),
+        )
+        return [
+            ChangeProposal(**row | {"source_turn_ids": list(row["source_turn_ids"])})
+            for row in cur.fetchall()
+        ]
+
+
+def mark_defective(
+    proposal: ChangeProposal, kind: str, note: str
+) -> None:
+    """Reemplaza una propuesta por su versión defectuosa.
+
+    Se pisa en lugar de agregarse al lado. Si la correcta y la defectuosa
+    convivieran, el revisor vería dos propuestas casi iguales sobre el mismo
+    requisito y el defecto se delataría solo — se estaría midiendo la costura
+    del experimento, no su vigilancia.
+
+    Lo que el agente produjo no se pierde: `llm_calls` guarda la respuesta
+    entera y es de solo anexado, así que la propuesta original se puede
+    recuperar de ahí.
+    """
+    with cursor() as cur:
+        cur.execute(
+            """
+            UPDATE change_proposals
+            SET content = %s,
+                source_turn_ids = %s,
+                known_defective = TRUE,
+                defect_kind = %s,
+                defect_note = %s
+            WHERE id = %s
+            """,
+            (
+                proposal.content,
+                proposal.source_turn_ids,
+                kind,
+                note,
+                proposal.id,
+            ),
+        )
 
 
 def store_proposals(proposals: list[ChangeProposal]) -> int:
