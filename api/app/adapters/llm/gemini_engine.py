@@ -27,9 +27,14 @@ from ...requirements.domain.generation import (
 )
 from . import prompts
 
-#: Identificador exacto del modelo. Queda fijo y se registra con cada llamada:
-#: un cambio de versión a mitad del estudio partiría la serie en dos.
-MODEL_ID = "gemini-3.8-flash"
+#: Modelo por defecto. Queda fijo para toda una cadena y se registra con cada
+#: llamada: un cambio de versión a mitad del estudio partiría la serie en dos.
+#:
+#: No es el más nuevo a propósito. En el nivel gratuito la cuota es por
+#: modelo, y la del último —`gemini-3.8-flash`— es de unas pocas llamadas
+#: diarias: alcanza para probar, no para procesar una cadena de reuniones. Un
+#: modelo que se agota a mitad de corrida no sirve de instrumento.
+DEFAULT_MODEL = "gemini-3.7-flash"
 
 #: Cuántas veces se reintenta cuando el proveedor rechaza por límite o por
 #: sobrecarga. El nivel gratuito limita por ventana, así que toparse es lo
@@ -49,9 +54,15 @@ class GeminiProposalEngine:
     exacta sigue siendo releer lo registrado en `llm_calls`.
     """
 
-    def __init__(self, client: genai.Client | None = None, on_wait=None) -> None:
+    def __init__(
+        self,
+        client: genai.Client | None = None,
+        on_wait=None,
+        model: str = DEFAULT_MODEL,
+    ) -> None:
         self._client = client or genai.Client()
         self._report = on_wait or (lambda _: None)
+        self._model = model
 
     def _create(self, prompt: str):
         """Pide la generación, esperando si el proveedor lo pide.
@@ -65,7 +76,7 @@ class GeminiProposalEngine:
         for intento in range(MAX_RETRIES):
             try:
                 return self._client.interactions.create(
-                    model=MODEL_ID,
+                    model=self._model,
                     input=prompt,
                     system_instruction=prompts.SYSTEM,
                     # El esquema se deriva del mismo modelo Pydantic que
@@ -130,7 +141,7 @@ class GeminiProposalEngine:
 
         return GenerationResult(
             proposals=list(batch.proposals),
-            model_id=MODEL_ID,
+            model_id=self._model,
             params=params,
             prompt=prompt,
             response=raw,

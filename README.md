@@ -143,7 +143,7 @@ Hay dos, y se elige uno por cadena medida:
 
 ```bash
 export ANTHROPIC_API_KEY=...   # claude-opus-5, por defecto
-export GEMINI_API_KEY=...      # gemini-3.8-flash, con --engine gemini
+export GEMINI_API_KEY=...      # gemini-3.7-flash, con --engine gemini
 .venv/bin/python generate.py <meeting_id> --project <id> --engine gemini
 ```
 
@@ -152,6 +152,12 @@ Studio no pide tarjeta, y no todo proyecto de tesis tiene presupuesto para una
 API paga. Es una **sustitución declarada**, no un detalle de implementación —
 qué modelo generó las propuestas es parte del método, y `llm_calls` guarda el
 identificador real de cada llamada para que el dato pueda rastrearse.
+
+**La cuota del nivel gratuito es por modelo, no por proyecto.** El más nuevo
+—`gemini-3.8-flash`— trae unas pocas llamadas diarias: alcanza para probar, no
+para procesar una cadena de reuniones. Por eso el motor usa `gemini-3.7-flash`
+por defecto, que tiene cuota de trabajo. Se cambia con `--modelo` y el elegido
+queda en `llm_calls`. Crear otra clave no sirve; cambiar de modelo, sí.
 
 **El nivel gratuito limita, y toparse es normal.** El motor reintenta hasta
 cuatro veces ante un 429 o un 500, respetando los segundos que pide la

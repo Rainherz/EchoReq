@@ -23,6 +23,7 @@ import sys
 
 from app.adapters.llm.claude_engine import ClaudeProposalEngine
 from app.adapters.llm.claude_engine import credentials_available as anthropic_ready
+from app.adapters.llm.gemini_engine import DEFAULT_MODEL as gemini_default_model
 from app.adapters.llm.gemini_engine import GeminiProposalEngine
 from app.adapters.llm.gemini_engine import credentials_available as google_ready
 from app.adapters.llm.replay_engine import MissingRecording, ReplayProposalEngine
@@ -45,6 +46,12 @@ def main() -> int:
         "--dry-run",
         action="store_true",
         help="Muestra el resultado sin guardar nada.",
+    )
+    parser.add_argument(
+        "--modelo",
+        default=None,
+        help="Modelo del motor elegido. Se fija para toda la cadena y queda "
+        "registrado en llm_calls.",
     )
     parser.add_argument(
         "--replace",
@@ -100,7 +107,10 @@ def main() -> int:
                 "  como GEMINI_API_KEY."
             )
             return 1
-        engine = GeminiProposalEngine(on_wait=lambda m: print(f"  {m}", flush=True))
+        engine = GeminiProposalEngine(
+            on_wait=lambda m: print(f"  {m}", flush=True),
+            model=args.modelo or gemini_default_model,
+        )
     else:
         if not anthropic_ready():
             print(
