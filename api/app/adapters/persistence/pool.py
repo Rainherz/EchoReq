@@ -22,7 +22,18 @@ _pool: ConnectionPool | None = None
 def get_pool() -> ConnectionPool:
     global _pool
     if _pool is None:
-        _pool = ConnectionPool(dsn(), min_size=1, max_size=8, open=True)
+        _pool = ConnectionPool(
+            dsn(),
+            min_size=1,
+            max_size=8,
+            open=True,
+            # Se comprueba la conexión antes de entregarla. Sin esto el pool
+            # reparte conexiones muertas después de que la base se reinicie, y
+            # la que paga es la transcripción: hace una hora de trabajo en
+            # memoria y recién al final escribe. Reventar ahí cuesta la hora
+            # entera, y el registro del error también falla.
+            check=ConnectionPool.check_connection,
+        )
     return _pool
 
 
