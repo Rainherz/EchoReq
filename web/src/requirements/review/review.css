@@ -437,3 +437,23 @@
   color: var(--muted);
   line-height: 1.5;
 }
+
+/* Hueco entre dos ventanas de contexto. Se dibuja para que el revisor no
+   pueda confundir transcripción salteada con transcripción leída. */
+.turn__gap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+  padding: 0;
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--faint);
+}
+
+.turn__gap::before,
+.turn__gap::after {
+  content: "";
+  flex: 1;
+  border-top: 1px dashed var(--line);
+}

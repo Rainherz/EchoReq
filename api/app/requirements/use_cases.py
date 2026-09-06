@@ -67,14 +67,33 @@ class ReviewQueue:
         return self._decisions.record(decision)
 
     def _context_for(self, proposal: ChangeProposal) -> list[Turn]:
+        """Una ventana alrededor de cada cita, no un tramo entre la primera y
+        la última.
+
+        La diferencia no es cosmética. Una propuesta que cita los turnos 20 y
+        88 tomaba, con el tramo continuo, los 73 turnos del medio: tres
+        cuartos de la entrevista para verificar una cita. Eso rompe la
+        medición por los dos lados — infla el tiempo de decisión con lectura
+        que no hace falta, y sobre todo empuja al revisor a dejar de leer y
+        empezar a confiar, que es exactamente la conducta que el estudio tiene
+        que poder distinguir.
+
+        Las ventanas que se solapan quedan pegadas; las que no, dejan un hueco
+        que la interfaz muestra como tal.
+        """
         turns = self._transcripts.turns_for_meeting(proposal.meeting_id)
         cited = set(proposal.source_turn_ids)
         positions = [i for i, turn in enumerate(turns) if turn.turn_id in cited]
         if not positions:
             return []
-        start = max(0, min(positions) - CONTEXT_WINDOW)
-        stop = min(len(turns), max(positions) + CONTEXT_WINDOW + 1)
-        return turns[start:stop]
+
+        keep: set[int] = set()
+        for position in positions:
+            start = max(0, position - CONTEXT_WINDOW)
+            stop = min(len(turns), position + CONTEXT_WINDOW + 1)
+            keep.update(range(start, stop))
+
+        return [turns[index] for index in sorted(keep)]
 
 
 class SpecificationReader:
