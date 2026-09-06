@@ -373,14 +373,11 @@ function ProjectApp({
                   selected === null ? (
                     <NoMeetingsYet onGo={() => navigate("sessions")} />
                   ) : (
-                    <div className="card">
-                      <div className="card__head">Sin candidatos</div>
-                      <p style={{ margin: 0, fontSize: ".88rem", lineHeight: 1.55 }}>
-                        La reunión {iteration} no tiene candidatos pendientes.
-                        Generalos con <code>generate.py</code>, o elegí otra
-                        reunión arriba.
-                      </p>
-                    </div>
+                    <EmptyQueue
+                      iteration={iteration}
+                      meeting={selected}
+                      what="candidatos"
+                    />
                   )
                 }
               >
@@ -403,27 +400,12 @@ function ProjectApp({
                   selected === null ? (
                     <NoMeetingsYet onGo={() => navigate("sessions")} />
                   ) : (
-                    <div className="card">
-                      <div className="card__head">Cola vacía</div>
-                      <p
-                        style={{
-                          margin: "0 0 .7rem",
-                          fontSize: ".88rem",
-                          lineHeight: 1.55,
-                        }}
-                      >
-                        No quedan propuestas pendientes de la reunión{" "}
-                        {iteration}. Elegí otra arriba, o generá las propuestas
-                        con <code>generate.py</code>.
-                      </p>
-                      <button
-                        type="button"
-                        className="btn btn--small"
-                        onClick={queue.reload}
-                      >
-                        Recargar
-                      </button>
-                    </div>
+                    <EmptyQueue
+                      iteration={iteration}
+                      meeting={selected}
+                      what="propuestas"
+                      onReload={queue.reload}
+                    />
                   )
                 }
               >
@@ -487,6 +469,58 @@ function NoMeetingsYet({ onGo }: { onGo: () => void }) {
       <button type="button" className="btn btn--small" onClick={onGo}>
         Ir a Sesiones
       </button>
+    </div>
+  );
+}
+
+/**
+ * Cola sin nada por decidir.
+ *
+ * Hay dos motivos distintos y hasta ahora se mostraba uno solo. Que no haya
+ * propuestas generadas se resuelve corriendo el análisis; que este
+ * participante ya las haya decidido todas no se resuelve generando nada —
+ * decirle que corra `generate.py` lo manda a duplicar el trabajo del agente
+ * sobre una reunión que ya está analizada.
+ */
+function EmptyQueue({
+  iteration,
+  meeting,
+  what,
+  onReload,
+}: {
+  iteration: number;
+  meeting: Meeting;
+  what: string;
+  onReload?: () => void;
+}) {
+  const generated = meeting.proposalCount > 0;
+
+  return (
+    <div className="card">
+      <div className="card__head">
+        {generated ? "Nada pendiente para vos" : `Sin ${what}`}
+      </div>
+      <p style={{ margin: "0 0 .7rem", fontSize: ".88rem", lineHeight: 1.55 }}>
+        {generated ? (
+          <>
+            La reunión {iteration} tiene {meeting.proposalCount} {what} y este
+            participante ya decidió todo lo que había. La cola es de cada
+            persona: para verlas sin decidir, elegí otro participante arriba.
+          </>
+        ) : (
+          <>
+            La reunión {iteration} todavía no pasó por el análisis. Generá las{" "}
+            {what} desde <code>api/</code>:
+            <br />
+            <code>.venv/bin/python generate.py {meeting.id} --project …</code>
+          </>
+        )}
+      </p>
+      {onReload && (
+        <button type="button" className="btn btn--small" onClick={onReload}>
+          Recargar
+        </button>
+      )}
     </div>
   );
 }
