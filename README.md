@@ -137,6 +137,40 @@ export ANTHROPIC_API_KEY=...
 .venv/bin/python generate.py m-2026-09-17 --replay   # relee lo ya registrado
 ```
 
+### Motor de generación
+
+Hay dos, y se elige uno por cadena medida:
+
+```bash
+export ANTHROPIC_API_KEY=...   # claude-opus-5, por defecto
+export GEMINI_API_KEY=...      # gemini-3.8-flash, con --engine gemini
+.venv/bin/python generate.py <meeting_id> --project <id> --engine gemini
+```
+
+El segundo existe por una razón concreta: el nivel gratuito de Google AI
+Studio no pide tarjeta, y no todo proyecto de tesis tiene presupuesto para una
+API paga. Es una **sustitución declarada**, no un detalle de implementación —
+qué modelo generó las propuestas es parte del método, y `llm_calls` guarda el
+identificador real de cada llamada para que el dato pueda rastrearse.
+
+**Un solo motor por cadena.** Cambiarlo entre iteraciones mete la deriva del
+modelo adentro de la que se estudia, y las dos dejan de poder separarse. Es el
+mismo argumento que fija el transcriptor.
+
+Lo que *no* sirve como motor es un CLI de agente —`claude -p`, `agy`— aunque
+llegue al mismo modelo. Se probaron y el problema no es el modelo sino el
+envoltorio: anteponen entre 26.000 y 29.000 tokens de system prompt propio que
+no se pueden ver ni versionar, con lo cual **el prompt que corre deja de ser el
+que está en `prompts.py`** y el método deja de ser citable. Además traen
+herramientas de ejecución que no se pueden desactivar, y una corrida
+desatendida termina dándole a un agente permiso para actuar sobre la máquina.
+
+**Privacidad, con el nivel gratuito.** Google puede usar el contenido del nivel
+sin cargo para entrenar sus modelos. El audio sigue sin salir del equipo, pero
+**la transcripción sí sale**, y eso es una diferencia real respecto de lo que
+dice el consentimiento registrado. Si se usa esta vía, corresponde declararlo
+en el apartado de ética del estudio.
+
 **La cita obligatoria se hace cumplir en el código, no en el prompt.** Una
 propuesta que apunta a un turno inexistente, que declara una modificación
 sobre un requisito que no está, o que viene sin texto, se descarta antes de

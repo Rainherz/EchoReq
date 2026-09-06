@@ -8,6 +8,12 @@ misma salida, sin costo. Es la única reproducción exacta disponible, porque
 los modelos actuales no aceptan `temperature`.
 
 ``--dry-run`` muestra qué se propondría sin escribir nada.
+
+``--engine gemini`` genera con el nivel gratuito de Google AI Studio en lugar
+de la API de Anthropic. Es una sustitución declarada: el modelo queda
+registrado en ``llm_calls`` con su identificador real. Una cadena que se mide
+tiene que usar un solo motor de punta a punta — cambiarlo entre iteraciones
+mete la deriva del modelo dentro de la que se estudia.
 """
 
 from __future__ import annotations
@@ -15,7 +21,10 @@ from __future__ import annotations
 import argparse
 import sys
 
-from app.adapters.llm.claude_engine import ClaudeProposalEngine, credentials_available
+from app.adapters.llm.claude_engine import ClaudeProposalEngine
+from app.adapters.llm.claude_engine import credentials_available as anthropic_ready
+from app.adapters.llm.gemini_engine import GeminiProposalEngine
+from app.adapters.llm.gemini_engine import credentials_available as google_ready
 from app.adapters.llm.replay_engine import MissingRecording, ReplayProposalEngine
 from app.adapters.persistence import generation_store as store
 from app.adapters.persistence.pool import close_pool
@@ -36,6 +45,12 @@ def main() -> int:
         "--dry-run",
         action="store_true",
         help="Muestra el resultado sin guardar nada.",
+    )
+    parser.add_argument(
+        "--engine",
+        choices=("claude", "gemini"),
+        default="claude",
+        help="Motor de generación. El elegido queda registrado en llm_calls.",
     )
     args = parser.parse_args()
 
@@ -59,11 +74,21 @@ def main() -> int:
 
     if args.replay:
         engine = ReplayProposalEngine()
+    elif args.engine == "gemini":
+        if not google_ready():
+            print(
+                "No se encontró la clave de Google AI Studio.\n"
+                "  Sacá una gratis en aistudio.google.com/apikey y exportala\n"
+                "  como GEMINI_API_KEY."
+            )
+            return 1
+        engine = GeminiProposalEngine()
     else:
-        if not credentials_available():
+        if not anthropic_ready():
             print(
                 "No se encontraron credenciales de Anthropic.\n"
-                "  Exportá ANTHROPIC_API_KEY, o corré con --replay para releer\n"
+                "  Exportá ANTHROPIC_API_KEY, corré con --engine gemini para\n"
+                "  usar el nivel gratuito de Google, o con --replay para releer\n"
                 "  una generación ya registrada."
             )
             return 1
@@ -73,7 +98,11 @@ def main() -> int:
         f"Reunión {iteration} · modo {mode} · {len(turns)} turnos · "
         f"{len(baseline)} requisitos vigentes"
     )
-    print("Releyendo lo registrado…" if args.replay else "Generando…")
+    print(
+        "Releyendo lo registrado…"
+        if args.replay
+        else f"Generando con {args.engine}…"
+    )
 
     try:
         outcome = generate_proposals(engine, request)

@@ -4,3 +4,4 @@ psycopg[binary,pool]==3.2.10
 pydantic==2.12.4
 anthropic==1.4.0
 python-multipart==0.0.32
+google-genai==2.22.0
