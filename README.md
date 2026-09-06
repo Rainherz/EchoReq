@@ -302,9 +302,20 @@ el cliente pidió de una idea que el entrevistador introdujo al preguntar**.
 Con ella puede, y la regla 5 del prompt le pide marcar con una señal las
 propuestas cuya idea no salió del cliente.
 
-Conviene el rol antes que el nombre propio: le da al agente el mismo contexto
-sin convertir la transcripción en datos identificados de las personas
-entrevistadas.
+El rol y el nombre son campos separados porque tienen destinos distintos:
+
+| | Va al prompt | Va a las exportaciones | Para qué |
+| --- | --- | --- | --- |
+| **Rol** | sí | sí | que el agente distinga quién pide de quién pregunta |
+| **Nombre** | no | no | que el analista sepa a quién escuchó |
+
+Con un solo campo libre, la frontera dependía de la disciplina de quien
+escribe: alcanzaba con teclear «Cristian Salwa, especialista» para meter un
+nombre propio en cada llamada al modelo y en cada CSV de la tesis. Separarlos
+la convierte en estructura — `labels_for` consulta `role` y nunca `name`.
+
+La transcripción sí puede contener nombres, porque la gente se presenta
+hablando. Eso es otro problema y se resuelve al anonimizar el corpus, no acá.
 
 ### Corrección de decisiones
 

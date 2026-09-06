@@ -197,7 +197,8 @@ def meeting_speakers(meeting_id: str) -> list[SpeakerOut]:
     return [
         SpeakerOut(
             code=voice.code,
-            label=voice.label,
+            role=voice.role,
+            name=voice.name,
             turns=voice.turns,
             characters=voice.characters,
             samples=[SpeakerSampleOut(**asdict(sample)) for sample in voice.samples],
@@ -217,7 +218,7 @@ def label_speaker(meeting_id: str, code: str, payload: SpeakerIn) -> None:
         raise HTTPException(
             status_code=404, detail=f"No existe la reunión {meeting_id}."
         )
-    speakers.label(meeting_id, code, payload.label)
+    speakers.label(meeting_id, code, payload.role, payload.name)
 
 
 @router.get("/meetings/{meeting_id}/audio/clip", response_model=None)

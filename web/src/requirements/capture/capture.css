@@ -427,3 +427,31 @@
   align-items: center;
   margin-bottom: 0.4rem;
 }
+
+.voice__form {
+  align-items: flex-end;
+}
+
+.voice__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.voice__label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.voice__where {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  color: var(--warn-text);
+}
+
+.voice__where--local {
+  color: var(--ok-text);
+}

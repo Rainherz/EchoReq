@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Speaker } from "../../../adapters/api/client";
 import { clipUrl, fetchSpeakers, labelSpeaker } from "../../../adapters/api/client";
 
-/** Sugerencias de rol. Se ofrece el rol antes que el nombre propio a
-    propósito: le da al agente el mismo contexto sin convertir la
-    transcripción en datos identificados de las personas entrevistadas. */
+/** Sugerencias de rol. Es lo que el agente necesita para distinguir quién
+    pide de quién pregunta. */
 const ROLES = [
   "Analista entrevistador",
   "Cliente",
@@ -31,7 +30,8 @@ interface SpeakerLabelsProps {
  */
 export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
   const [speakers, setSpeakers] = useState<Speaker[] | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [roles, setRoles] = useState<Record<string, string>>({});
+  const [names, setNames] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -43,9 +43,8 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
       .then((rows) => {
         if (cancelled) return;
         setSpeakers(rows);
-        setDrafts(
-          Object.fromEntries(rows.map((r) => [r.code, r.label ?? ""])),
-        );
+        setRoles(Object.fromEntries(rows.map((r) => [r.code, r.role ?? ""])));
+        setNames(Object.fromEntries(rows.map((r) => [r.code, r.name ?? ""])));
       })
       .catch((cause: unknown) =>
         setFailure(cause instanceof Error ? cause.message : String(cause)),
@@ -87,14 +86,17 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
   };
 
   const save = async (code: string) => {
-    const label = (drafts[code] ?? "").trim();
-    if (label.length < 2) return;
+    const role = (roles[code] ?? "").trim();
+    const name = (names[code] ?? "").trim();
+    if (role.length < 2) return;
     setSaving(code);
     setFailure(null);
     try {
-      await labelSpeaker(meetingId, code, label);
+      await labelSpeaker(meetingId, code, role, name);
       setSpeakers((current) =>
-        current?.map((s) => (s.code === code ? { ...s, label } : s)) ?? null,
+        current?.map((s) =>
+          s.code === code ? { ...s, role, name: name || null } : s,
+        ) ?? null,
       );
       onChanged?.();
     } catch (cause) {
@@ -108,7 +110,7 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
     return <p className="step__hint">Cargando voces…</p>;
   }
 
-  const named = speakers.filter((s) => s.label).length;
+  const named = speakers.filter((s) => s.role).length;
 
   return (
     <div>
@@ -159,34 +161,56 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
               void save(speaker.code);
             }}
           >
-            <input
-              className="field field--inline"
-              list={`roles-${speaker.code}`}
-              value={drafts[speaker.code] ?? ""}
-              placeholder="Quién es esta voz"
-              onChange={(event) =>
-                setDrafts((d) => ({ ...d, [speaker.code]: event.target.value }))
-              }
-            />
-            <datalist id={`roles-${speaker.code}`}>
-              {ROLES.map((role) => (
-                <option key={role} value={role} />
-              ))}
-            </datalist>
+            <span className="voice__field">
+              <label className="voice__label" htmlFor={`rol-${speaker.code}`}>
+                Rol <span className="voice__where">al agente y a los CSV</span>
+              </label>
+              <input
+                id={`rol-${speaker.code}`}
+                className="field field--inline"
+                list={`roles-${speaker.code}`}
+                value={roles[speaker.code] ?? ""}
+                placeholder="Qué es esta voz en la reunión"
+                onChange={(event) =>
+                  setRoles((d) => ({ ...d, [speaker.code]: event.target.value }))
+                }
+              />
+              <datalist id={`roles-${speaker.code}`}>
+                {ROLES.map((role) => (
+                  <option key={role} value={role} />
+                ))}
+              </datalist>
+            </span>
+
+            <span className="voice__field">
+              <label className="voice__label" htmlFor={`nombre-${speaker.code}`}>
+                Nombre{" "}
+                <span className="voice__where voice__where--local">
+                  no sale de la base
+                </span>
+              </label>
+              <input
+                id={`nombre-${speaker.code}`}
+                className="field field--inline"
+                value={names[speaker.code] ?? ""}
+                placeholder="Opcional"
+                onChange={(event) =>
+                  setNames((d) => ({ ...d, [speaker.code]: event.target.value }))
+                }
+              />
+            </span>
+
             <button
               type="submit"
               className="btn btn--small"
               disabled={
                 saving === speaker.code ||
-                (drafts[speaker.code] ?? "").trim().length < 2 ||
-                (drafts[speaker.code] ?? "").trim() === speaker.label
+                (roles[speaker.code] ?? "").trim().length < 2 ||
+                ((roles[speaker.code] ?? "").trim() === (speaker.role ?? "") &&
+                  (names[speaker.code] ?? "").trim() === (speaker.name ?? ""))
               }
             >
-              {saving === speaker.code
-                ? "…"
-                : speaker.label
-                  ? "Corregir"
-                  : "Guardar"}
+              {saving === speaker.code ? "…" : speaker.role ? "Corregir" : "Guardar"}
             </button>
           </form>
         </div>
@@ -205,8 +229,8 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
             cliente pidió de una idea que el entrevistador sugirió.
           </>
         )}{" "}
-        Conviene el rol antes que el nombre propio: da el mismo contexto sin
-        convertir la transcripción en datos identificados.
+        Al modelo y a las exportaciones va únicamente el rol. El nombre queda
+        en tu base, para que sepas a quién escuchaste.
       </p>
     </div>
   );

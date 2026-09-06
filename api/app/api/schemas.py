@@ -27,7 +27,8 @@ class SpeakerSampleOut(Schema):
 
 class SpeakerOut(Schema):
     code: str
-    label: str | None
+    role: str | None
+    name: str | None
     turns: int
     characters: int
     # Modelo tipado y no `list[dict]`: la conversión a camelCase del esquema
@@ -37,7 +38,9 @@ class SpeakerOut(Schema):
 
 
 class SpeakerIn(Schema):
-    label: str = Field(min_length=2, max_length=60)
+    role: str = Field(min_length=2, max_length=60)
+    #: Opcional y no sale de la base: ni al modelo ni a las exportaciones.
+    name: str | None = Field(default=None, max_length=80)
 
 
 class ParticipantOut(Schema):

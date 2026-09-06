@@ -30,7 +30,11 @@ class Sample:
 @dataclass(frozen=True, slots=True)
 class Speaker:
     code: str
-    label: str | None
+    #: Qué es esta voz en la reunión. Va al prompt y a las exportaciones.
+    role: str | None
+    #: Quién es. Existe para que el analista sepa a quién escuchó y no sale
+    #: de la base: ni al modelo ni a los CSV del estudio.
+    name: str | None
     turns: int
     characters: int
     samples: list[Sample]
@@ -64,12 +68,12 @@ def for_meeting(meeting_id: str) -> list[Speaker]:
             SELECT t.speaker,
                    count(*)          AS turns,
                    sum(length(t.text)) AS characters,
-                   l.label
+                   l.role, l.name
             FROM turns t
             LEFT JOIN speaker_labels l
                    ON l.meeting_id = t.meeting_id AND l.code = t.speaker
             WHERE t.meeting_id = %s
-            GROUP BY t.speaker, l.label
+            GROUP BY t.speaker, l.role, l.name
             ORDER BY t.speaker
             """,
             (meeting_id,),
@@ -92,7 +96,8 @@ def for_meeting(meeting_id: str) -> list[Speaker]:
             speakers.append(
                 Speaker(
                     code=voice["speaker"],
-                    label=voice["label"],
+                    role=voice["role"],
+                    name=voice["name"],
                     turns=voice["turns"],
                     characters=voice["characters"],
                     samples=[_sample(row) for row in rows],
@@ -102,29 +107,38 @@ def for_meeting(meeting_id: str) -> list[Speaker]:
     return speakers
 
 
-def label(meeting_id: str, code: str, text: str) -> None:
-    """Nombra una voz, o corrige el nombre que ya tenía.
+def label(meeting_id: str, code: str, role: str, name: str | None = None) -> None:
+    """Identifica una voz, o corrige lo que ya se había dicho de ella.
 
     Se puede pisar: es la interpretación de una persona, no la observación
     del modelo, y equivocarse al identificar una voz es esperable.
     """
+    limpio = (name or "").strip()
     with cursor() as cur:
         cur.execute(
             """
-            INSERT INTO speaker_labels (meeting_id, code, label)
-            VALUES (%s, %s, %s)
+            INSERT INTO speaker_labels (meeting_id, code, role, name)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (meeting_id, code)
-            DO UPDATE SET label = EXCLUDED.label, updated_at = now()
+            DO UPDATE SET role = EXCLUDED.role,
+                          name = EXCLUDED.name,
+                          updated_at = now()
             """,
-            (meeting_id, code, text.strip()),
+            (meeting_id, code, role.strip(), limpio or None),
         )
 
 
 def labels_for(meeting_id: str) -> dict[str, str]:
-    """Mapa código → etiqueta, para el prompt de generación."""
+    """Mapa código → rol, para el prompt de generación.
+
+    Va el rol y no el nombre a propósito: al agente le sirve saber que quien
+    habla es el especialista o el entrevistador, no cómo se llama. Mandar el
+    nombre metería datos identificados en cada llamada al modelo sin agregar
+    nada a lo que tiene que decidir.
+    """
     with cursor() as cur:
         cur.execute(
-            "SELECT code, label FROM speaker_labels WHERE meeting_id = %s",
+            "SELECT code, role FROM speaker_labels WHERE meeting_id = %s",
             (meeting_id,),
         )
-        return {row["code"]: row["label"] for row in cur.fetchall()}
+        return {row["code"]: row["role"] for row in cur.fetchall()}

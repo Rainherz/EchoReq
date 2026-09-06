@@ -141,8 +141,10 @@ export interface SpeakerSample {
 
 export interface Speaker {
   code: string;
-  /** Quién es, según el analista. Nulo mientras nadie lo dijo. */
-  label: string | null;
+  /** Qué es esta voz en la reunión. Va al prompt y a las exportaciones. */
+  role: string | null;
+  /** Quién es. Para que el analista sepa a quién escuchó; no sale de la base. */
+  name: string | null;
   turns: number;
   characters: number;
   samples: SpeakerSample[];
@@ -154,11 +156,12 @@ export const fetchSpeakers = (meetingId: string): Promise<Speaker[]> =>
 export async function labelSpeaker(
   meetingId: string,
   code: string,
-  label: string,
+  role: string,
+  name?: string,
 ): Promise<void> {
   await request<void>(
     `/meetings/${encodeURIComponent(meetingId)}/speakers/${encodeURIComponent(code)}`,
-    { method: "PUT", body: JSON.stringify({ label }) },
+    { method: "PUT", body: JSON.stringify({ role, name: name || null }) },
   );
 }
 
