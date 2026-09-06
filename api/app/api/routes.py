@@ -66,7 +66,10 @@ _participants = PostgresParticipantRepository()
 #: endpoint se vuelva una vía para descargar la reunión entera de a pedazos.
 MAX_CLIP_SECONDS = 45.0
 
-_queue = ReviewQueue(_proposals, _transcripts, _decisions)
+# El documento se pasa a la cola porque una decisión aprobada lo modifica:
+# aceptar una propuesta es escribir la especificación, no solo anotar que
+# alguien la miró.
+_queue = ReviewQueue(_proposals, _transcripts, _decisions, _documents)
 _spec = SpecificationReader(_documents)
 _metrics = StudyMetrics(_decisions)
 

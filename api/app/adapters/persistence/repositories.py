@@ -508,7 +508,15 @@ class PostgresDocumentRepository:
                 for row in cur.fetchall()
             ]
 
-    def append(self, revision: RequirementRevision) -> None:
+    def append(self, revision: RequirementRevision) -> bool:
+        """Anexa la revisión. Devuelve si esta llamada fue la que la escribió.
+
+        El documento es uno solo por proyecto y las decisiones son por
+        persona, así que dos revisores sobre la misma cola llegan al mismo
+        requisito. El primero lo escribe; el segundo no lo pisa. Su decisión
+        igual queda registrada —es lo que mide el estudio— pero la
+        especificación no se reescribe según quién terminó último.
+        """
         with cursor() as cur:
             cur.execute(
                 """
@@ -516,6 +524,7 @@ class PostgresDocumentRepository:
                     (project_id, requirement_id, revision, meeting_id,
                      operation, content, source_turn_ids, summary)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (project_id, requirement_id, revision) DO NOTHING
                 """,
                 (
                     revision.project_id,
@@ -528,6 +537,7 @@ class PostgresDocumentRepository:
                     revision.summary,
                 ),
             )
+            return cur.rowcount > 0
 
 
 class PostgresTranscriptRepository:

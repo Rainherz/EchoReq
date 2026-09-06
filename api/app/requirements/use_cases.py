@@ -42,10 +42,12 @@ class ReviewQueue:
         proposals: ProposalRepository,
         transcripts: TranscriptRepository,
         decisions: DecisionRepository,
+        documents: DocumentRepository | None = None,
     ) -> None:
         self._proposals = proposals
         self._transcripts = transcripts
         self._decisions = decisions
+        self._documents = documents
 
     def pending(
         self, project_id: str, iteration: int, participant_id: str
@@ -62,9 +64,53 @@ class ReviewQueue:
         ]
 
     def record(self, decision: ReviewDecision) -> int:
-        if self._proposals.get(decision.proposal_id) is None:
+        """Registra la decisión y, si aprueba un cambio, lo aplica al documento.
+
+        Se aplica al decidir y no al cerrar la iteración: el documento crece
+        mientras se revisa, así que abandonar la cola a la mitad deja una
+        revisión parcial. Es detectable —las métricas dicen cuántas decisiones
+        tiene cada iteración— pero conviene saberlo al comparar.
+
+        Rechazar no escribe nada, y un conflicto tampoco: señala una
+        contradicción para que alguien la resuelva, no la resuelve.
+        """
+        proposal = self._proposals.get(decision.proposal_id)
+        if proposal is None:
             raise LookupError(f"La propuesta {decision.proposal_id} no existe.")
-        return self._decisions.record(decision)
+
+        decision_id = self._decisions.record(decision)
+
+        if self._documents is not None and decision.action != "reject":
+            self._apply(proposal, decision)
+
+        return decision_id
+
+    def _apply(self, proposal: ChangeProposal, decision: ReviewDecision) -> None:
+        """Lleva al documento lo que el revisor aprobó.
+
+        El texto que se guarda es el que el revisor dejó, no el que propuso el
+        agente: si lo editó, el documento tiene que decir lo que él escribió.
+        """
+        if proposal.operation == "conflict":
+            return
+
+        content = decision.edited_content or proposal.content or ""
+        if not content and proposal.operation != "delete":
+            return
+
+        assert self._documents is not None
+        self._documents.append(
+            RequirementRevision(
+                project_id=proposal.project_id,
+                requirement_id=proposal.target_id,
+                revision=proposal.iteration,
+                meeting_id=proposal.meeting_id,
+                operation=proposal.operation,
+                content=content,
+                source_turn_ids=list(proposal.source_turn_ids),
+                summary=proposal.rationale,
+            )
+        )
 
     def _context_for(self, proposal: ChangeProposal) -> list[Turn]:
         """Una ventana alrededor de cada cita, no un tramo entre la primera y

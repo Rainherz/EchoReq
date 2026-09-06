@@ -53,7 +53,9 @@ class DocumentRepository(Protocol):
 
     def document_at(self, project_id: str, revision: int) -> list[DocumentEntry]: ...
 
-    def append(self, revision: RequirementRevision) -> None: ...
+    def append(self, revision: RequirementRevision) -> bool:
+        """Anexa la revisión; devuelve si esta llamada fue la que la escribió."""
+        ...
 
 
 class TranscriptRepository(Protocol):

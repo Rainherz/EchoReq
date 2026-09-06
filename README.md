@@ -183,6 +183,27 @@ sin cargo para entrenar sus modelos. El audio sigue sin salir del equipo, pero
 dice el consentimiento registrado. Si se usa esta vía, corresponde declararlo
 en el apartado de ética del estudio.
 
+### De la decisión al documento
+
+Aceptar una propuesta no es anotar que alguien la miró: es **escribir la
+especificación**. Al registrar la decisión se anexa la revisión
+correspondiente, con el texto que dejó el revisor —si editó, manda lo que
+escribió él, no lo que propuso el agente.
+
+Rechazar no escribe nada. Un conflicto tampoco: señala una contradicción para
+que alguien la resuelva, no la resuelve.
+
+Se aplica al decidir y no al cerrar la iteración, así que abandonar la cola a
+la mitad deja una revisión parcial. Es detectable —las métricas dicen cuántas
+decisiones tiene cada iteración— pero conviene tenerlo presente al comparar
+revisiones entre proyectos.
+
+El documento es uno por proyecto y las decisiones son por persona, así que dos
+revisores sobre la misma cola llegan al mismo requisito. El primero lo
+escribe; el segundo no lo pisa. Su decisión igual queda registrada, que es lo
+que mide el estudio, pero la especificación no se reescribe según quién
+terminó último.
+
 **La cita obligatoria se hace cumplir en el código, no en el prompt.** Una
 propuesta que apunta a un turno inexistente, que declara una modificación
 sobre un requisito que no está, o que viene sin texto, se descarta antes de
