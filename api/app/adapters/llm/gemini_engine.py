@@ -74,14 +74,27 @@ class GeminiProposalEngine:
         batch = DraftBatch.model_validate_json(raw)
         usage = interaction.usage
 
+        # La API de Interactions devuelve su propio tipo `Usage`, distinto al
+        # `UsageMetadata` de `generate_content`: los nombres son
+        # `total_input_tokens` / `total_output_tokens`. Los de razonamiento
+        # van aparte y no se suman a la salida, así que se registran como
+        # parámetro: en este modelo pueden superar a la respuesta visible.
+        params: dict[str, object] = {
+            "response_format": "json_schema",
+            "schema": "DraftBatch",
+        }
+        thoughts = getattr(usage, "total_thought_tokens", None)
+        if thoughts is not None:
+            params["thought_tokens"] = thoughts
+
         return GenerationResult(
             proposals=list(batch.proposals),
             model_id=MODEL_ID,
-            params={"response_format": "json_schema", "schema": "DraftBatch"},
+            params=params,
             prompt=prompt,
             response=raw,
-            input_tokens=getattr(usage, "prompt_token_count", None),
-            output_tokens=getattr(usage, "response_token_count", None),
+            input_tokens=getattr(usage, "total_input_tokens", None),
+            output_tokens=getattr(usage, "total_output_tokens", None),
         )
 
 
