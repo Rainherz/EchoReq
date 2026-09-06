@@ -1,6 +1,8 @@
 /**
- * Verifica el invariante que sostiene la medición del estudio: cada propuesta
- * lleva su propio `presentedAt`.
+ * Verifica los invariantes que sostienen la medición del estudio.
+ *
+ * 1. Cada propuesta lleva su propio `presentedAt`.
+ * 2. El editor no arrastra el borrador de una propuesta a la siguiente.
  *
  * Existe porque ya se rompió una vez sin que nada avisara. La pantalla de
  * descubrimiento fijaba un solo instante al montarse, así que el intervalo
@@ -88,11 +90,34 @@ await comprobar("descubrimiento · todas a la vista", "#discovery", async () => 
   }
 });
 
+// El borrador del editor no puede sobrevivir al avance: si sobrevive, la
+// propuesta siguiente queda registrada con una edición que el revisor nunca
+// escribió para ella, y el texto queda idéntico en toda la cola.
+enviadas.length = 0;
+await page.goto(`${url}/#review`);
+await page.waitForLoadState("networkidle");
+await page.waitForTimeout(600);
+
+const editar = page.getByRole("button", { name: "Editar" });
+if ((await editar.count()) > 0) {
+  await editar.click();
+  await page.waitForTimeout(300);
+  await page.locator("#proposal-editor").fill("EDICION DE LA PRIMERA");
+  await page.getByRole("button", { name: "Guardar y continuar" }).click();
+  await page.waitForTimeout(800);
+
+  const arrastra = (await page.locator("#proposal-editor").count()) > 0;
+  if (arrastra) fallas += 1;
+  console.log(`\n${arrastra ? "  ✗" : "  ✓"} el editor no arrastra el borrador a la siguiente`);
+} else {
+  console.log("\n  · sin cola para probar el editor");
+}
+
 await browser.close();
 
 console.log(
   fallas === 0
-    ? "\nel reloj mide la decisión, no la sesión"
-    : `\n${fallas} pantalla(s) con el reloj compartido: la latencia registrada no es la de cada decisión`,
+    ? "\nla pantalla registra lo que el revisor hizo, y nada más"
+    : `\n${fallas} invariante(s) rotos: lo registrado no refleja lo que el revisor hizo`,
 );
 process.exit(fallas === 0 ? 0 : 1);

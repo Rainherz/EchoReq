@@ -443,9 +443,13 @@ preferencias de diseño y **no pueden cambiarse durante una corrida**:
 - **Cada propuesta lleva su propio reloj.** Un instante compartido por toda la
   pantalla convierte la latencia en tiempo transcurrido desde que se abrió, que
   crece solo y no mide ninguna decisión. Ya se rompió una vez sin que nada
-  avisara, así que ahora hay una comprobación: `make timing` maneja las dos
+  avisara, así que ahora hay una comprobación: `make instrument` maneja las dos
   pantallas en un navegador real, intercepta las decisiones sin escribirlas y
   falla si dos comparten reloj.
+- **El editor no arrastra el borrador.** Guardar una edición y avanzar dejaba
+  el editor abierto con el texto anterior, y la propuesta siguiente quedaba
+  registrada con una edición que el revisor nunca escribió para ella. Cubierto
+  por la misma comprobación.
 - **La latencia solo se compara dentro del mismo modo.** En descubrimiento los
   candidatos se muestran todos juntos y el revisor entra y sale de ellos, así
   que el intervalo mide cuánto estuvo uno al frente. La curva de la pantalla de

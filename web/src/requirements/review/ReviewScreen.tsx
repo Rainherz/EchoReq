@@ -214,6 +214,11 @@ export function ReviewScreen({
           )}
 
           <DecisionBar
+            // El editor se remonta con cada propuesta. Sin esto el borrador
+            // sobrevive al avance: el editor queda abierto con el texto de la
+            // anterior y la siguiente se registra con una edición que el
+            // revisor nunca escribió para ella.
+            key={proposal.id}
             proposedContent={proposal.content}
             busy={saving}
             onDecide={decide}

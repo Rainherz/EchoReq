@@ -9,7 +9,7 @@ UVICORN := api/.venv/bin/uvicorn
 #: por qué instalarse para levantar la API.
 ASR := api/.venv-asr/bin/python
 
-.PHONY: help setup asr db api web seed reset smoke timing check stop clean
+.PHONY: help setup asr db api web seed reset smoke instrument check stop clean
 
 help: ## Muestra esta ayuda
 	@grep -hE '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -56,8 +56,8 @@ web: ## Levanta la interfaz en :5180
 check: ## Tipos, linter y build de la interfaz
 	cd web && pnpm exec tsc --noEmit && pnpm exec oxlint src && pnpm build
 
-timing: ## Verifica que cada propuesta lleve su propio reloj
-	cd web && node scripts/check_timing.mjs
+instrument: ## Verifica los invariantes de la medición (reloj y editor)
+	cd web && node scripts/check_instrument.mjs
 
 smoke: ## Verifica que el stack entero responde
 	@./scripts/smoke.sh
