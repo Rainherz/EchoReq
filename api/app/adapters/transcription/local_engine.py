@@ -32,7 +32,14 @@ DEFAULT_MODEL = "large-v3"
 #: en voz hablada la pérdida de calidad es despreciable.
 DEFAULT_COMPUTE_TYPE = "int8"
 
-DIARIZATION_MODEL = "pyannote/speaker-diarization-3.1"
+#: El que realmente corre con pyannote.audio 4.x. Pedirle `speaker-
+#: diarization-3.1` termina bajando este igual, y registrar el nombre viejo en
+#: la procedencia guardaría un modelo que no fue el que produjo los turnos:
+#: exactamente lo que esa columna existe para impedir.
+DIARIZATION_MODEL = "pyannote/speaker-diarization-community-1"
+
+#: Cuánto audio alcanza para comprobar que la diarización funciona.
+PREFLIGHT_SECONDS = 20.0
 
 
 class MissingToken(Exception):
@@ -45,6 +52,39 @@ def hf_token() -> str | None:
 
 def _noop(_: str) -> None:
     return None
+
+
+def _load_waveform(audio_path: str, seconds: float | None = None):
+    """Onda lista para pyannote, decodificada acá.
+
+    pyannote decodifica con torchcodec, que se apoya en las bibliotecas de
+    FFmpeg del sistema y no soporta las versiones más nuevas. Entregarle el
+    audio ya decodificado evita depender de qué FFmpeg tenga la máquina.
+    """
+    import soundfile as sf
+    import torch
+
+    with sf.SoundFile(audio_path) as handle:
+        frames = -1 if seconds is None else int(seconds * handle.samplerate)
+        data = handle.read(frames=frames, dtype="float32", always_2d=True)
+        sample_rate = handle.samplerate
+
+    return {"waveform": torch.from_numpy(data.T), "sample_rate": sample_rate}
+
+
+def _speaker_spans(result) -> list[SpeakerSpan]:
+    """Tramos por voz, sea cual sea la forma que devuelva pyannote.
+
+    La 4.x devuelve un `DiarizeOutput` con dos anotaciones; la 3.x devolvía la
+    anotación pelada. Se usa la no exclusiva: cuando dos personas se pisan,
+    conserva a las dos, y quedarse con quien más se solapa es justamente lo
+    que decide la atribución.
+    """
+    annotation = getattr(result, "speaker_diarization", result)
+    return [
+        SpeakerSpan(start=turn.start, end=turn.end, speaker=str(speaker))
+        for turn, _, speaker in annotation.itertracks(yield_label=True)
+    ]
 
 
 class LocalTranscriptionEngine:
@@ -99,6 +139,13 @@ class LocalTranscriptionEngine:
         # cargan sin torch instalado, y el proceso web nunca toca este módulo.
         from faster_whisper import WhisperModel
 
+        # La diarización se prueba antes de transcribir. El ASR de una
+        # entrevista son decenas de minutos, y descubrir recién ahí que falta
+        # un permiso o que cambió la forma de la respuesta cuesta todo ese
+        # trabajo. Sobre unos segundos, el mismo error aparece enseguida.
+        if self._diarize:
+            self._preflight(request.audio_path)
+
         self._report(f"Cargando {self._model} ({self._compute_type}, {self._threads} hilos)…")
         asr = WhisperModel(
             self._model,
@@ -144,34 +191,38 @@ class LocalTranscriptionEngine:
             params=self.params,
         )
 
-    def _voices(self, audio_path: str) -> list[SpeakerSpan]:
-        """Quién habló y cuándo, sin saber qué se dijo."""
-        import soundfile as sf
+    def _pipeline(self):
         import torch
         from pyannote.audio import Pipeline
 
-        self._report("Separando voces…")
         pipeline = Pipeline.from_pretrained(DIARIZATION_MODEL, token=hf_token())
         if pipeline is None:
             raise MissingToken(
                 f"HuggingFace no entregó {DIARIZATION_MODEL}. Suele ser que "
-                "falte aceptar la licencia del modelo con la misma cuenta del "
-                "token."
+                "falte aceptar las condiciones del repo con la misma cuenta "
+                "del token."
             )
-        pipeline.to(torch.device(self._device))
+        return pipeline.to(torch.device(self._device))
 
-        # El audio se carga en memoria y se le pasa ya decodificado. pyannote
-        # decodifica con torchcodec, que se apoya en las bibliotecas de FFmpeg
-        # del sistema y no soporta las versiones más nuevas; entregarle la
-        # onda evita depender de qué FFmpeg tenga instalada la máquina.
-        data, sample_rate = sf.read(audio_path, dtype="float32", always_2d=True)
-        waveform = torch.from_numpy(data.T)
+    def _preflight(self, audio_path: str) -> None:
+        """Corre la diarización sobre los primeros segundos del audio.
 
-        annotation = pipeline({"waveform": waveform, "sample_rate": sample_rate})
-        spans = [
-            SpeakerSpan(start=turn.start, end=turn.end, speaker=str(speaker))
-            for turn, _, speaker in annotation.itertracks(yield_label=True)
-        ]
+        No interesa el resultado, solo que el camino entero funcione: token,
+        acceso al repo con condiciones, decodificación y forma de la
+        respuesta. El modelo se suelta enseguida; volver a cargarlo desde la
+        caché local cuesta segundos, y es barato al lado de descubrir el
+        problema después de transcribir cuarenta minutos.
+        """
+        self._report("Probando la diarización…")
+        pipeline = self._pipeline()
+        _speaker_spans(pipeline(_load_waveform(audio_path, seconds=PREFLIGHT_SECONDS)))
+        del pipeline
+        self._report("Diarización lista")
+
+    def _voices(self, audio_path: str) -> list[SpeakerSpan]:
+        """Quién habló y cuándo, sin saber qué se dijo."""
+        self._report("Separando voces…")
+        spans = _speaker_spans(self._pipeline()(_load_waveform(audio_path)))
         voices = len({span.speaker for span in spans})
         self._report(f"{voices} voces distinguidas en {len(spans)} tramos")
         return spans

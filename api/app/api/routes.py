@@ -157,9 +157,12 @@ def upload_audio(meeting_id: str, file: UploadFile = File(...)) -> MeetingAudioO
 def meeting_turns(meeting_id: str) -> list[TurnOut]:
     """Transcripción completa. Descubrimiento la lee entera, no por ventana."""
     turns = _transcripts.turns_for_meeting(meeting_id)
-    if not turns:
+    # Una reunión sin transcribir todavía no tiene turnos, y eso es un estado
+    # normal del recorrido, no un recurso faltante. Devolver 404 hacía que la
+    # interfaz mostrara un error mientras el pipeline todavía no corrió.
+    if not turns and not _meetings_repo.exists(meeting_id):
         raise HTTPException(
-            status_code=404, detail=f"La reunión {meeting_id} no tiene turnos cargados."
+            status_code=404, detail=f"No existe la reunión {meeting_id}."
         )
     return [
         TurnOut(

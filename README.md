@@ -205,8 +205,11 @@ ffmpeg -i reunion.mp4 -vn -ac 1 -ar 16000 -c:a pcm_s16le reunion.wav
 Python 3.14. El pipeline usa sus dos piezas por separado —faster-whisper para
 el texto, pyannote para las voces— lo que además evita cargar el modelo de
 alineación forzada, que da tiempos por palabra cuando acá se cita por turno.
-La diarización necesita aceptar la licencia de
-`pyannote/speaker-diarization-3.1` en HuggingFace.
+La diarización necesita aceptar las condiciones de
+`pyannote/speaker-diarization-community-1` en HuggingFace y un token de
+lectura en `HF_TOKEN`. Es ese repo y no `speaker-diarization-3.1`: pyannote 4.x
+redirige el segundo al primero, así que pedir el viejo dejaría registrado en la
+procedencia un modelo que no fue el que corrió.
 
 Las decisiones que importan para el estudio:
 
