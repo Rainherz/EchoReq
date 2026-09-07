@@ -338,11 +338,13 @@ export function ProposalDetail({
         </p>
       )}
 
-      <p className="detail__rule">
-        Las decisiones de los revisores son inmutables y quedan como están. La
-        consolidación se apoya encima y sólo registra qué versión rige en el
-        documento y por qué.
-      </p>
+      <div className="detail__rule">
+        <p>
+          Las decisiones de los revisores son inmutables y quedan como están. La
+          consolidación se apoya encima y sólo registra qué versión rige en el
+          documento y por qué.
+        </p>
+      </div>
     </section>
   );
 }
