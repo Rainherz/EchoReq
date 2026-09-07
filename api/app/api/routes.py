@@ -465,7 +465,9 @@ def agreement(project_id: str) -> list[AgreementOut]:
             known_defective=row["known_defective"],
             defect_kind=row["defect_kind"],
             decisions=row["decisions"],
+            texts=row["texts"],
             disputed=row["disputed"],
+            text_differs=row["text_differs"],
             reviewers=row["reviewers"],
         )
         for row in _decisions.agreement(project_id)

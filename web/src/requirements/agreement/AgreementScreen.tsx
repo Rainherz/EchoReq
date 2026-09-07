@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { Fragment, useCallback, useState } from "react";
 import type { AgreementRow, Participant } from "../../adapters/api/client";
 import { fetchAgreement } from "../../adapters/api/client";
 import { useResource } from "../../adapters/api/useResource";
@@ -35,6 +35,11 @@ interface AgreementScreenProps {
  * borrando la observación que vino a registrar.
  */
 export function AgreementScreen({ projectId, participants }: AgreementScreenProps) {
+  // Qué propuesta está abierta. La acción sola no alcanza: dos personas
+  // pueden «editar» y escribir cosas distintas, y lo que queda en el
+  // documento es el texto, no la etiqueta.
+  const [open, setOpen] = useState<string | null>(null);
+
   const rows = useResource<AgreementRow[]>(
     useCallback(() => fetchAgreement(projectId), [projectId]),
     [projectId],
@@ -58,7 +63,9 @@ export function AgreementScreen({ projectId, participants }: AgreementScreenProp
           // Sólo las que miró más de una persona pueden concordar o no; con un
           // revisor la pregunta no se puede hacer.
           const cruzadas = items.filter((r) => r.reviewers > 1);
-          const disputadas = cruzadas.filter((r) => r.disputed);
+          // Difieren si decidieron distinto o si, decidiendo igual, el texto
+          // que dejaron no coincide.
+          const disputadas = cruzadas.filter((r) => r.disputed || r.textDiffers);
           const sembradas = cruzadas.filter((r) => r.knownDefective);
           const sembradasDisputadas = sembradas.filter((r) => r.disputed);
 
@@ -124,35 +131,72 @@ export function AgreementScreen({ projectId, participants }: AgreementScreenProp
                       </tr>
                     </thead>
                     <tbody>
-                      {cruzadas.map((row) => (
-                        <tr
-                          key={row.proposalId}
-                          className={row.disputed ? "agree--disputed" : undefined}
-                        >
-                          <td className="agree__num">{row.iteration}</td>
-                          <td className="agree__id">{row.targetId}</td>
-                          {participants.map((p) => {
-                            const action = row.decisions[p.id];
-                            return (
-                              <td key={p.id}>
-                                {action ? (
-                                  <span className={ACTION_CLASS[action]}>
-                                    {ACTION_LABEL[action]}
+                      {cruzadas.map((row) => {
+                        const difiere = row.disputed || row.textDiffers;
+                        const abierta = open === row.proposalId;
+                        return (
+                          <Fragment key={row.proposalId}>
+                            <tr
+                              className={
+                                difiere ? "agree--disputed agree__row" : "agree__row"
+                              }
+                              onClick={() =>
+                                setOpen(abierta ? null : row.proposalId)
+                              }
+                            >
+                              <td className="agree__num">{row.iteration}</td>
+                              <td className="agree__id">
+                                {abierta ? "▾" : "▸"} {row.targetId}
+                              </td>
+                              {participants.map((p) => {
+                                const action = row.decisions[p.id];
+                                return (
+                                  <td key={p.id}>
+                                    {action ? (
+                                      <span className={ACTION_CLASS[action]}>
+                                        {ACTION_LABEL[action]}
+                                      </span>
+                                    ) : (
+                                      <span className="agree__none">—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                              <td className="agree__defect">
+                                {row.knownDefective ? row.defectKind : ""}
+                                {row.textDiffers && !row.disputed && (
+                                  <span className="agree__flag">
+                                    mismo veredicto, distinto texto
                                   </span>
-                                ) : (
-                                  <span className="agree__none">—</span>
                                 )}
                               </td>
-                            );
-                          })}
-                          <td className="agree__defect">
-                            {row.knownDefective ? row.defectKind : ""}
-                          </td>
-                        </tr>
-                      ))}
+                            </tr>
+
+                            {abierta && (
+                              <tr className="agree__detail">
+                                <td colSpan={participants.length + 3}>
+                                  {participants
+                                    .filter((p) => row.texts[p.id] !== undefined)
+                                    .map((p) => (
+                                      <div key={p.id} className="agree__text">
+                                        <span className="agree__who">
+                                          {p.displayName}
+                                        </span>
+                                        <p>{row.texts[p.id]}</p>
+                                      </div>
+                                    ))}
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                   <p className="step__hint">
+                    Hacé clic en una fila para ver el texto que dejó cada uno.
+                    Dos personas pueden editar y escribir cosas distintas: lo que
+                    queda en el documento es el texto, no la etiqueta.{" "}
                     Las filas resaltadas son las que dividieron a los revisores.
                     No hay forma de unificarlas desde acá a propósito: el
                     desacuerdo es la observación, y resolverlo en la pantalla

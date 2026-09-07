@@ -201,6 +201,10 @@ class AgreementOut(Schema):
     defect_kind: str | None
     #: participante → acción decidida.
     decisions: dict[str, str]
+    #: participante → texto que dejó.
+    texts: dict[str, str]
+    #: Los textos resultantes no coinciden, aunque la acción sí.
+    text_differs: bool
     #: Los revisores no coincidieron.
     disputed: bool
     reviewers: int

@@ -447,7 +447,20 @@ class PostgresDecisionRepository:
                 SELECT p.id, p.iteration, p.target_id, p.operation,
                        p.known_defective, p.defect_kind,
                        jsonb_object_agg(d.participant_id, d.action) AS decisions,
+                       -- El texto que dejó cada uno: el editado si lo cambió,
+                       -- y si no el que propuso el agente. Sin esto la tabla
+                       -- dice quién editó pero no qué escribió, que es donde
+                       -- está la diferencia que se quiere comparar.
+                       jsonb_object_agg(
+                           d.participant_id,
+                           coalesce(d.edited_content, p.content, '')
+                       ) AS texts,
                        count(DISTINCT d.action) > 1 AS disputed,
+                       -- Dos ediciones distintas son un desacuerdo aunque la
+                       -- acción sea la misma: lo que queda en el documento es
+                       -- el texto, no la etiqueta.
+                       count(DISTINCT coalesce(d.edited_content, p.content, '')) > 1
+                           AS text_differs,
                        count(*) AS reviewers
                 FROM change_proposals p
                 JOIN review_decisions d ON d.proposal_id = p.id

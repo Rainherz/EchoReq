@@ -63,3 +63,41 @@
   font-size: 0.6em;
   color: var(--faint);
 }
+
+.agree__row {
+  cursor: pointer;
+}
+
+.agree__row:hover {
+  background: var(--hover);
+}
+
+.agree__flag {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--warn-text);
+  margin-top: 0.15rem;
+}
+
+.agree__detail td {
+  padding: 0.6rem 0 0.8rem;
+  background: var(--sunken);
+}
+
+.agree__text {
+  padding: 0.4rem 0.7rem;
+}
+
+.agree__text p {
+  margin: 0.2rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.agree__who {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}

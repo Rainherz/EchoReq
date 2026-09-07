@@ -468,6 +468,10 @@ export interface AgreementRow {
   defectKind: string | null;
   /** participante → acción decidida. */
   decisions: Record<string, ReviewAction>;
+  /** participante → texto que dejó. */
+  texts: Record<string, string>;
+  /** Los textos resultantes difieren, aunque la acción sea la misma. */
+  textDiffers: boolean;
   /** Los revisores no coincidieron. */
   disputed: boolean;
   reviewers: number;
