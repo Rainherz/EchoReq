@@ -50,6 +50,36 @@ PRECISIONS = (
 )
 
 
+#: Qué acción demuestra haber advertido cada tipo de defecto.
+#:
+#: No toda acción distinta de aceptar equivale a detección. En la cita
+#: desplazada el texto del requisito es correcto y lo falso es la evidencia:
+#: editar la redacción mejora el enunciado y deja la cita intacta, así que una
+#: edición no demuestra que el revisor haya contrastado el turno. Observado en
+#: la primera corrida con dos revisores, donde ambos editaron una cita
+#: desplazada sin tocarla — contadas como detecciones, la tasa habría sido del
+#: 100% para un defecto que ninguno advirtió.
+#:
+#: En los otros tres el defecto está en el texto, así que editarlo lo corrige.
+DETECTED_BY: dict[str, frozenset[str]] = {
+    "citation_drift": frozenset({"reject"}),
+    "invented_precision": frozenset({"edit", "reject"}),
+    "role_shift": frozenset({"edit", "reject"}),
+    "clause_collapse": frozenset({"edit", "reject"}),
+}
+
+
+def detected(defect_kind: str | None, action: str) -> bool:
+    """Si esa acción demuestra haber advertido ese defecto.
+
+    Una propuesta sin defecto sembrado no se detecta ni se deja pasar: la
+    pregunta no le aplica.
+    """
+    if defect_kind is None:
+        return False
+    return action in DETECTED_BY.get(defect_kind, frozenset({"edit", "reject"}))
+
+
 @dataclass(frozen=True, slots=True)
 class Injected:
     proposal: ChangeProposal

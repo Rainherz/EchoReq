@@ -12,6 +12,7 @@ from statistics import median
 import psycopg
 
 from ...requirements.domain import rules
+from ...requirements.domain.injection import detected
 from ...requirements.domain.slug import slugify
 from ...requirements.domain.entities import (
     Participant,
@@ -356,7 +357,7 @@ class PostgresDecisionRepository:
             cur.execute(
                 """
                 SELECT iteration, action, known_defective, seconds, corrected,
-                       mode
+                       mode, defect_kind
                 FROM review_timings
                 WHERE project_id = %s
                   AND (%s::text IS NULL OR participant_id = %s)
@@ -396,6 +397,11 @@ class PostgresDecisionRepository:
                     accepted_without_edit=sum(1 for r in group if r["action"] == "accept"),
                     defective_accepted=sum(
                         1 for r in defective if r["action"] == "accept"
+                    ),
+                    defective_undetected=sum(
+                        1
+                        for r in defective
+                        if not detected(r["defect_kind"], r["action"])
                     ),
                     defective_total=len(defective),
                     corrected=corrections.get(iteration, 0),

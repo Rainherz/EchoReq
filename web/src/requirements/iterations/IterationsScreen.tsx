@@ -64,6 +64,13 @@ function Panels({ data }: { data: Panel }) {
   const decisions = metrics.reduce((sum, m) => sum + m.decisions, 0);
   const defectiveTotal = metrics.reduce((sum, m) => sum + m.defectiveTotal, 0);
   const defectiveAccepted = metrics.reduce((sum, m) => sum + m.defectiveAccepted, 0);
+  // La cifra que responde H1: no toda acción distinta de aceptar demuestra
+  // haber advertido el defecto. En una cita desplazada el texto es correcto y
+  // editarlo no prueba haber contrastado la evidencia.
+  const defectiveUndetected = metrics.reduce(
+    (sum, m) => sum + m.defectiveUndetected,
+    0,
+  );
   const lastDrift = drift.at(-1);
 
   const driftSeries: TrendPoint[] = drift.map((row) => ({
@@ -108,21 +115,29 @@ function Panels({ data }: { data: Panel }) {
         </div>
 
         <div className="card">
-          <span className="tile__label">Defectuosas aprobadas</span>
+          <span className="tile__label">Defectuosas sin detectar</span>
           <div
             className={
-              defectiveAccepted > 0 ? "tile__value tile__value--stop" : "tile__value"
+              defectiveUndetected > 0
+                ? "tile__value tile__value--stop"
+                : "tile__value"
             }
           >
-            {defectiveAccepted}
+            {defectiveUndetected}
             <span style={{ fontSize: "1rem", color: "var(--faint)" }}>
               {" "}
               / {defectiveTotal}
             </span>
           </div>
           <p className="tile__note">
-            Propuestas que el guion de inyección marcó como incorrectas y se
-            aceptaron sin editar.
+            Sembradas que el revisor no advirtió. No toda acción distinta de
+            aceptar lo demuestra: en una cita desplazada el texto es correcto y
+            editarlo deja la evidencia falsa intacta.{" "}
+            {defectiveAccepted !== defectiveUndetected && (
+              <>
+                Aceptadas tal cual: {defectiveAccepted}.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -255,7 +270,7 @@ function NumbersTable({
             </td>
             <td className="num">
               {row.metrics
-                ? `${row.metrics.defectiveAccepted}/${row.metrics.defectiveTotal}`
+                ? `${row.metrics.defectiveUndetected}/${row.metrics.defectiveTotal}`
                 : "—"}
             </td>
           </tr>

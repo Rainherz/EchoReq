@@ -108,7 +108,11 @@ export interface IterationMetrics {
       del mismo modo. */
   mode: "discovery" | "living";
   acceptedWithoutEdit: number;
+  /** Sembradas aceptadas tal cual. Lectura literal. */
   defectiveAccepted: number;
+  /** Sembradas que el revisor no advirtió, según qué acción corrige cada tipo
+      de defecto. Es la que responde H1. */
+  defectiveUndetected: number;
   defectiveTotal: number;
 }
 

@@ -216,6 +216,7 @@ class MetricsOut(Schema):
     median_seconds: float
     accepted_without_edit: int
     defective_accepted: int
+    defective_undetected: int
     defective_total: int
     corrected: int
     mode: str

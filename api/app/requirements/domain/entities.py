@@ -217,7 +217,12 @@ class IterationMetrics:
     #: muestran todos juntos y el intervalo mide otra cosa.
     median_seconds: float
     accepted_without_edit: int
+    #: Sembradas que el revisor aceptó tal cual. Es la lectura literal.
     defective_accepted: int
+    #: Sembradas que el revisor no advirtió, según qué acción corrige cada
+    #: tipo de defecto. Es la que responde H1: en una cita desplazada el texto
+    #: es correcto y editarlo no demuestra haber contrastado la evidencia.
+    defective_undetected: int
     defective_total: int
     #: Decisiones que el revisor marcó como error de registro. Excluidas de
     #: las cifras de arriba, contadas acá.

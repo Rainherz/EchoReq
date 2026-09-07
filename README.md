@@ -245,6 +245,25 @@ es de solo anexado.
 | `role_shift` | quién declaró la necesidad | saber quién habló |
 | `clause_collapse` | mete dos obligaciones en una | notar que son cosas distintas |
 
+**No toda acción distinta de aceptar es una detección.** En la cita desplazada
+el texto del requisito es correcto y lo falso es la evidencia: editar la
+redacción mejora el enunciado y deja la cita intacta, así que una edición no
+demuestra haber contrastado el turno. En los otros tres el defecto está en el
+texto y editarlo lo corrige.
+
+| Tipo | Cuenta como detección |
+| --- | --- |
+| `citation_drift` | sólo rechazar |
+| `invented_precision` | editar o rechazar |
+| `role_shift` | editar o rechazar |
+| `clause_collapse` | editar o rechazar |
+
+Salió de la primera corrida con dos revisores: los dos editaron una cita
+desplazada sin tocarla. Contadas como detecciones, la tasa habría sido del
+100% para un defecto que ninguno advirtió. Las métricas reportan las dos
+cifras —aceptadas y no detectadas— porque la primera es la medición cruda y
+permite reconstruir la segunda.
+
 Los tipos rotan para que el revisor no aprenda un patrón: si todos fueran
 iguales, a la tercera iteración se mediría aprendizaje y no vigilancia. Cada
 propuesta guarda su `defect_kind` y una nota de qué se alteró, así el análisis

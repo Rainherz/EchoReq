@@ -225,6 +225,27 @@ registra decisiones, porque modificar el texto de una propuesta ya decidida
 dejaría el intervalo de decisión asociado a un contenido que el revisor nunca
 vio.
 
+**Qué cuenta como detección.** No toda acción distinta de aceptar equivale a
+haber advertido el defecto, y tratarlas como equivalentes sobreestima la
+detección. La regla depende del tipo:
+
+| Tipo | Detección | Por qué |
+| --- | --- | --- |
+| Cita desplazada | sólo **rechazar** | el texto del requisito es correcto; lo falso es la evidencia. Editar la redacción mejora el enunciado y deja intacta la cita, de modo que una edición no demuestra que el revisor haya contrastado el turno |
+| Precisión inventada | **editar** o rechazar | el dato fabricado está en el texto; quitarlo lo corrige |
+| Rol desplazado | **editar** o rechazar | el actor equivocado está en el texto |
+| Cláusula colapsada | **editar** o rechazar | las obligaciones fusionadas están en el texto |
+
+Esta distinción surgió al observar la primera corrida con dos revisores: ambos
+editaron una propuesta con la cita desplazada, mejorando su redacción sin tocar
+los turnos citados. Contadas como detecciones, la tasa habría sido del 100%
+para un defecto que ninguno de los dos advirtió.
+
+Se reportan por separado dos cifras: las sembradas **aceptadas** —la lectura
+literal— y las sembradas **no detectadas** según la regla anterior. La segunda
+es la que responde H1; la primera se conserva porque es la medición cruda y
+permite reconstruir la otra.
+
 **Registro.** Cada propuesta sembrada conserva su tipo de defecto y una nota de la
 alteración exacta. Las exportaciones incluyen ambos campos, lo que permite
 desagregar la tasa de detección por tipo. Reportar «se detectó el 80% de las
