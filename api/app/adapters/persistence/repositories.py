@@ -436,6 +436,34 @@ class PostgresDecisionRepository:
                 "Corregir una corrección sería el deshacer que esto evita."
             ) from exc
 
+    def consolidate(
+        self, proposal_id: str, chosen_from: str, resolved_by: str, reason: str
+    ) -> None:
+        """Adopta la versión de un revisor para la especificación.
+
+        No toca `review_decisions`: la decisión de cada uno es el dato del
+        estudio y queda intacta. Esto se apoya encima y dice cuál se adoptó.
+
+        Se puede rehacer. Una decisión de revisión no se corrige porque
+        registra lo que alguien hizo en un instante; una consolidación es la
+        postura del equipo sobre su propio documento, y esa sí puede cambiar
+        en la reunión siguiente.
+        """
+        with cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO consolidations
+                    (proposal_id, chosen_from, resolved_by, reason)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (proposal_id) DO UPDATE
+                SET chosen_from = EXCLUDED.chosen_from,
+                    resolved_by = EXCLUDED.resolved_by,
+                    reason = EXCLUDED.reason,
+                    resolved_at = now()
+                """,
+                (proposal_id, chosen_from, resolved_by, reason.strip()),
+            )
+
     def agreement(self, project_id: str) -> list[dict]:
         """Qué decidió cada revisor sobre cada propuesta.
 
@@ -467,9 +495,13 @@ class PostgresDecisionRepository:
                        -- el texto, no la etiqueta.
                        count(DISTINCT coalesce(d.edited_content, p.content, '')) > 1
                            AS text_differs,
-                       count(*) AS reviewers
+                       count(*) AS reviewers,
+                       max(c.chosen_from)  AS chosen_from,
+                       max(c.resolved_by)  AS resolved_by,
+                       max(c.reason)       AS consolidation_reason
                 FROM change_proposals p
                 JOIN review_decisions d ON d.proposal_id = p.id
+                LEFT JOIN consolidations c ON c.proposal_id = p.id
                 WHERE p.project_id = %s
                 GROUP BY p.id, p.iteration, p.target_id, p.operation,
                          p.known_defective, p.defect_kind
@@ -541,26 +573,44 @@ class PostgresDocumentRepository:
         with cursor() as cur:
             cur.execute(
                 """
-                WITH history AS (
+                WITH adopted AS (
+                    -- Texto que el equipo adoptó al resolver un desacuerdo.
+                    -- La revisión guardada no se toca: registra lo que se
+                    -- escribió cuando se decidió. Esta capa dice cuál versión
+                    -- rige, igual que las etiquetas de voz no reescriben lo
+                    -- que observó la diarización.
+                    SELECT cp.target_id, cp.iteration,
+                           coalesce(d.edited_content, cp.content) AS content
+                    FROM consolidations c
+                    JOIN change_proposals cp ON cp.id = c.proposal_id
+                    JOIN review_decisions d
+                      ON d.proposal_id = cp.id
+                     AND d.participant_id = c.chosen_from
+                    WHERE cp.project_id = %s
+                ),
+                history AS (
                     SELECT
-                        requirement_id,
-                        revision,
-                        operation,
-                        content,
-                        MIN(revision) OVER (PARTITION BY requirement_id) AS born,
-                        COUNT(*)  OVER (PARTITION BY requirement_id) AS entries,
+                        rr.requirement_id,
+                        rr.revision,
+                        rr.operation,
+                        coalesce(a.content, rr.content) AS content,
+                        MIN(rr.revision) OVER (PARTITION BY rr.requirement_id) AS born,
+                        COUNT(*)  OVER (PARTITION BY rr.requirement_id) AS entries,
                         ROW_NUMBER() OVER (
-                            PARTITION BY requirement_id ORDER BY revision DESC
+                            PARTITION BY rr.requirement_id ORDER BY rr.revision DESC
                         ) AS recency
-                    FROM requirement_revisions
-                    WHERE project_id = %s AND revision <= %s
+                    FROM requirement_revisions rr
+                    LEFT JOIN adopted a
+                           ON a.target_id = rr.requirement_id
+                          AND a.iteration = rr.revision
+                    WHERE rr.project_id = %s AND rr.revision <= %s
                 )
                 SELECT requirement_id, content, born, entries, revision
                 FROM history
                 WHERE recency = 1 AND operation <> 'delete'
                 ORDER BY requirement_id
                 """,
-                (project_id, revision),
+                (project_id, project_id, revision),
             )
             return [
                 DocumentEntry(

@@ -476,9 +476,29 @@ export interface AgreementRow {
   texts: Record<string, string>;
   /** Los textos resultantes difieren, aunque la acción sea la misma. */
   textDiffers: boolean;
+  /** De quién se adoptó la versión, si el desacuerdo ya se resolvió. */
+  chosenFrom: string | null;
+  resolvedBy: string | null;
+  consolidationReason: string | null;
   /** Los revisores no coincidieron. */
   disputed: boolean;
   reviewers: number;
+}
+
+/** Adopta la versión de un revisor para la especificación.
+ *
+ *  No altera las decisiones: cada una queda como el dato que es. Esto se
+ *  apoya encima y dice cuál rige en el documento. */
+export async function consolidate(
+  proposalId: string,
+  chosenFrom: string,
+  resolvedBy: string,
+  reason: string,
+): Promise<void> {
+  await request<void>(`/proposals/${encodeURIComponent(proposalId)}/consolidation`, {
+    method: "PUT",
+    body: JSON.stringify({ chosenFrom, resolvedBy, reason }),
+  });
 }
 
 /** Qué decidió cada revisor sobre cada propuesta. */

@@ -535,6 +535,7 @@ function ProjectApp({
               <AgreementScreen
                 projectId={projectId}
                 participants={allParticipants}
+                resolvedBy={participantId}
               />
             )}
 

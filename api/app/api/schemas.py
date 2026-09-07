@@ -205,9 +205,21 @@ class AgreementOut(Schema):
     texts: dict[str, str]
     #: Los textos resultantes no coinciden, aunque la acción sí.
     text_differs: bool
+    #: De quién se adoptó la versión, si el desacuerdo ya se resolvió.
+    chosen_from: str | None = None
+    resolved_by: str | None = None
+    consolidation_reason: str | None = None
     #: Los revisores no coincidieron.
     disputed: bool
     reviewers: int
+
+
+class ConsolidationIn(Schema):
+    #: De quién se adopta la versión.
+    chosen_from: str
+    #: Quién resuelve. Puede no haber revisado la propuesta.
+    resolved_by: str
+    reason: str = Field(min_length=4, max_length=400)
 
 
 class MetricsOut(Schema):

@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useState } from "react";
 import type { AgreementRow, Participant } from "../../adapters/api/client";
-import { fetchAgreement } from "../../adapters/api/client";
+import { consolidate, fetchAgreement } from "../../adapters/api/client";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
 import "./agreement.css";
@@ -20,6 +20,8 @@ const ACTION_CLASS: Record<string, string> = {
 interface AgreementScreenProps {
   projectId: string;
   participants: Participant[];
+  /** Quién está resolviendo. Queda registrado con la adopción. */
+  resolvedBy: string;
 }
 
 /**
@@ -34,7 +36,13 @@ interface AgreementScreenProps {
  * desacuerdo es el dato: si la pantalla ofreciera «unificar», estaría
  * borrando la observación que vino a registrar.
  */
-export function AgreementScreen({ projectId, participants }: AgreementScreenProps) {
+export function AgreementScreen({
+  projectId,
+  participants,
+  resolvedBy,
+}: AgreementScreenProps) {
+  const [saving, setSaving] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   // Qué propuesta está abierta. La acción sola no alcanza: dos personas
   // pueden «editar» y escribir cosas distintas, y lo que queda en el
   // documento es el texto, no la etiqueta.
@@ -47,6 +55,7 @@ export function AgreementScreen({ projectId, participants }: AgreementScreenProp
 
   return (
     <div className="agreement">
+      {failure && <p className="decide__failure">{failure}</p>}
       <AsyncBoundary
         resource={rows}
         empty={
@@ -181,10 +190,57 @@ export function AgreementScreen({ projectId, participants }: AgreementScreenProp
                                       <div key={p.id} className="agree__text">
                                         <span className="agree__who">
                                           {p.displayName}
+                                          {row.chosenFrom === p.id && (
+                                            <span className="agree__chosen">
+                                              {" "}
+                                              · adoptada
+                                            </span>
+                                          )}
                                         </span>
                                         <p>{row.texts[p.id]}</p>
+                                        {row.chosenFrom !== p.id && (
+                                          <button
+                                            type="button"
+                                            className="btn btn--small"
+                                            disabled={saving === row.proposalId}
+                                            onClick={async (event) => {
+                                              event.stopPropagation();
+                                              const motivo = window.prompt(
+                                                `¿Por qué se adopta la versión de ${p.displayName}?`,
+                                              );
+                                              if (!motivo || motivo.trim().length < 4) return;
+                                              setSaving(row.proposalId);
+                                              setFailure(null);
+                                              try {
+                                                await consolidate(
+                                                  row.proposalId,
+                                                  p.id,
+                                                  resolvedBy,
+                                                  motivo,
+                                                );
+                                                rows.reload();
+                                              } catch (cause) {
+                                                setFailure(
+                                                  cause instanceof Error
+                                                    ? cause.message
+                                                    : String(cause),
+                                                );
+                                              } finally {
+                                                setSaving(null);
+                                              }
+                                            }}
+                                          >
+                                            Usar esta versión
+                                          </button>
+                                        )}
                                       </div>
                                     ))}
+
+                                  {row.consolidationReason && (
+                                    <p className="agree__reason">
+                                      Se adoptó por: {row.consolidationReason}
+                                    </p>
+                                  )}
                                 </td>
                               </tr>
                             )}

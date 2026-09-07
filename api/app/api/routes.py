@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 from dataclasses import asdict
 
+import psycopg
+
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi import Response
 
@@ -29,6 +31,7 @@ from ..requirements.domain.entities import DecisionCorrection, ReviewDecision
 from ..requirements.use_cases import ReviewQueue, SpecificationReader, StudyMetrics
 from .schemas import (
     AgreementOut,
+    ConsolidationIn,
     SpeakerIn,
     SpeakerOut,
     SpeakerSampleOut,
@@ -466,12 +469,39 @@ def agreement(project_id: str) -> list[AgreementOut]:
             defect_kind=row["defect_kind"],
             decisions=row["decisions"],
             texts=row["texts"],
+            chosen_from=row["chosen_from"],
+            resolved_by=row["resolved_by"],
+            consolidation_reason=row["consolidation_reason"],
             disputed=row["disputed"],
             text_differs=row["text_differs"],
             reviewers=row["reviewers"],
         )
         for row in _decisions.agreement(project_id)
     ]
+
+
+@router.put("/proposals/{proposal_id}/consolidation", status_code=204)
+def consolidate(proposal_id: str, payload: ConsolidationIn) -> None:
+    """Adopta la versión de un revisor para la especificación.
+
+    Consolidar no es revisar. Revisar es decidir a ciegas sobre lo que propuso
+    el agente, y eso es lo que el estudio mide; consolidar ocurre después, a la
+    vista del desacuerdo, y resuelve cuál de las versiones humanas queda.
+
+    Por eso no toca `review_decisions`: la decisión de cada revisor es el dato
+    y queda intacta. Y se puede rehacer, a diferencia de una decisión: una
+    consolidación es la postura del equipo sobre su propio documento.
+    """
+    try:
+        _decisions.consolidate(
+            proposal_id, payload.chosen_from, payload.resolved_by, payload.reason
+        )
+    except psycopg.errors.ForeignKeyViolation as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="La propuesta o el participante no existen, o esa persona "
+            "no decidió sobre esta propuesta.",
+        ) from exc
 
 
 @router.get("/projects/{project_id}/drift")

@@ -633,10 +633,23 @@ revisor. Una propuesta que todos deciden igual y otra que los divide dicen
 cosas distintas sobre la propuesta, y esa distinción no existe con una sola
 serie.
 
-**No ofrece unificar las decisiones, a propósito.** El desacuerdo es la
-observación; resolverlo desde la pantalla borraría el dato que vino a
-registrar. Cuál versión queda en el documento ya lo decide otra regla: la
-escribe quien decide primero, y por eso se designa un analista de referencia.
+Una fila se abre y muestra el texto que dejó cada uno. La acción sola no
+alcanza: dos personas pueden editar y escribir cosas distintas, y lo que queda
+en la especificación es el texto.
+
+**Adoptar una versión no borra las decisiones.** Consolidar es otra actividad:
+revisar es decidir a ciegas sobre lo que propuso el agente —y eso es lo que el
+estudio mide—, mientras que consolidar ocurre después, a la vista del
+desacuerdo, y resuelve cuál de las versiones humanas rige. Por eso vive en su
+propia tabla: cada decisión queda intacta y encima se apoya una capa que dice
+cuál se adoptó, quién lo resolvió y por qué. Es la misma separación que entre
+lo que observó la diarización y lo que interpretó una persona al ponerle
+nombre a una voz.
+
+La consolidación sí se puede rehacer, a diferencia de una decisión: una
+decisión registra lo que alguien hizo en un instante; una consolidación es la
+postura del equipo sobre su propio documento y puede cambiar en la reunión
+siguiente.
 
 Un defecto sembrado que divide a los revisores es un defecto difícil, y esa
 cifra se muestra aparte.
