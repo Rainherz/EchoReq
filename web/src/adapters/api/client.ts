@@ -480,6 +480,9 @@ export interface AgreementRow {
   chosenFrom: string | null;
   resolvedBy: string | null;
   consolidationReason: string | null;
+  /** `adopt`, `drop` o `rewrite`. Nulo si no se resolvió. */
+  outcome: string | null;
+  consolidatedContent: string | null;
   /** Los revisores no coincidieron. */
   disputed: boolean;
   reviewers: number;
@@ -489,15 +492,23 @@ export interface AgreementRow {
  *
  *  No altera las decisiones: cada una queda como el dato que es. Esto se
  *  apoya encima y dice cuál rige en el documento. */
+export type ConsolidationOutcome = "adopt" | "drop" | "rewrite";
+
 export async function consolidate(
   proposalId: string,
-  chosenFrom: string,
-  resolvedBy: string,
-  reason: string,
+  input: {
+    outcome: ConsolidationOutcome;
+    resolvedBy: string;
+    reason: string;
+    /** Sólo con `adopt`. */
+    chosenFrom?: string;
+    /** Sólo con `rewrite`. */
+    content?: string;
+  },
 ): Promise<void> {
   await request<void>(`/proposals/${encodeURIComponent(proposalId)}/consolidation`, {
     method: "PUT",
-    body: JSON.stringify({ chosenFrom, resolvedBy, reason }),
+    body: JSON.stringify(input),
   });
 }
 

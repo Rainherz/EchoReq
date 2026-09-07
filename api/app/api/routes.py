@@ -472,6 +472,8 @@ def agreement(project_id: str) -> list[AgreementOut]:
             chosen_from=row["chosen_from"],
             resolved_by=row["resolved_by"],
             consolidation_reason=row["consolidation_reason"],
+            outcome=row["outcome"],
+            consolidated_content=row["consolidated_content"],
             disputed=row["disputed"],
             text_differs=row["text_differs"],
             reviewers=row["reviewers"],
@@ -494,8 +496,19 @@ def consolidate(proposal_id: str, payload: ConsolidationIn) -> None:
     """
     try:
         _decisions.consolidate(
-            proposal_id, payload.chosen_from, payload.resolved_by, payload.reason
+            proposal_id,
+            payload.resolved_by,
+            payload.reason,
+            outcome=payload.outcome,
+            chosen_from=payload.chosen_from,
+            content=payload.content,
         )
+    except psycopg.errors.CheckViolation as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Falta lo que esa salida necesita: adoptar exige de quién, "
+            "y reescribir exige el texto.",
+        ) from exc
     except psycopg.errors.ForeignKeyViolation as exc:
         raise HTTPException(
             status_code=422,

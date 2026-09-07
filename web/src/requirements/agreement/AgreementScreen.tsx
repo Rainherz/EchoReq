@@ -53,6 +53,22 @@ export function AgreementScreen({
     [projectId],
   );
 
+  const resolver = async (
+    proposalId: string,
+    input: Parameters<typeof consolidate>[1],
+  ) => {
+    setSaving(proposalId);
+    setFailure(null);
+    try {
+      await consolidate(proposalId, input);
+      rows.reload();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setSaving(null);
+    }
+  };
+
   return (
     <div className="agreement">
       {failure && <p className="decide__failure">{failure}</p>}
@@ -212,12 +228,12 @@ export function AgreementScreen({
                                               setSaving(row.proposalId);
                                               setFailure(null);
                                               try {
-                                                await consolidate(
-                                                  row.proposalId,
-                                                  p.id,
+                                                await consolidate(row.proposalId, {
+                                                  outcome: "adopt",
+                                                  chosenFrom: p.id,
                                                   resolvedBy,
-                                                  motivo,
-                                                );
+                                                  reason: motivo,
+                                                });
                                                 rows.reload();
                                               } catch (cause) {
                                                 setFailure(
@@ -236,9 +252,73 @@ export function AgreementScreen({
                                       </div>
                                     ))}
 
+                                  {row.outcome === "rewrite" && (
+                                    <div className="agree__text">
+                                      <span className="agree__who">
+                                        Redacción del equipo
+                                        <span className="agree__chosen"> · rige</span>
+                                      </span>
+                                      <p>{row.consolidatedContent}</p>
+                                    </div>
+                                  )}
+
+                                  {row.outcome === "drop" && (
+                                    <p className="agree__dropped">
+                                      El equipo descartó el requisito: no figura
+                                      en la especificación.
+                                    </p>
+                                  )}
+
+                                  <div className="agree__ops">
+                                    <button
+                                      type="button"
+                                      className="btn btn--small"
+                                      disabled={saving === row.proposalId}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        const motivo = window.prompt(
+                                          "¿Por qué se descarta el requisito?",
+                                        );
+                                        if (!motivo || motivo.trim().length < 4) return;
+                                        void resolver(row.proposalId, {
+                                          outcome: "drop",
+                                          resolvedBy,
+                                          reason: motivo,
+                                        });
+                                      }}
+                                    >
+                                      Descartar el requisito
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn--small"
+                                      disabled={saving === row.proposalId}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        const texto = window.prompt(
+                                          "Redacción del equipo:",
+                                          row.texts[participants[0]?.id] ?? "",
+                                        );
+                                        if (!texto || texto.trim().length < 10) return;
+                                        const motivo = window.prompt(
+                                          "¿Por qué ninguna de las versiones sirve?",
+                                        );
+                                        if (!motivo || motivo.trim().length < 4) return;
+                                        void resolver(row.proposalId, {
+                                          outcome: "rewrite",
+                                          content: texto,
+                                          resolvedBy,
+                                          reason: motivo,
+                                        });
+                                      }}
+                                    >
+                                      Escribir otra versión
+                                    </button>
+                                  </div>
+
                                   {row.consolidationReason && (
                                     <p className="agree__reason">
-                                      Se adoptó por: {row.consolidationReason}
+                                      Se resolvió por: {row.consolidationReason}
                                     </p>
                                   )}
                                 </td>

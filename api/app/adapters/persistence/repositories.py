@@ -437,9 +437,20 @@ class PostgresDecisionRepository:
             ) from exc
 
     def consolidate(
-        self, proposal_id: str, chosen_from: str, resolved_by: str, reason: str
+        self,
+        proposal_id: str,
+        resolved_by: str,
+        reason: str,
+        outcome: str = "adopt",
+        chosen_from: str | None = None,
+        content: str | None = None,
     ) -> None:
-        """Adopta la versión de un revisor para la especificación.
+        """Resuelve un desacuerdo para la especificación.
+
+        Tres salidas. `adopt` hace regir la versión de un revisor; `drop` saca
+        el requisito, porque a veces el problema no es cómo está redactado
+        sino que no corresponde; `rewrite` hace regir un texto del equipo,
+        cuando ninguna de las versiones sirve.
 
         No toca `review_decisions`: la decisión de cada uno es el dato del
         estudio y queda intacta. Esto se apoya encima y dice cuál se adoptó.
@@ -453,15 +464,25 @@ class PostgresDecisionRepository:
             cur.execute(
                 """
                 INSERT INTO consolidations
-                    (proposal_id, chosen_from, resolved_by, reason)
-                VALUES (%s, %s, %s, %s)
+                    (proposal_id, chosen_from, resolved_by, reason, outcome,
+                     content)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (proposal_id) DO UPDATE
                 SET chosen_from = EXCLUDED.chosen_from,
                     resolved_by = EXCLUDED.resolved_by,
                     reason = EXCLUDED.reason,
+                    outcome = EXCLUDED.outcome,
+                    content = EXCLUDED.content,
                     resolved_at = now()
                 """,
-                (proposal_id, chosen_from, resolved_by, reason.strip()),
+                (
+                    proposal_id,
+                    chosen_from,
+                    resolved_by,
+                    reason.strip(),
+                    outcome,
+                    (content or "").strip() or None,
+                ),
             )
 
     def agreement(self, project_id: str) -> list[dict]:
@@ -498,7 +519,9 @@ class PostgresDecisionRepository:
                        count(*) AS reviewers,
                        max(c.chosen_from)  AS chosen_from,
                        max(c.resolved_by)  AS resolved_by,
-                       max(c.reason)       AS consolidation_reason
+                       max(c.reason)       AS consolidation_reason,
+                       max(c.outcome)      AS outcome,
+                       max(c.content)      AS consolidated_content
                 FROM change_proposals p
                 JOIN review_decisions d ON d.proposal_id = p.id
                 LEFT JOIN consolidations c ON c.proposal_id = p.id
@@ -579,20 +602,28 @@ class PostgresDocumentRepository:
                     -- escribió cuando se decidió. Esta capa dice cuál versión
                     -- rige, igual que las etiquetas de voz no reescriben lo
                     -- que observó la diarización.
-                    SELECT cp.target_id, cp.iteration,
-                           coalesce(d.edited_content, cp.content) AS content
+                    SELECT cp.target_id, cp.iteration, c.outcome,
+                           CASE c.outcome
+                               WHEN 'rewrite' THEN c.content
+                               WHEN 'adopt'   THEN coalesce(d.edited_content,
+                                                            cp.content)
+                           END AS content
                     FROM consolidations c
                     JOIN change_proposals cp ON cp.id = c.proposal_id
-                    JOIN review_decisions d
-                      ON d.proposal_id = cp.id
-                     AND d.participant_id = c.chosen_from
+                    LEFT JOIN review_decisions d
+                           ON d.proposal_id = cp.id
+                          AND d.participant_id = c.chosen_from
                     WHERE cp.project_id = %s
                 ),
                 history AS (
                     SELECT
                         rr.requirement_id,
                         rr.revision,
-                        rr.operation,
+                        -- Un descarte del equipo pesa igual que una baja: el
+                        -- requisito sale de la especificación aunque la
+                        -- revisión guardada diga que se creó.
+                        CASE WHEN a.outcome = 'drop' THEN 'delete'
+                             ELSE rr.operation END AS operation,
                         coalesce(a.content, rr.content) AS content,
                         MIN(rr.revision) OVER (PARTITION BY rr.requirement_id) AS born,
                         COUNT(*)  OVER (PARTITION BY rr.requirement_id) AS entries,

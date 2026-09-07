@@ -6,6 +6,8 @@ hacia adentro.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -209,14 +211,21 @@ class AgreementOut(Schema):
     chosen_from: str | None = None
     resolved_by: str | None = None
     consolidation_reason: str | None = None
+    outcome: str | None = None
+    consolidated_content: str | None = None
     #: Los revisores no coincidieron.
     disputed: bool
     reviewers: int
 
 
 class ConsolidationIn(Schema):
-    #: De quién se adopta la versión.
-    chosen_from: str
+    #: `adopt` hace regir la versión de un revisor, `drop` saca el requisito
+    #: de la especificación y `rewrite` hace regir un texto del equipo.
+    outcome: Literal["adopt", "drop", "rewrite"] = "adopt"
+    #: De quién se adopta la versión. Sólo con `adopt`.
+    chosen_from: str | None = None
+    #: Texto que redacta el equipo. Sólo con `rewrite`.
+    content: str | None = Field(default=None, max_length=2000)
     #: Quién resuelve. Puede no haber revisado la propuesta.
     resolved_by: str
     reason: str = Field(min_length=4, max_length=400)

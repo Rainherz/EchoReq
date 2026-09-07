@@ -646,6 +646,20 @@ cuál se adoptó, quién lo resolvió y por qué. Es la misma separación que en
 lo que observó la diarización y lo que interpretó una persona al ponerle
 nombre a una voz.
 
+Hay tres salidas, porque adoptar la versión de alguien no cubre todos los
+casos:
+
+| Salida | Qué hace | Cuándo |
+| --- | --- | --- |
+| `adopt` | rige la versión de un revisor | una de las dos es mejor |
+| `drop` | el requisito sale de la especificación | el problema no es cómo está redactado sino que no corresponde |
+| `rewrite` | rige un texto del equipo | ninguna de las versiones sirve |
+
+Forzar los dos últimos dentro de «adoptar» obligaría a elegir la versión menos
+mala y dejaría el documento diciendo algo que nadie sostiene. El motivo es
+obligatorio en las tres: sin él queda un documento con una versión y ninguna
+forma de saber por qué se prefirió.
+
 La consolidación sí se puede rehacer, a diferencia de una decisión: una
 decisión registra lo que alguien hizo en un instante; una consolidación es la
 postura del equipo sobre su propio documento y puede cambiar en la reunión
