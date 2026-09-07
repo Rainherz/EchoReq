@@ -369,6 +369,7 @@ function ProjectApp({
       identity={identity}
       pendingReview={selected?.pendingProposals ?? 0}
       meetingCount={meetings.data?.length ?? 0}
+      discoveryMeeting={selected?.mode === "discovery"}
       toolbar={
         meetings.data && meetings.data.length > 0 && selected ? (
           <MeetingPicker

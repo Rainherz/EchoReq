@@ -210,3 +210,11 @@
   color: var(--stop-text);
   max-width: 260px;
 }
+
+/* Sección que no aplica a la reunión elegida. Se atenúa en vez de ocultarse:
+   esconderla haría desaparecer una parte del recorrido sin explicación, y
+   dejarla igual que las demás invita a entrar a una pantalla que sólo puede
+   decir por qué no corresponde. */
+.navitem--dim {
+  opacity: 0.45;
+}

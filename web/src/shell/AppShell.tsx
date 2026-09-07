@@ -14,6 +14,9 @@ interface NavEntry {
   id: Section;
   label: string;
   count?: number;
+  /** Por qué esta sección no aplica a la reunión elegida. Se sigue pudiendo
+      abrir —la pantalla explica el motivo— pero el menú deja de invitar. */
+  notApplicable?: string;
 }
 
 /** Los contadores salen del estado real; escribirlos a mano los deja
@@ -21,9 +24,17 @@ interface NavEntry {
 function projectNav(counts: NavCounts): NavEntry[] {
   return [
     { id: "sessions", label: "Sesiones", count: counts.meetings },
-    // Sin contador: Descubrimiento todavía corre sobre datos de ejemplo, y
-    // un número que no corresponde a lo que hay adentro miente.
-    { id: "discovery", label: "Descubrimiento" },
+    // Descubrimiento existe sólo para la primera reunión de un proyecto,
+    // cuando todavía no hay documento contra el cual comparar. Para el resto
+    // se atenúa: dejarlo igual que las demás invita a entrar a una pantalla
+    // que sólo puede explicar por qué no aplica.
+    {
+      id: "discovery",
+      label: "Descubrimiento",
+      notApplicable: counts.discovery
+        ? undefined
+        : "Sólo para la primera reunión del proyecto",
+    },
     { id: "review", label: "Revisión", count: counts.pendingReview },
     { id: "document", label: "Documento" },
     { id: "traceability", label: "Trazabilidad" },
@@ -33,6 +44,8 @@ function projectNav(counts: NavCounts): NavEntry[] {
 interface NavCounts {
   meetings: number;
   pendingReview: number;
+  /** La reunión elegida es la de descubrimiento. */
+  discovery: boolean;
 }
 
 const STUDY_NAV: NavEntry[] = [
@@ -49,6 +62,8 @@ interface AppShellProps {
   onLeaveProject: () => void;
   pendingReview?: number;
   meetingCount?: number;
+  /** La reunión elegida corre en modo descubrimiento. */
+  discoveryMeeting?: boolean;
   toolbar?: ReactNode;
   /** Quién revisa. Siempre a la vista: cada decisión se le atribuye. */
   identity?: ReactNode;
@@ -62,18 +77,26 @@ export function AppShell({
   onNavigate,
   onLeaveProject,
   pendingReview = 0,
+  discoveryMeeting = false,
   meetingCount = 0,
   toolbar,
   identity,
   children,
 }: AppShellProps) {
-  const PROJECT_NAV = projectNav({ meetings: meetingCount, pendingReview });
+  const PROJECT_NAV = projectNav({
+    meetings: meetingCount,
+    pendingReview,
+    discovery: discoveryMeeting,
+  });
   const renderNav = (entries: NavEntry[]) =>
     entries.map((entry) => (
       <button
         key={entry.id}
         type="button"
-        className="navitem"
+        className={
+          entry.notApplicable ? "navitem navitem--dim" : "navitem"
+        }
+        title={entry.notApplicable}
         aria-current={entry.id === active ? "page" : undefined}
         onClick={() => onNavigate(entry.id)}
       >
