@@ -508,7 +508,7 @@ function ProjectApp({
             {route.section === "document" && (
               <DocumentScreen
                 projectId={projectId}
-                currentRevision={currentRevision}
+                upToRevision={iteration}
                 meetingLabels={meetingLabels}
                 focusRequirementId={route.focus}
               />

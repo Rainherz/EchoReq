@@ -13,7 +13,10 @@ import "./document.css";
 
 interface DocumentScreenProps {
   projectId: string;
-  currentRevision: number;
+  /** Hasta dónde llega el documento: la iteración de la reunión elegida en la
+      barra. Estando en la reunión 1 el documento no pasa de la revisión 1;
+      las que vienen después son el futuro de esa reunión. */
+  upToRevision: number;
   meetingLabels: Record<string, string>;
   /** Requisito a abrir al entrar, si la ruta lo trae. */
   focusRequirementId?: string | null;
@@ -29,11 +32,14 @@ interface DocumentScreenProps {
  */
 export function DocumentScreen({
   projectId,
-  currentRevision,
+  upToRevision,
   meetingLabels,
   focusRequirementId = null,
 }: DocumentScreenProps) {
-  const [revision, setRevision] = useState(currentRevision);
+  // Derivada y no guardada: al cambiar de reunión el tope baja, y una
+  // revisión guardada quedaría apuntando más allá de los botones que hay.
+  const [pickedRevision, setPickedRevision] = useState<number | null>(null);
+  const revision = Math.min(pickedRevision ?? upToRevision, upToRevision);
   const [query, setQuery] = useState("");
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   // La matriz de trazabilidad navega acá con el requisito en la ruta. La
@@ -85,7 +91,14 @@ export function DocumentScreen({
     (row) => row.targetId === selectedId && row.iteration <= revision,
   );
 
-  const revisionButtons = Array.from({ length: currentRevision }, (_, i) => i + 1);
+  const revisionButtons = Array.from({ length: upToRevision }, (_, i) => i + 1);
+  // Una reunión existe desde que se carga el audio, pero no cambia el
+  // documento hasta que alguien decide sus propuestas. Sin esto la pantalla
+  // dice «al cierre de la reunión 4» sobre un documento que todavía es el de
+  // la 3, y anuncia un cierre que no ocurrió.
+  const revisionLanded = (revisions.data ?? []).some(
+    (row) => row.revision === revision,
+  );
 
   return (
     <div className="document">
@@ -101,7 +114,7 @@ export function DocumentScreen({
               type="button"
               className="btn btn--chip"
               aria-pressed={value === revision}
-              onClick={() => setRevision(value)}
+              onClick={() => setPickedRevision(value)}
             >
               revisión {value}
             </button>
@@ -115,9 +128,11 @@ export function DocumentScreen({
             <div className="card__head">
               Documento vigente
               <span className="card__count">
-                {revision === currentRevision
-                  ? "última revisión"
-                  : `viendo revisión ${revision} de ${currentRevision}`}
+                {!revisionLanded
+                  ? `la reunión ${revision} todavía no cambió el documento`
+                  : revision === upToRevision
+                    ? `al cierre de la reunión ${upToRevision}`
+                    : `viendo revisión ${revision} de ${upToRevision}`}
               </span>
             </div>
 
