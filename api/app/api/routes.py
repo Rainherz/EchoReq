@@ -419,7 +419,7 @@ def history(project_id: str, requirement_id: str) -> list[RevisionOut]:
 
 
 @router.get("/projects/{project_id}/rejections")
-def rejections(project_id: str) -> list[RejectionOut]:
+def rejections(project_id: str, participant: str | None = None) -> list[RejectionOut]:
     """Propuestas que se rechazaron.
 
     Una propuesta rechazada no deja texto en la especificación, pero la
@@ -427,13 +427,24 @@ def rejections(project_id: str) -> list[RejectionOut]:
     existe en ningún lado. La matriz de trazabilidad tiene que poder
     mostrarla.
     """
-    return [RejectionOut(**asdict(row)) for row in _decisions.rejections(project_id)]
+    return [
+        RejectionOut(**asdict(row))
+        for row in _decisions.rejections(project_id, participant)
+    ]
 
 
 @router.get("/projects/{project_id}/metrics")
-def metrics(project_id: str) -> list[MetricsOut]:
-    """Cifras de H2 y H3 por iteración."""
-    return [MetricsOut(**asdict(m)) for m in _metrics.by_iteration(project_id)]
+def metrics(project_id: str, participant: str | None = None) -> list[MetricsOut]:
+    """Cifras de H2 y H3 por iteración, de una persona.
+
+    Sin participante devuelve la cadena entera, que responde qué pasó en el
+    proyecto pero no cómo revisó nadie: con dos revisores sobre la misma cola
+    la mediana mezcla dos series y no describe a ninguno.
+    """
+    return [
+        MetricsOut(**asdict(m))
+        for m in _metrics.by_iteration(project_id, participant)
+    ]
 
 
 @router.get("/projects/{project_id}/drift")

@@ -39,13 +39,19 @@ class DecisionRepository(Protocol):
         """
         ...
 
-    def metrics_by_iteration(self, project_id: str) -> list[IterationMetrics]: ...
+    def metrics_by_iteration(
+        self, project_id: str, participant_id: str | None = None
+    ) -> list[IterationMetrics]:
+        """Cifras por iteración de una persona; sin ella, de toda la cadena."""
+        ...
 
     def correct(self, correction: DecisionCorrection) -> int:
         """Anexa una corrección sobre una decisión ya registrada."""
         ...
 
-    def rejections(self, project_id: str) -> list[Rejection]: ...
+    def rejections(
+        self, project_id: str, participant_id: str | None = None
+    ) -> list[Rejection]: ...
 
 
 class DocumentRepository(Protocol):

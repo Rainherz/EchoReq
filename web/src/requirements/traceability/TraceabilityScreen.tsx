@@ -28,6 +28,8 @@ const MARK: Record<ProposalOperation, { cls: string; text: string }> = {
 
 interface TraceabilityScreenProps {
   projectId: string;
+  /** Quién revisa: las decisiones son por persona. */
+  participantId: string;
   currentRevision: number;
   meetingDates: Record<number, string>;
   /** Abre la historia del requisito en Documento. */
@@ -49,6 +51,7 @@ interface MatrixData {
  */
 export function TraceabilityScreen({
   projectId,
+  participantId,
   currentRevision,
   meetingDates,
   onOpenRequirement,
@@ -58,7 +61,7 @@ export function TraceabilityScreen({
       async () => ({
         revisions: await fetchRevisions(projectId),
         snapshots: await fetchDocumentSnapshots(projectId, currentRevision),
-        rejections: await fetchRejections(projectId),
+        rejections: await fetchRejections(projectId, participantId),
       }),
       [projectId, currentRevision],
     ),

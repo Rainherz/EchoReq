@@ -403,8 +403,12 @@ export function fetchDocumentSnapshots(
   );
 }
 
-export function fetchRejections(projectId: string): Promise<Rejection[]> {
-  return request<Rejection[]>(`/projects/${projectId}/rejections`);
+export function fetchRejections(
+  projectId: string,
+  participantId?: string,
+): Promise<Rejection[]> {
+  const q = participantId ? `?participant=${encodeURIComponent(participantId)}` : "";
+  return request<Rejection[]>(`/projects/${projectId}/rejections${q}`);
 }
 
 export async function fetchRevisions(
@@ -450,8 +454,17 @@ export function csvUrl(projectId: string, name: string): string {
   return `${BASE}/projects/${projectId}/export/${name}.csv`;
 }
 
-export function fetchMetrics(projectId: string): Promise<IterationMetrics[]> {
-  return request<IterationMetrics[]>(`/projects/${projectId}/metrics`);
+/** Cifras por iteración de una persona.
+ *
+ *  El participante no es opcional en la práctica: cada revisor produce su
+ *  propia serie sobre la misma cola, y pedirlas sin él devuelve una mediana
+ *  que mezcla dos personas y no describe a ninguna. */
+export function fetchMetrics(
+  projectId: string,
+  participantId?: string,
+): Promise<IterationMetrics[]> {
+  const q = participantId ? `?participant=${encodeURIComponent(participantId)}` : "";
+  return request<IterationMetrics[]>(`/projects/${projectId}/metrics${q}`);
 }
 
 export function fetchDrift(projectId: string): Promise<DriftPoint[]> {

@@ -509,6 +509,7 @@ function ProjectApp({
             {route.section === "traceability" && (
               <TraceabilityScreen
                 projectId={projectId}
+                participantId={participantId}
                 currentRevision={currentRevision}
                 meetingDates={meetingDates}
                 onOpenRequirement={(id) => navigate("document", id)}
@@ -516,7 +517,10 @@ function ProjectApp({
             )}
 
             {route.section === "iterations" && (
-              <IterationsScreen projectId={projectId} />
+              <IterationsScreen
+                projectId={projectId}
+                participantId={participantId}
+              />
             )}
 
             {route.section === "export" && <ExportScreen projectId={projectId} />}

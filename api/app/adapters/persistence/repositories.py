@@ -338,7 +338,20 @@ class PostgresDecisionRepository:
                 "La medición registra la primera decisión, no la última."
             ) from exc
 
-    def metrics_by_iteration(self, project_id: str) -> list[IterationMetrics]:
+    def metrics_by_iteration(
+        self, project_id: str, participant_id: str | None = None
+    ) -> list[IterationMetrics]:
+        """Cifras por iteración, de una persona.
+
+        El participante no es opcional en la práctica: cada revisor produce su
+        propia serie sobre la misma cola, y promediarlas devuelve una mediana
+        que no es de nadie. Con dos revisores sobre doce propuestas, la
+        iteración figuraba con veinticuatro decisiones.
+
+        Se deja admitir `None` para mirar el proyecto entero, pero eso responde
+        «qué pasó en esta cadena», no «cómo revisó esta persona», que es lo que
+        el estudio compara.
+        """
         with cursor() as cur:
             cur.execute(
                 """
@@ -346,9 +359,10 @@ class PostgresDecisionRepository:
                        mode
                 FROM review_timings
                 WHERE project_id = %s
+                  AND (%s::text IS NULL OR participant_id = %s)
                 ORDER BY iteration
                 """,
-                (project_id,),
+                (project_id, participant_id, participant_id),
             )
             rows = cur.fetchall()
 
@@ -416,7 +430,9 @@ class PostgresDecisionRepository:
                 "Corregir una corrección sería el deshacer que esto evita."
             ) from exc
 
-    def rejections(self, project_id: str) -> list[Rejection]:
+    def rejections(
+        self, project_id: str, participant_id: str | None = None
+    ) -> list[Rejection]:
         with cursor() as cur:
             cur.execute(
                 """
@@ -424,9 +440,10 @@ class PostgresDecisionRepository:
                 FROM review_decisions d
                 JOIN change_proposals p ON p.id = d.proposal_id
                 WHERE p.project_id = %s AND d.action = 'reject'
+                  AND (%s::text IS NULL OR d.participant_id = %s)
                 ORDER BY p.iteration, p.id
                 """,
-                (project_id,),
+                (project_id, participant_id, participant_id),
             )
             return [
                 Rejection(

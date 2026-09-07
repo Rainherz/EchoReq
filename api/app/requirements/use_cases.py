@@ -194,5 +194,7 @@ class StudyMetrics:
     def __init__(self, decisions: DecisionRepository) -> None:
         self._decisions = decisions
 
-    def by_iteration(self, project_id: str) -> list[IterationMetrics]:
-        return self._decisions.metrics_by_iteration(project_id)
+    def by_iteration(
+        self, project_id: str, participant_id: str | None = None
+    ) -> list[IterationMetrics]:
+        return self._decisions.metrics_by_iteration(project_id, participant_id)

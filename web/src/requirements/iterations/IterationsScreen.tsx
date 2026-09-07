@@ -23,16 +23,24 @@ interface Panel {
  * si el documento se degrada, si el revisor le dedica cada vez menos tiempo,
  * y si eso coincide con aprobar propuestas que se sabían defectuosas.
  */
-export function IterationsScreen({ projectId }: { projectId: string }) {
+export function IterationsScreen({
+  projectId,
+  participantId,
+}: {
+  projectId: string;
+  /** Las cifras de decisión son por persona: cada revisor produce su propia
+      serie sobre la misma cola, y promediarlas no describe a ninguno. */
+  participantId: string;
+}) {
   const panel = useResource<Panel>(
     useCallback(
       async () => ({
         drift: await fetchDrift(projectId),
-        metrics: await fetchMetrics(projectId),
+        metrics: await fetchMetrics(projectId, participantId),
       }),
-      [projectId],
+      [projectId, participantId],
     ),
-    [projectId],
+    [projectId, participantId],
   );
 
   return (
