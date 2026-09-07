@@ -192,6 +192,20 @@ class RejectionOut(Schema):
     rationale: str
 
 
+class AgreementOut(Schema):
+    proposal_id: str
+    iteration: int
+    target_id: str
+    operation: str
+    known_defective: bool
+    defect_kind: str | None
+    #: participante → acción decidida.
+    decisions: dict[str, str]
+    #: Los revisores no coincidieron.
+    disputed: bool
+    reviewers: int
+
+
 class MetricsOut(Schema):
     iteration: int
     decisions: int

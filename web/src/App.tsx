@@ -10,6 +10,7 @@ import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { IterationsScreen } from "./requirements/iterations/IterationsScreen";
+import { AgreementScreen } from "./requirements/agreement/AgreementScreen";
 import { ExportScreen } from "./requirements/export/ExportScreen";
 import { WorkspacesScreen } from "./workspaces/WorkspacesScreen";
 import {
@@ -24,6 +25,7 @@ import {
 } from "./adapters/api/client";
 import type {
   Meeting,
+  Participant,
   Project,
   RecordDecisionInput,
 } from "./adapters/api/client";
@@ -48,6 +50,7 @@ const SECTIONS: Section[] = [
   "document",
   "traceability",
   "iterations",
+  "agreement",
   "export",
 ];
 
@@ -58,6 +61,7 @@ const SECTION_LABEL: Record<Section, string> = {
   document: "Documento",
   traceability: "Trazabilidad",
   iterations: "Iteraciones",
+  agreement: "Concordancia",
   export: "Exportar",
 };
 
@@ -171,6 +175,7 @@ export default function App() {
       participantId={participantId}
       identity={identity}
       otherReviewers={Math.max(0, (participants.data?.length ?? 1) - 1)}
+      allParticipants={participants.data ?? []}
       onLeave={leaveProject}
       route={route}
       setRoute={setRoute}
@@ -186,6 +191,8 @@ interface ProjectAppProps {
   identity: React.ReactNode;
   /** Cuántas otras personas pueden revisar la misma cola. */
   otherReviewers: number;
+  /** Todos los revisores, para cruzar sus decisiones en Concordancia. */
+  allParticipants: Participant[];
   onLeave: () => void;
   route: Route;
   setRoute: (route: Route) => void;
@@ -198,6 +205,7 @@ function ProjectApp({
   participantId,
   identity,
   otherReviewers,
+  allParticipants,
   onLeave,
   route,
   setRoute,
@@ -520,6 +528,13 @@ function ProjectApp({
               <IterationsScreen
                 projectId={projectId}
                 participantId={participantId}
+              />
+            )}
+
+            {route.section === "agreement" && (
+              <AgreementScreen
+                projectId={projectId}
+                participants={allParticipants}
               />
             )}
 

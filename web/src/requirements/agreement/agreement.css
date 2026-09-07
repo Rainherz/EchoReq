@@ -1,0 +1,65 @@
+.agreement {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.agree {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.agree th {
+  text-align: left;
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 0 0.6rem 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.agree td {
+  padding: 0.45rem 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* La fila que divide es el hallazgo, no una anomalía a corregir. */
+.agree--disputed {
+  background: var(--warn-wash);
+}
+
+.agree__num,
+.agree__id {
+  font-family: var(--f-mono);
+  font-size: 0.78rem;
+}
+
+.agree__defect {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--warn-text);
+}
+
+.agree__none {
+  color: var(--faint);
+}
+
+.verdict {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+.verdict--accept { background: var(--ok-wash);   color: var(--ok-text); }
+.verdict--edit   { background: var(--warn-wash); color: var(--warn-text); }
+.verdict--reject { background: var(--stop-wash); color: var(--stop-text); }
+
+.tile__of {
+  font-size: 0.6em;
+  color: var(--faint);
+}

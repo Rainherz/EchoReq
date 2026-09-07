@@ -600,6 +600,28 @@ en el adaptador: son reglas del estudio y se prueban sin torch instalado.
 Cada pantalla sigue container-presentational: el contenedor tiene el estado,
 los componentes de `components/` son puros.
 
+## Concordancia entre revisores
+
+Las decisiones son por persona: el bloqueo de una propuesta es
+`UNIQUE (proposal_id, participant_id)`, así que la misma cola produce tantas
+series independientes como revisores haya. Por eso las cifras de decisión se
+piden por participante — promediar dos series devuelve una mediana que no es
+de nadie.
+
+La pantalla de Concordancia las cruza: qué decidió cada uno sobre cada
+propuesta, y cuáles los dividieron. Eso es lo que justifica tener más de un
+revisor. Una propuesta que todos deciden igual y otra que los divide dicen
+cosas distintas sobre la propuesta, y esa distinción no existe con una sola
+serie.
+
+**No ofrece unificar las decisiones, a propósito.** El desacuerdo es la
+observación; resolverlo desde la pantalla borraría el dato que vino a
+registrar. Cuál versión queda en el documento ya lo decide otra regla: la
+escribe quien decide primero, y por eso se designa un analista de referencia.
+
+Un defecto sembrado que divide a los revisores es un defecto difícil, y esa
+cifra se muestra aparte.
+
 ## Restricciones de instrumentación
 
 La pantalla de Revisión produce los datos del estudio. Estas reglas no son

@@ -430,6 +430,36 @@ class PostgresDecisionRepository:
                 "Corregir una corrección sería el deshacer que esto evita."
             ) from exc
 
+    def agreement(self, project_id: str) -> list[dict]:
+        """Qué decidió cada revisor sobre cada propuesta.
+
+        Es lo que justifica tener más de un revisor: dos series paralelas sólo
+        sirven si se pueden cruzar. Un desacuerdo señala una propuesta cuya
+        corrección no es evidente, y esa distinción —lo que se decide igual
+        frente a lo que divide— no existe con una sola serie.
+
+        Devuelve una fila por propuesta decidida, con el mapa de quién decidió
+        qué. Las que nadie decidió todavía quedan fuera.
+        """
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT p.id, p.iteration, p.target_id, p.operation,
+                       p.known_defective, p.defect_kind,
+                       jsonb_object_agg(d.participant_id, d.action) AS decisions,
+                       count(DISTINCT d.action) > 1 AS disputed,
+                       count(*) AS reviewers
+                FROM change_proposals p
+                JOIN review_decisions d ON d.proposal_id = p.id
+                WHERE p.project_id = %s
+                GROUP BY p.id, p.iteration, p.target_id, p.operation,
+                         p.known_defective, p.defect_kind
+                ORDER BY p.iteration, p.id
+                """,
+                (project_id,),
+            )
+            return cur.fetchall()
+
     def rejections(
         self, project_id: str, participant_id: str | None = None
     ) -> list[Rejection]:

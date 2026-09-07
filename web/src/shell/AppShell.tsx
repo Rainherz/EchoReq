@@ -8,6 +8,7 @@ export type Section =
   | "document"
   | "traceability"
   | "iterations"
+  | "agreement"
   | "export";
 
 interface NavEntry {
@@ -50,6 +51,7 @@ interface NavCounts {
 
 const STUDY_NAV: NavEntry[] = [
   { id: "iterations", label: "Iteraciones" },
+  { id: "agreement", label: "Concordancia" },
   { id: "export", label: "Exportar" },
 ];
 

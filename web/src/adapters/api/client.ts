@@ -459,6 +459,25 @@ export function csvUrl(projectId: string, name: string): string {
  *  El participante no es opcional en la práctica: cada revisor produce su
  *  propia serie sobre la misma cola, y pedirlas sin él devuelve una mediana
  *  que mezcla dos personas y no describe a ninguna. */
+export interface AgreementRow {
+  proposalId: string;
+  iteration: number;
+  targetId: string;
+  operation: ProposalOperation;
+  knownDefective: boolean;
+  defectKind: string | null;
+  /** participante → acción decidida. */
+  decisions: Record<string, ReviewAction>;
+  /** Los revisores no coincidieron. */
+  disputed: boolean;
+  reviewers: number;
+}
+
+/** Qué decidió cada revisor sobre cada propuesta. */
+export function fetchAgreement(projectId: string): Promise<AgreementRow[]> {
+  return request<AgreementRow[]>(`/projects/${projectId}/agreement`);
+}
+
 export function fetchMetrics(
   projectId: string,
   participantId?: string,

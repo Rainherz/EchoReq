@@ -28,6 +28,7 @@ from ..adapters.persistence.repositories import (
 from ..requirements.domain.entities import DecisionCorrection, ReviewDecision
 from ..requirements.use_cases import ReviewQueue, SpecificationReader, StudyMetrics
 from .schemas import (
+    AgreementOut,
     SpeakerIn,
     SpeakerOut,
     SpeakerSampleOut,
@@ -444,6 +445,30 @@ def metrics(project_id: str, participant: str | None = None) -> list[MetricsOut]
     return [
         MetricsOut(**asdict(m))
         for m in _metrics.by_iteration(project_id, participant)
+    ]
+
+
+@router.get("/projects/{project_id}/agreement")
+def agreement(project_id: str) -> list[AgreementOut]:
+    """Qué decidió cada revisor sobre cada propuesta.
+
+    Es lo que justifica tener más de un revisor: dos series paralelas sólo
+    sirven si se pueden cruzar. Un desacuerdo señala una propuesta cuya
+    corrección no es evidente, distinción que una sola serie no ofrece.
+    """
+    return [
+        AgreementOut(
+            proposal_id=row["id"],
+            iteration=row["iteration"],
+            target_id=row["target_id"],
+            operation=row["operation"],
+            known_defective=row["known_defective"],
+            defect_kind=row["defect_kind"],
+            decisions=row["decisions"],
+            disputed=row["disputed"],
+            reviewers=row["reviewers"],
+        )
+        for row in _decisions.agreement(project_id)
     ]
 
 
