@@ -167,8 +167,23 @@
   color: var(--muted);
 }
 
+/* El tope de medida protege el barrido de vuelta: el salto del final de un
+   renglón al principio del siguiente, que es donde el ojo se pierde cuando
+   la línea es muy larga. Una nota que entra en un renglón no tiene ese
+   salto, así que el tope no la ayuda —sólo le deja un segundo renglón
+   huérfano de tres palabras.
+
+   De ahí la división: texto fijo, escrito acá y de largo conocido, cruza el
+   panel; texto que puede crecer sin control —el motivo que tipea alguien,
+   hasta cuatrocientos caracteres— se acota. */
 .detail__legend,
-.detail__same,
+.detail__same {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
 .detail__resolved {
   margin: 0;
   max-width: 74ch;
@@ -179,7 +194,6 @@
 
 .detail__dropped {
   margin: 0;
-  max-width: 74ch;
   font-size: 0.86rem;
   line-height: 1.6;
   color: var(--stop-text);
@@ -195,7 +209,6 @@
 
 .detail__rule p {
   margin: 0;
-  max-width: 74ch;
   font-size: 0.78rem;
   line-height: 1.6;
   color: var(--muted);
