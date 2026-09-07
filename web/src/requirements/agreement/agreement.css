@@ -1,264 +1,178 @@
+/* Concordancia: cola a un lado, comparación al otro.
+
+   El detalle se abría antes dentro de una celda de la tabla, así que el
+   texto heredaba el ancho de la columna y había que toparlo a mano para que
+   se leyera. La comparación necesita espacio horizontal propio, que es
+   exactamente lo que una celda no puede dar. */
+
 .agreement {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-/* Instrucción, no advertencia. Iba con la clase compartida de las pistas,
-   que es monoespaciada y ámbar: a ancho completo leía como una alerta de la
-   pantalla en lugar de como el texto que explica cómo usarla. */
-.agree__hint {
-  margin: 0 0 0.9rem;
-  max-width: 74ch;
-  font-size: 0.82rem;
-  line-height: 1.6;
+.tile__of {
+  font-size: 1rem;
+  color: var(--faint);
+}
+
+/* ------------------------------------------------------------- banco de
+   trabajo */
+
+.bench {
+  display: grid;
+  grid-template-columns: minmax(15rem, 21rem) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+/* Debajo de esto la cola y el detalle dejan de caber uno al lado del otro:
+   la comparación se comprime hasta el punto en que el diff no se sigue. */
+@media (max-width: 62rem) {
+  .bench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ------------------------------------------------------------------ cola */
+
+.queue {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.queue__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.chip__count {
+  margin-left: 0.4em;
+  font-family: var(--f-mono);
+  font-size: 0.9em;
+  opacity: 0.75;
+}
+
+.queue__empty {
+  margin: 0;
+  padding: 1.1rem 0.9rem;
+  font-size: 0.84rem;
   color: var(--muted);
 }
 
-/* La tabla puede tener tantas columnas como revisores. El scroll es del
-   contenedor y no del documento: la barra lateral y la cabecera no se
-   corren cuando aparece un tercer revisor. */
-.agree__scroll {
-  overflow-x: auto;
-  margin: 0 -0.9rem;
-  padding: 0 0.9rem;
+.queue__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 34rem;
+  overflow-y: auto;
 }
 
-.agree {
+@media (max-width: 62rem) {
+  .queue__list {
+    max-height: 18rem;
+  }
+}
+
+.queue__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 0.85rem;
-}
-
-.agree th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
   text-align: left;
-  font-family: var(--f-mono);
-  font-size: 0.66rem;
-  font-weight: 500;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--faint);
-  background: var(--card);
-  padding: 0.35rem 0.9rem 0.55rem 0;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
 }
 
-.agree td {
-  padding: 0.62rem 0.9rem 0.62rem 0;
-  border-bottom: 1px solid var(--line);
-  vertical-align: middle;
-}
-
-/* La fila que divide es el hallazgo, no una anomalía a corregir. El fondo
-   la agrupa de un vistazo, pero nunca es la única señal: la etiqueta junto
-   al identificador dice lo mismo en palabras. */
-.agree__row--disputed > td {
-  background: var(--warn-wash);
-}
-
-.agree__row:hover > td {
+.queue__row:hover {
   background: var(--hover);
 }
 
-.agree__row--disputed:hover > td {
-  background: var(--warn-wash-hover);
+/* La seleccionada no se distingue sólo por el fondo: lleva además una barra
+   sólida al costado, que sobrevive a un monitor mal calibrado y a una
+   impresión en escala de grises. */
+.queue__row--on {
+  background: var(--ok-wash);
+  box-shadow: inset 3px 0 0 var(--ok);
 }
 
-.agree__num {
-  font-family: var(--f-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  width: 1%;
-}
-
-.agree__cell--id {
-  padding-right: 1.2rem;
-}
-
-/* El disparador es un botón de verdad, no una fila con onClick: se alcanza
-   con Tab, se activa con Enter y anuncia su estado. La fila entera sigue
-   siendo clickeable como comodidad del mouse. */
-.agree__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: none;
-  border: 0;
-  padding: 0.1rem 0;
-  margin: 0;
-  color: var(--ink);
-  font-family: var(--f-mono);
-  font-size: 0.8rem;
-  text-align: left;
-}
-
-.agree__chevron {
-  flex: none;
-  color: var(--faint);
-  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
-}
-
-.agree__toggle[aria-expanded="true"] .agree__chevron {
-  transform: rotate(90deg);
-  color: var(--ink);
-}
-
-.agree__mark {
-  font-family: var(--f-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 0.15em 0.45em;
-  border-radius: 3px;
-  background: var(--warn-wash);
-  color: var(--warn-text);
-  border: 1px solid var(--warn-line);
-  white-space: nowrap;
-}
-
-.agree__defect {
-  font-family: var(--f-mono);
-  font-size: 0.7rem;
-  color: var(--warn-text);
-}
-
-.agree__none {
-  color: var(--faint);
-}
-
-.verdict {
-  display: inline-block;
-  font-family: var(--f-mono);
-  font-size: 0.72rem;
-  padding: 0.16rem 0.45rem;
-  border-radius: 3px;
-  white-space: nowrap;
-}
-
-.verdict--accept { background: var(--ok-wash);   color: var(--ok-text); }
-.verdict--edit   { background: var(--warn-wash); color: var(--warn-text); }
-.verdict--reject { background: var(--stop-wash); color: var(--stop-text); }
-
-.tile__of {
-  font-size: 0.6em;
-  color: var(--faint);
-}
-
-/* ------------------------------------------------------ panel desplegado
-
-   Va contenido en su propia superficie con borde: sin eso el detalle se
-   derramaba de lado a lado y no se veía dónde terminaba una propuesta y
-   empezaba la fila siguiente. */
-/* El panel trae su propio borde: una línea de fila acá abajo dibujaría una
-   segunda a quince píxeles de la primera. */
-.agree__detail > td {
-  padding: 0 0 0.9rem;
-  background: transparent;
-  border-bottom: 0;
-}
-
-.detail {
-  background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0.9rem 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.detail__versions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
-/* Cada versión es un bloque cerrado con su acción adentro. Antes el botón
-   quedaba más cerca del nombre del revisor siguiente que del texto al que
-   pertenecía. */
-.version {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 0.7rem 0.85rem 0.75rem;
-}
-
-.version--chosen {
-  border-color: var(--ok-line);
+.queue__row--on:hover {
   background: var(--ok-wash);
 }
 
-.version__head {
+.queue__top {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 0.4rem;
 }
 
-.version__who {
+.queue__id {
   font-family: var(--f-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.queue__meta {
+  font-size: 0.75rem;
   color: var(--muted);
 }
 
-.version__badge {
+.queue__defect {
   font-family: var(--f-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 0.15em 0.45em;
-  border-radius: 3px;
-  background: var(--ok);
-  color: var(--on-ok);
+  font-size: 0.95em;
+  color: var(--stop-text);
 }
 
-/* Tope de medida: el texto de un requisito ocupaba el ancho completo de la
-   tabla y no se podía seguir de renglón a renglón. */
-.version__text {
-  margin: 0;
-  max-width: 68ch;
-  font-size: 0.86rem;
-  line-height: 1.6;
-  color: var(--ink);
-}
+/* --------------------------------------------------------------- detalle */
 
-.version__ops {
-  margin-top: 0.6rem;
-}
-
-/* ----------------------------------------------------- acciones de equipo */
-.detail__team {
-  border-top: 1px solid var(--line);
-  padding-top: 0.8rem;
-}
-
-.detail__legend {
-  font-family: var(--f-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.detail__ops {
+.detail {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem 1.1rem;
   display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
-.detail__resolved {
+.detail__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail__id {
   margin: 0;
-  max-width: 68ch;
+  font-family: var(--f-mono);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.detail__meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.detail__legend,
+.detail__same,
+.detail__resolved,
+.detail__rule {
+  margin: 0;
+  max-width: 74ch;
   font-size: 0.82rem;
   line-height: 1.6;
   color: var(--muted);
@@ -266,85 +180,226 @@
 
 .detail__dropped {
   margin: 0;
-  max-width: 68ch;
+  max-width: 74ch;
   font-size: 0.86rem;
   line-height: 1.6;
   color: var(--stop-text);
 }
 
-/* ------------------------------------------------------ formulario inline
+.detail__rule {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.78rem;
+}
 
-   Reemplaza a window.prompt: se puede leer con un lector, se valida a la
-   vista y no pierde lo escrito si el motivo todavía no está. */
+/* -------------------------------------------------------------- versiones
+
+   Una tarjeta por redacción distinta y no por persona. Con dos revisores que
+   coinciden, una lista por cabeza dibuja dos párrafos idénticos con dos
+   botones que hacen lo mismo; con cinco, cinco. */
+
+.vers {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
+}
+
+@media (max-width: 48rem) {
+  .vers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ver {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.75rem 0.9rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ver--chosen {
+  border-color: var(--ok-line);
+  background: var(--ok-wash);
+}
+
+.ver__head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.ver__avatars {
+  display: inline-flex;
+}
+
+/* Se superponen apenas: con cinco autores una fila de círculos separados
+   empuja el nombre fuera de la línea. */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-right: -0.35rem;
+  border: 1px solid var(--card);
+  border-radius: 50%;
+  font-family: var(--f-mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.avatar:last-child {
+  margin-right: 0.15rem;
+}
+
+.avatar--voice-1 {
+  background: var(--voice-1-wash);
+  color: var(--voice-1);
+}
+
+.avatar--voice-2 {
+  background: var(--voice-2-wash);
+  color: var(--voice-2);
+}
+
+.avatar--voice-3 {
+  background: var(--voice-3-wash);
+  color: var(--voice-3);
+}
+
+.avatar--voice-4 {
+  background: var(--voice-4-wash);
+  color: var(--voice-4);
+}
+
+/* La quinta persona cae al neutro. Inventarle un quinto tono tiraría abajo
+   el piso de distinción de toda la paleta. */
+.avatar--voice-none {
+  background: var(--chrome);
+  color: var(--muted);
+}
+
+.ver__who {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.ver__text {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.ver__ops {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------- diff
+
+   El color marca dónde está el cambio, pero no lo porta solo: `ins` y `del`
+   traen subrayado y tachado, que es lo que queda cuando el color no llega
+   —daltonismo, escala de grises, una impresión. */
+
+.d {
+  border-radius: 2px;
+  padding: 0.05em 0.1em;
+}
+
+.d--add {
+  background: var(--ok-wash);
+  color: var(--ok-text);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.d--del {
+  background: var(--stop-wash);
+  color: var(--stop-text);
+  text-decoration: line-through;
+}
+
+.detail__legend .d {
+  font-size: inherit;
+}
+
+/* ------------------------------------------------------------- resolución */
+
 .resolve {
-  background: var(--card);
-  border: 1px solid var(--ok-line);
-  border-radius: 5px;
-  padding: 0.8rem 0.85rem 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.resolve__legend {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.resolve__ops {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.resolve__form {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  max-width: 46rem;
 }
 
 .resolve__title {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  max-width: 68ch;
 }
 
 .resolve__field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  max-width: 68ch;
-}
-
-.resolve__hint {
-  font-size: 0.75rem;
-  line-height: 1.5;
-  color: var(--muted);
-  margin: 0;
+  gap: 0.3rem;
 }
 
 .resolve__area {
-  min-height: 5.5rem;
+  min-height: 6.5rem;
   resize: vertical;
   line-height: 1.6;
 }
 
-.resolve__ops {
-  display: flex;
-  gap: 0.45rem;
-  align-items: center;
-  flex-wrap: wrap;
+.resolve__count {
+  align-self: flex-end;
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--faint);
 }
 
 .resolve__error {
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.5;
+  max-width: 68ch;
+  padding: 0.5rem 0.7rem;
+  border-radius: 5px;
+  background: var(--stop-wash);
   color: var(--stop-text);
-  max-width: 68ch;
-}
-
-@media (max-width: 720px) {
-  .detail {
-    padding: 0.75rem 0.75rem 0.85rem;
-  }
-
-  .agree__scroll {
-    margin: 0 -0.9rem;
-  }
-}
-
-/* Nota de un solo grupo: los revisores dejaron el mismo texto y lo que
-   difiere es la acción. Sin ella el panel muestra una sola versión donde la
-   fila anunciaba un desacuerdo, y la contradicción queda sin explicar. */
-.detail__same {
-  margin: 0;
-  max-width: 68ch;
   font-size: 0.82rem;
-  line-height: 1.6;
+  line-height: 1.55;
+}
+
+/* El estado neutro. La base de `.tag` ya lo dibuja así; queda declarado para
+   que la clase exista y no sea un nombre que sólo vive en el JSX. */
+.tag--quiet {
+  background: var(--sunken);
   color: var(--muted);
 }

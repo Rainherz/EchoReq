@@ -1,67 +1,22 @@
-import { Fragment, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import type { AgreementRow, Participant, consolidate } from "../../adapters/api/client";
 import { consolidate as saveConsolidation, fetchAgreement } from "../../adapters/api/client";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
-import { ConsolidationPanel } from "./components/ConsolidationPanel";
+import { ProposalDetail } from "./components/ProposalDetail";
+import { ProposalList } from "./components/ProposalList";
+import type { Filter } from "./components/ProposalList";
 import "./agreement.css";
 
-const ACTION_LABEL: Record<string, string> = {
-  accept: "aceptó",
-  edit: "editó",
-  reject: "rechazó",
-};
-
-const ACTION_CLASS: Record<string, string> = {
-  accept: "verdict verdict--accept",
-  edit: "verdict verdict--edit",
-  reject: "verdict verdict--reject",
-};
-
-/**
- * Qué fue lo que no coincidió.
- *
- * Son tres cosas distintas y una sola etiqueta las confundía: una fila podía
- * decir «difieren» y, al abrirla, mostrar el mismo texto dos veces —los
- * revisores habían discrepado en la acción, no en la redacción— sin nada que
- * explicara la contradicción.
- */
-function disagreement(row: AgreementRow): string | null {
-  if (row.disputed && row.textDiffers) return "difieren";
-  if (row.disputed) return "distinta acción";
-  if (row.textDiffers) return "distinto texto";
-  return null;
-}
+/** Id de la región de detalle. Fijo porque hay una sola: las filas de la cola
+    la referencian con aria-controls y el contenido se reemplaza. */
+const DETAIL_ID = "detalle-propuesta";
 
 interface AgreementScreenProps {
   projectId: string;
   participants: Participant[];
   /** Quién está resolviendo. Queda registrado con la adopción. */
   resolvedBy: string;
-}
-
-/** Marca de giro del desplegable. Dibujada acá y no con un carácter suelto:
-    un glifo hereda la métrica de la fuente y no se puede animar. */
-function Chevron() {
-  return (
-    <svg
-      className="agree__chevron"
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M3.5 1.5 L7 5 L3.5 8.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }
 
 /**
@@ -72,9 +27,10 @@ function Chevron() {
  * y otra que los divide dicen cosas distintas sobre la propuesta, y esa
  * distinción no existe con un solo revisor.
  *
- * El desacuerdo no se borra: las decisiones son inmutables y siguen ahí. Lo
- * que la pantalla permite es dejar asentado qué versión rige en el documento,
- * en una capa aparte y siempre con un motivo escrito.
+ * La cola queda a un lado y la comparación al otro. Antes el detalle se abría
+ * dentro de una celda de la tabla, así que el texto heredaba el ancho de la
+ * columna y había que toparlo para que se leyera; la comparación necesita
+ * espacio horizontal propio, que es justo lo que una celda no puede dar.
  */
 export function AgreementScreen({
   projectId,
@@ -83,10 +39,8 @@ export function AgreementScreen({
 }: AgreementScreenProps) {
   const [saving, setSaving] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  // Qué propuesta está abierta. La acción sola no alcanza: dos personas
-  // pueden «editar» y escribir cosas distintas, y lo que queda en el
-  // documento es el texto, no la etiqueta.
-  const [open, setOpen] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("todas");
+  const [picked, setPicked] = useState<string | null>(null);
 
   const rows = useResource<AgreementRow[]>(
     useCallback(() => fetchAgreement(projectId), [projectId]),
@@ -131,12 +85,17 @@ export function AgreementScreen({
         {(items) => {
           // Sólo las que miró más de una persona pueden concordar o no; con un
           // revisor la pregunta no se puede hacer.
-          const cruzadas = items.filter((r) => r.reviewers > 1);
-          // Difieren si decidieron distinto o si, decidiendo igual, el texto
-          // que dejaron no coincide.
-          const disputadas = cruzadas.filter((r) => r.disputed || r.textDiffers);
-          const sembradas = cruzadas.filter((r) => r.knownDefective);
-          const sembradasDisputadas = sembradas.filter((r) => r.disputed);
+          const cruzadas = items.filter((row) => row.reviewers > 1);
+          const disputadas = cruzadas.filter(
+            (row) => row.disputed || row.textDiffers,
+          );
+          const sembradas = cruzadas.filter((row) => row.knownDefective);
+          const sembradasDisputadas = sembradas.filter((row) => row.disputed);
+
+          // Derivada y no guardada: así la selección nunca queda apuntando a
+          // una propuesta que el filtro o una recarga sacaron de la lista.
+          const selected =
+            cruzadas.find((row) => row.proposalId === picked) ?? cruzadas[0] ?? null;
 
           return (
             <>
@@ -144,9 +103,7 @@ export function AgreementScreen({
                 <div className="card">
                   <span className="tile__label">Revisadas por más de uno</span>
                   <div className="tile__value">{cruzadas.length}</div>
-                  <p className="tile__note">
-                    de {items.length} decididas en total
-                  </p>
+                  <p className="tile__note">de {items.length} decididas en total</p>
                 </div>
                 <div className="card">
                   <span className="tile__label">Con desacuerdo</span>
@@ -171,7 +128,7 @@ export function AgreementScreen({
                 </div>
               </div>
 
-              {cruzadas.length === 0 ? (
+              {selected === null ? (
                 <div className="card">
                   <div className="card__head">Todavía no hay con qué comparar</div>
                   <p style={{ margin: 0, fontSize: ".88rem", lineHeight: 1.55 }}>
@@ -181,125 +138,25 @@ export function AgreementScreen({
                   </p>
                 </div>
               ) : (
-                <div className="card">
-                  <div className="card__head">
-                    Qué decidió cada uno
-                    <span className="card__count">
-                      {disputadas.length} desacuerdos
-                    </span>
-                  </div>
-
-                  <p className="agree__hint">
-                    Abrí una fila para ver el texto que dejó cada uno: dos
-                    personas pueden editar y escribir cosas distintas, y lo que
-                    va al documento es el texto, no la etiqueta. Resolver un
-                    desacuerdo no lo borra —las decisiones son inmutables—:
-                    deja asentado, aparte y con un motivo, cuál de las
-                    versiones rige.
-                  </p>
-
-                  <div className="agree__scroll">
-                    <table className="agree">
-                      <caption className="sr-only">
-                        Decisión de cada revisor sobre cada propuesta cruzada.
-                        Las filas marcadas «difieren» o «distinto texto» son
-                        las que no coincidieron. Cada fila se despliega para
-                        comparar los textos y resolver cuál rige.
-                      </caption>
-                      <thead>
-                        <tr>
-                          <th scope="col">Iter.</th>
-                          <th scope="col">Requisito</th>
-                          {participants.map((p) => (
-                            <th scope="col" key={p.id}>
-                              {p.displayName}
-                            </th>
-                          ))}
-                          <th scope="col">Sembrada</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cruzadas.map((row) => {
-                          const abierta = open === row.proposalId;
-                          const panelId = `detalle-${row.proposalId}`;
-                          const marca = disagreement(row);
-                          const toggle = () =>
-                            setOpen(abierta ? null : row.proposalId);
-                          return (
-                            <Fragment key={row.proposalId}>
-                              <tr
-                                className={
-                                  marca
-                                    ? "agree__row agree__row--disputed"
-                                    : "agree__row"
-                                }
-                                onClick={toggle}
-                              >
-                                <td className="agree__num">{row.iteration}</td>
-                                <td className="agree__cell--id">
-                                  <button
-                                    type="button"
-                                    className="agree__toggle"
-                                    aria-expanded={abierta}
-                                    aria-controls={panelId}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      toggle();
-                                    }}
-                                  >
-                                    <Chevron />
-                                    {row.targetId}
-                                    {marca && (
-                                      <span className="agree__mark">{marca}</span>
-                                    )}
-                                  </button>
-                                </td>
-                                {participants.map((p) => {
-                                  const action = row.decisions[p.id];
-                                  return (
-                                    <td key={p.id}>
-                                      {action ? (
-                                        <span className={ACTION_CLASS[action]}>
-                                          {ACTION_LABEL[action]}
-                                        </span>
-                                      ) : (
-                                        <span className="agree__none">
-                                          <span aria-hidden="true">—</span>
-                                          <span className="sr-only">
-                                            no la revisó
-                                          </span>
-                                        </span>
-                                      )}
-                                    </td>
-                                  );
-                                })}
-                                <td className="agree__defect">
-                                  {row.knownDefective ? row.defectKind : ""}
-                                </td>
-                              </tr>
-
-                              {abierta && (
-                                <tr className="agree__detail">
-                                  <td colSpan={participants.length + 3}>
-                                    <ConsolidationPanel
-                                      row={row}
-                                      participants={participants}
-                                      resolvedBy={resolvedBy}
-                                      panelId={panelId}
-                                      saving={saving === row.proposalId}
-                                      onResolve={(input) =>
-                                        resolver(row.proposalId, input)
-                                      }
-                                    />
-                                  </td>
-                                </tr>
-                              )}
-                            </Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="bench">
+                  <ProposalList
+                    rows={cruzadas}
+                    participants={participants}
+                    filter={filter}
+                    onFilter={setFilter}
+                    selected={selected.proposalId}
+                    onSelect={setPicked}
+                    detailId={DETAIL_ID}
+                  />
+                  <ProposalDetail
+                    key={selected.proposalId}
+                    row={selected}
+                    participants={participants}
+                    resolvedBy={resolvedBy}
+                    detailId={DETAIL_ID}
+                    saving={saving === selected.proposalId}
+                    onResolve={(input) => resolver(selected.proposalId, input)}
+                  />
                 </div>
               )}
             </>
