@@ -1,8 +1,9 @@
 import { Fragment, useCallback, useState } from "react";
-import type { AgreementRow, Participant } from "../../adapters/api/client";
-import { consolidate, fetchAgreement } from "../../adapters/api/client";
+import type { AgreementRow, Participant, consolidate } from "../../adapters/api/client";
+import { consolidate as saveConsolidation, fetchAgreement } from "../../adapters/api/client";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
+import { ConsolidationPanel } from "./components/ConsolidationPanel";
 import "./agreement.css";
 
 const ACTION_LABEL: Record<string, string> = {
@@ -24,6 +25,30 @@ interface AgreementScreenProps {
   resolvedBy: string;
 }
 
+/** Marca de giro del desplegable. Dibujada acá y no con un carácter suelto:
+    un glifo hereda la métrica de la fuente y no se puede animar. */
+function Chevron() {
+  return (
+    <svg
+      className="agree__chevron"
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M3.5 1.5 L7 5 L3.5 8.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /**
  * Concordancia entre revisores.
  *
@@ -32,9 +57,9 @@ interface AgreementScreenProps {
  * y otra que los divide dicen cosas distintas sobre la propuesta, y esa
  * distinción no existe con un solo revisor.
  *
- * No propone resolver los desacuerdos ni unificar las decisiones. El
- * desacuerdo es el dato: si la pantalla ofreciera «unificar», estaría
- * borrando la observación que vino a registrar.
+ * El desacuerdo no se borra: las decisiones son inmutables y siguen ahí. Lo
+ * que la pantalla permite es dejar asentado qué versión rige en el documento,
+ * en una capa aparte y siempre con un motivo escrito.
  */
 export function AgreementScreen({
   projectId,
@@ -60,7 +85,7 @@ export function AgreementScreen({
     setSaving(proposalId);
     setFailure(null);
     try {
-      await consolidate(proposalId, input);
+      await saveConsolidation(proposalId, input);
       rows.reload();
     } catch (cause) {
       setFailure(cause instanceof Error ? cause.message : String(cause));
@@ -71,7 +96,11 @@ export function AgreementScreen({
 
   return (
     <div className="agreement">
-      {failure && <p className="decide__failure">{failure}</p>}
+      {failure && (
+        <p className="decide__failure" role="alert">
+          {failure}
+        </p>
+      )}
       <AsyncBoundary
         resource={rows}
         empty={
@@ -144,200 +173,122 @@ export function AgreementScreen({
                       {disputadas.length} desacuerdos
                     </span>
                   </div>
-                  <table className="agree">
-                    <thead>
-                      <tr>
-                        <th>Iter.</th>
-                        <th>Requisito</th>
-                        {participants.map((p) => (
-                          <th key={p.id}>{p.displayName}</th>
-                        ))}
-                        <th>Sembrada</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cruzadas.map((row) => {
-                        const difiere = row.disputed || row.textDiffers;
-                        const abierta = open === row.proposalId;
-                        return (
-                          <Fragment key={row.proposalId}>
-                            <tr
-                              className={
-                                difiere ? "agree--disputed agree__row" : "agree__row"
-                              }
-                              onClick={() =>
-                                setOpen(abierta ? null : row.proposalId)
-                              }
-                            >
-                              <td className="agree__num">{row.iteration}</td>
-                              <td className="agree__id">
-                                {abierta ? "▾" : "▸"} {row.targetId}
-                              </td>
-                              {participants.map((p) => {
-                                const action = row.decisions[p.id];
-                                return (
-                                  <td key={p.id}>
-                                    {action ? (
-                                      <span className={ACTION_CLASS[action]}>
-                                        {ACTION_LABEL[action]}
-                                      </span>
-                                    ) : (
-                                      <span className="agree__none">—</span>
+
+                  <p className="agree__hint">
+                    Abrí una fila para ver el texto que dejó cada uno: dos
+                    personas pueden editar y escribir cosas distintas, y lo que
+                    va al documento es el texto, no la etiqueta. Resolver un
+                    desacuerdo no lo borra —las decisiones son inmutables—:
+                    deja asentado, aparte y con un motivo, cuál de las
+                    versiones rige.
+                  </p>
+
+                  <div className="agree__scroll">
+                    <table className="agree">
+                      <caption className="sr-only">
+                        Decisión de cada revisor sobre cada propuesta cruzada.
+                        Las filas marcadas «difieren» o «distinto texto» son
+                        las que no coincidieron. Cada fila se despliega para
+                        comparar los textos y resolver cuál rige.
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Iter.</th>
+                          <th scope="col">Requisito</th>
+                          {participants.map((p) => (
+                            <th scope="col" key={p.id}>
+                              {p.displayName}
+                            </th>
+                          ))}
+                          <th scope="col">Sembrada</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cruzadas.map((row) => {
+                          const abierta = open === row.proposalId;
+                          const panelId = `detalle-${row.proposalId}`;
+                          const toggle = () =>
+                            setOpen(abierta ? null : row.proposalId);
+                          return (
+                            <Fragment key={row.proposalId}>
+                              <tr
+                                className={
+                                  row.disputed || row.textDiffers
+                                    ? "agree__row agree__row--disputed"
+                                    : "agree__row"
+                                }
+                                onClick={toggle}
+                              >
+                                <td className="agree__num">{row.iteration}</td>
+                                <td className="agree__cell--id">
+                                  <button
+                                    type="button"
+                                    className="agree__toggle"
+                                    aria-expanded={abierta}
+                                    aria-controls={panelId}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      toggle();
+                                    }}
+                                  >
+                                    <Chevron />
+                                    {row.targetId}
+                                    {row.disputed && (
+                                      <span className="agree__mark">difieren</span>
                                     )}
-                                  </td>
-                                );
-                              })}
-                              <td className="agree__defect">
-                                {row.knownDefective ? row.defectKind : ""}
-                                {row.textDiffers && !row.disputed && (
-                                  <span className="agree__flag">
-                                    mismo veredicto, distinto texto
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
-
-                            {abierta && (
-                              <tr className="agree__detail">
-                                <td colSpan={participants.length + 3}>
-                                  {participants
-                                    .filter((p) => row.texts[p.id] !== undefined)
-                                    .map((p) => (
-                                      <div key={p.id} className="agree__text">
-                                        <span className="agree__who">
-                                          {p.displayName}
-                                          {row.chosenFrom === p.id && (
-                                            <span className="agree__chosen">
-                                              {" "}
-                                              · adoptada
-                                            </span>
-                                          )}
-                                        </span>
-                                        <p>{row.texts[p.id]}</p>
-                                        {row.chosenFrom !== p.id && (
-                                          <button
-                                            type="button"
-                                            className="btn btn--small"
-                                            disabled={saving === row.proposalId}
-                                            onClick={async (event) => {
-                                              event.stopPropagation();
-                                              const motivo = window.prompt(
-                                                `¿Por qué se adopta la versión de ${p.displayName}?`,
-                                              );
-                                              if (!motivo || motivo.trim().length < 4) return;
-                                              setSaving(row.proposalId);
-                                              setFailure(null);
-                                              try {
-                                                await consolidate(row.proposalId, {
-                                                  outcome: "adopt",
-                                                  chosenFrom: p.id,
-                                                  resolvedBy,
-                                                  reason: motivo,
-                                                });
-                                                rows.reload();
-                                              } catch (cause) {
-                                                setFailure(
-                                                  cause instanceof Error
-                                                    ? cause.message
-                                                    : String(cause),
-                                                );
-                                              } finally {
-                                                setSaving(null);
-                                              }
-                                            }}
-                                          >
-                                            Usar esta versión
-                                          </button>
-                                        )}
-                                      </div>
-                                    ))}
-
-                                  {row.outcome === "rewrite" && (
-                                    <div className="agree__text">
-                                      <span className="agree__who">
-                                        Redacción del equipo
-                                        <span className="agree__chosen"> · rige</span>
+                                    {row.textDiffers && !row.disputed && (
+                                      <span className="agree__mark">
+                                        distinto texto
                                       </span>
-                                      <p>{row.consolidatedContent}</p>
-                                    </div>
-                                  )}
-
-                                  {row.outcome === "drop" && (
-                                    <p className="agree__dropped">
-                                      El equipo descartó el requisito: no figura
-                                      en la especificación.
-                                    </p>
-                                  )}
-
-                                  <div className="agree__ops">
-                                    <button
-                                      type="button"
-                                      className="btn btn--small"
-                                      disabled={saving === row.proposalId}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        const motivo = window.prompt(
-                                          "¿Por qué se descarta el requisito?",
-                                        );
-                                        if (!motivo || motivo.trim().length < 4) return;
-                                        void resolver(row.proposalId, {
-                                          outcome: "drop",
-                                          resolvedBy,
-                                          reason: motivo,
-                                        });
-                                      }}
-                                    >
-                                      Descartar el requisito
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn--small"
-                                      disabled={saving === row.proposalId}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        const texto = window.prompt(
-                                          "Redacción del equipo:",
-                                          row.texts[participants[0]?.id] ?? "",
-                                        );
-                                        if (!texto || texto.trim().length < 10) return;
-                                        const motivo = window.prompt(
-                                          "¿Por qué ninguna de las versiones sirve?",
-                                        );
-                                        if (!motivo || motivo.trim().length < 4) return;
-                                        void resolver(row.proposalId, {
-                                          outcome: "rewrite",
-                                          content: texto,
-                                          resolvedBy,
-                                          reason: motivo,
-                                        });
-                                      }}
-                                    >
-                                      Escribir otra versión
-                                    </button>
-                                  </div>
-
-                                  {row.consolidationReason && (
-                                    <p className="agree__reason">
-                                      Se resolvió por: {row.consolidationReason}
-                                    </p>
-                                  )}
+                                    )}
+                                  </button>
+                                </td>
+                                {participants.map((p) => {
+                                  const action = row.decisions[p.id];
+                                  return (
+                                    <td key={p.id}>
+                                      {action ? (
+                                        <span className={ACTION_CLASS[action]}>
+                                          {ACTION_LABEL[action]}
+                                        </span>
+                                      ) : (
+                                        <span className="agree__none">
+                                          <span aria-hidden="true">—</span>
+                                          <span className="sr-only">
+                                            no la revisó
+                                          </span>
+                                        </span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td className="agree__defect">
+                                  {row.knownDefective ? row.defectKind : ""}
                                 </td>
                               </tr>
-                            )}
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <p className="step__hint">
-                    Hacé clic en una fila para ver el texto que dejó cada uno.
-                    Dos personas pueden editar y escribir cosas distintas: lo que
-                    queda en el documento es el texto, no la etiqueta.{" "}
-                    Las filas resaltadas son las que dividieron a los revisores.
-                    No hay forma de unificarlas desde acá a propósito: el
-                    desacuerdo es la observación, y resolverlo en la pantalla
-                    borraría el dato que vino a registrar.
-                  </p>
+
+                              {abierta && (
+                                <tr className="agree__detail">
+                                  <td colSpan={participants.length + 3}>
+                                    <ConsolidationPanel
+                                      row={row}
+                                      participants={participants}
+                                      resolvedBy={resolvedBy}
+                                      panelId={panelId}
+                                      saving={saving === row.proposalId}
+                                      onResolve={(input) =>
+                                        resolver(row.proposalId, input)
+                                      }
+                                    />
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </>

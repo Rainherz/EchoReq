@@ -4,38 +4,121 @@
   gap: 1rem;
 }
 
+/* Instrucción, no advertencia. Iba con la clase compartida de las pistas,
+   que es monoespaciada y ámbar: a ancho completo leía como una alerta de la
+   pantalla en lugar de como el texto que explica cómo usarla. */
+.agree__hint {
+  margin: 0 0 0.9rem;
+  max-width: 74ch;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* La tabla puede tener tantas columnas como revisores. El scroll es del
+   contenedor y no del documento: la barra lateral y la cabecera no se
+   corren cuando aparece un tercer revisor. */
+.agree__scroll {
+  overflow-x: auto;
+  margin: 0 -0.9rem;
+  padding: 0 0.9rem;
+}
+
 .agree {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.85rem;
 }
 
 .agree th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   text-align: left;
   font-family: var(--f-mono);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--faint);
-  padding: 0 0.6rem 0.5rem 0;
+  background: var(--card);
+  padding: 0.35rem 0.9rem 0.55rem 0;
   border-bottom: 1px solid var(--line);
+  white-space: nowrap;
 }
 
 .agree td {
-  padding: 0.45rem 0.6rem 0.45rem 0;
+  padding: 0.62rem 0.9rem 0.62rem 0;
   border-bottom: 1px solid var(--line);
+  vertical-align: middle;
 }
 
-/* La fila que divide es el hallazgo, no una anomalía a corregir. */
-.agree--disputed {
+/* La fila que divide es el hallazgo, no una anomalía a corregir. El fondo
+   la agrupa de un vistazo, pero nunca es la única señal: la etiqueta junto
+   al identificador dice lo mismo en palabras. */
+.agree__row--disputed > td {
   background: var(--warn-wash);
 }
 
-.agree__num,
-.agree__id {
+.agree__row:hover > td {
+  background: var(--hover);
+}
+
+.agree__row--disputed:hover > td {
+  background: var(--warn-wash-hover);
+}
+
+.agree__num {
   font-family: var(--f-mono);
-  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  width: 1%;
+}
+
+.agree__cell--id {
+  padding-right: 1.2rem;
+}
+
+/* El disparador es un botón de verdad, no una fila con onClick: se alcanza
+   con Tab, se activa con Enter y anuncia su estado. La fila entera sigue
+   siendo clickeable como comodidad del mouse. */
+.agree__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 0;
+  padding: 0.1rem 0;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.agree__chevron {
+  flex: none;
+  color: var(--faint);
+  transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.agree__toggle[aria-expanded="true"] .agree__chevron {
+  transform: rotate(90deg);
+  color: var(--ink);
+}
+
+.agree__mark {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.15em 0.45em;
+  border-radius: 3px;
+  background: var(--warn-wash);
+  color: var(--warn-text);
+  border: 1px solid var(--warn-line);
+  white-space: nowrap;
 }
 
 .agree__defect {
@@ -49,10 +132,12 @@
 }
 
 .verdict {
+  display: inline-block;
   font-family: var(--f-mono);
   font-size: 0.72rem;
-  padding: 0.1rem 0.4rem;
+  padding: 0.16rem 0.45rem;
   border-radius: 3px;
+  white-space: nowrap;
 }
 
 .verdict--accept { background: var(--ok-wash);   color: var(--ok-text); }
@@ -64,69 +149,191 @@
   color: var(--faint);
 }
 
-.agree__row {
-  cursor: pointer;
+/* ------------------------------------------------------ panel desplegado
+
+   Va contenido en su propia superficie con borde: sin eso el detalle se
+   derramaba de lado a lado y no se veía dónde terminaba una propuesta y
+   empezaba la fila siguiente. */
+/* El panel trae su propio borde: una línea de fila acá abajo dibujaría una
+   segunda a quince píxeles de la primera. */
+.agree__detail > td {
+  padding: 0 0 0.9rem;
+  background: transparent;
+  border-bottom: 0;
 }
 
-.agree__row:hover {
-  background: var(--hover);
-}
-
-.agree__flag {
-  display: block;
-  font-size: 0.66rem;
-  color: var(--warn-text);
-  margin-top: 0.15rem;
-}
-
-.agree__detail td {
-  padding: 0.6rem 0 0.8rem;
+.detail {
   background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.9rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.agree__text {
-  padding: 0.4rem 0.7rem;
+.detail__versions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
 }
 
-.agree__text p {
-  margin: 0.2rem 0 0;
-  font-size: 0.84rem;
-  line-height: 1.55;
+/* Cada versión es un bloque cerrado con su acción adentro. Antes el botón
+   quedaba más cerca del nombre del revisor siguiente que del texto al que
+   pertenecía. */
+.version {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.7rem 0.85rem 0.75rem;
 }
 
-.agree__who {
+.version--chosen {
+  border-color: var(--ok-line);
+  background: var(--ok-wash);
+}
+
+.version__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.version__who {
   font-family: var(--f-mono);
   font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.version__badge {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.15em 0.45em;
+  border-radius: 3px;
+  background: var(--ok);
+  color: var(--on-ok);
+}
+
+/* Tope de medida: el texto de un requisito ocupaba el ancho completo de la
+   tabla y no se podía seguir de renglón a renglón. */
+.version__text {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.version__ops {
+  margin-top: 0.6rem;
+}
+
+/* ----------------------------------------------------- acciones de equipo */
+.detail__team {
+  border-top: 1px solid var(--line);
+  padding-top: 0.8rem;
+}
+
+.detail__legend {
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--faint);
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
-.agree__chosen {
-  color: var(--ok-text);
+.detail__ops {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
-.agree__reason {
-  font-size: 0.78rem;
+.detail__resolved {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.detail__dropped {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--stop-text);
+}
+
+/* ------------------------------------------------------ formulario inline
+
+   Reemplaza a window.prompt: se puede leer con un lector, se valida a la
+   vista y no pierde lo escrito si el motivo todavía no está. */
+.resolve {
+  background: var(--card);
+  border: 1px solid var(--ok-line);
+  border-radius: 5px;
+  padding: 0.8rem 0.85rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.resolve__title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  max-width: 68ch;
+}
+
+.resolve__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 68ch;
+}
+
+.resolve__hint {
+  font-size: 0.75rem;
   line-height: 1.5;
   color: var(--muted);
-  padding: 0.4rem 0.7rem 0;
   margin: 0;
 }
 
-.agree__text .btn {
-  margin-top: 0.35rem;
+.resolve__area {
+  min-height: 5.5rem;
+  resize: vertical;
+  line-height: 1.6;
 }
 
-.agree__ops {
+.resolve__ops {
   display: flex;
-  gap: 0.4rem;
-  padding: 0.5rem 0.7rem 0;
+  gap: 0.45rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.agree__dropped {
-  padding: 0.4rem 0.7rem;
+.resolve__error {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
   color: var(--stop-text);
+  max-width: 68ch;
+}
+
+@media (max-width: 720px) {
+  .detail {
+    padding: 0.75rem 0.75rem 0.85rem;
+  }
+
+  .agree__scroll {
+    margin: 0 -0.9rem;
+  }
 }
