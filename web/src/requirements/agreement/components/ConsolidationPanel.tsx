@@ -23,6 +23,44 @@ type Draft =
   | { outcome: "drop"; reason: string }
   | { outcome: "rewrite"; content: string; reason: string };
 
+interface VersionGroup {
+  /** El texto en sí: es lo que identifica al grupo. */
+  text: string;
+  /** Quiénes lo dejaron, en el orden en que figuran los participantes. */
+  authors: Participant[];
+}
+
+/**
+ * Agrupa las versiones por texto y no por persona.
+ *
+ * Dos revisores que coinciden en la redacción producen, en una lista por
+ * persona, dos párrafos idénticos y dos botones que hacen exactamente lo
+ * mismo; con cinco revisores, cinco. La cantidad de redacciones distintas,
+ * en cambio, casi nunca pasa de dos o tres por más gente que revise: es el
+ * eje que no crece con el equipo.
+ */
+function groupByText(
+  participants: Participant[],
+  texts: Record<string, string>,
+): VersionGroup[] {
+  const groups: VersionGroup[] = [];
+  for (const p of participants) {
+    const text = texts[p.id];
+    if (text === undefined) continue;
+    const existing = groups.find((g) => g.text === text);
+    if (existing) existing.authors.push(p);
+    else groups.push({ text, authors: [p] });
+  }
+  return groups;
+}
+
+/** «Ana», «Ana y Beto», «Ana, Beto y Carla». */
+function namesOf(authors: Participant[]): string {
+  const names = authors.map((a) => a.displayName);
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} y ${names.at(-1)}`;
+}
+
 interface ConsolidationPanelProps {
   row: AgreementRow;
   participants: Participant[];
@@ -103,23 +141,27 @@ export function ConsolidationPanel({
     setDraft(null);
   };
 
-  const versions = participants.filter((p) => row.texts[p.id] !== undefined);
+  const groups = groupByText(participants, row.texts);
 
   return (
     <div className="detail" id={panelId}>
       <div className="detail__versions">
-        {versions.map((p) => {
-          const chosen = row.outcome === "adopt" && row.chosenFrom === p.id;
+        {groups.map((group) => {
+          const chosen =
+            row.outcome === "adopt" &&
+            group.authors.some((a) => a.id === row.chosenFrom);
+          const quienes = namesOf(group.authors);
+          const solo = group.authors.length === 1;
           return (
             <article
-              key={p.id}
+              key={group.authors[0].id}
               className={chosen ? "version version--chosen" : "version"}
             >
               <div className="version__head">
-                <span className="version__who">{p.displayName}</span>
+                <span className="version__who">{quienes}</span>
                 {chosen && <span className="version__badge">rige</span>}
               </div>
-              <p className="version__text">{row.texts[p.id]}</p>
+              <p className="version__text">{group.text}</p>
               {!chosen && draft === null && (
                 <div className="version__ops">
                   <button
@@ -131,13 +173,17 @@ export function ConsolidationPanel({
                       setInvalid(null);
                       setDraft({
                         outcome: "adopt",
-                        chosenFrom: p.id,
-                        who: p.displayName,
+                        // La procedencia queda en el primero del grupo. Los
+                        // demás escribieron el mismo texto, así que cualquiera
+                        // sería igual de cierto, y el motivo escrito es lo que
+                        // explica la resolución.
+                        chosenFrom: group.authors[0].id,
+                        who: quienes,
                         reason: "",
                       });
                     }}
                   >
-                    Usar la versión de {p.displayName}
+                    {solo ? `Usar la versión de ${quienes}` : "Hacer regir esta versión"}
                   </button>
                 </div>
               )}
@@ -155,6 +201,13 @@ export function ConsolidationPanel({
           </article>
         )}
       </div>
+
+      {groups.length === 1 && row.disputed && (
+        <p className="detail__same">
+          Todos dejaron el mismo texto: lo que difiere es la acción, no la
+          redacción. No hay dos versiones que comparar.
+        </p>
+      )}
 
       {row.outcome === "drop" && (
         <p className="detail__dropped">
@@ -188,7 +241,7 @@ export function ConsolidationPanel({
                   setInvalid(null);
                   setDraft({
                     outcome: "rewrite",
-                    content: row.texts[versions[0]?.id] ?? "",
+                    content: groups[0]?.text ?? "",
                     reason: "",
                   });
                 }}

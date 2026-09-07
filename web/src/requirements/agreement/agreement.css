@@ -337,3 +337,14 @@
     margin: 0 -0.9rem;
   }
 }
+
+/* Nota de un solo grupo: los revisores dejaron el mismo texto y lo que
+   difiere es la acción. Sin ella el panel muestra una sola versión donde la
+   fila anunciaba un desacuerdo, y la contradicción queda sin explicar. */
+.detail__same {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}

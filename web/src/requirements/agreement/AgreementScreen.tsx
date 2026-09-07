@@ -18,6 +18,21 @@ const ACTION_CLASS: Record<string, string> = {
   reject: "verdict verdict--reject",
 };
 
+/**
+ * Qué fue lo que no coincidió.
+ *
+ * Son tres cosas distintas y una sola etiqueta las confundía: una fila podía
+ * decir «difieren» y, al abrirla, mostrar el mismo texto dos veces —los
+ * revisores habían discrepado en la acción, no en la redacción— sin nada que
+ * explicara la contradicción.
+ */
+function disagreement(row: AgreementRow): string | null {
+  if (row.disputed && row.textDiffers) return "difieren";
+  if (row.disputed) return "distinta acción";
+  if (row.textDiffers) return "distinto texto";
+  return null;
+}
+
 interface AgreementScreenProps {
   projectId: string;
   participants: Participant[];
@@ -207,13 +222,14 @@ export function AgreementScreen({
                         {cruzadas.map((row) => {
                           const abierta = open === row.proposalId;
                           const panelId = `detalle-${row.proposalId}`;
+                          const marca = disagreement(row);
                           const toggle = () =>
                             setOpen(abierta ? null : row.proposalId);
                           return (
                             <Fragment key={row.proposalId}>
                               <tr
                                 className={
-                                  row.disputed || row.textDiffers
+                                  marca
                                     ? "agree__row agree__row--disputed"
                                     : "agree__row"
                                 }
@@ -233,13 +249,8 @@ export function AgreementScreen({
                                   >
                                     <Chevron />
                                     {row.targetId}
-                                    {row.disputed && (
-                                      <span className="agree__mark">difieren</span>
-                                    )}
-                                    {row.textDiffers && !row.disputed && (
-                                      <span className="agree__mark">
-                                        distinto texto
-                                      </span>
+                                    {marca && (
+                                      <span className="agree__mark">{marca}</span>
                                     )}
                                   </button>
                                 </td>
