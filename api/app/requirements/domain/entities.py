@@ -132,6 +132,9 @@ class DocumentEntry:
     last_revision: int
     change_count: int
     responsibilities: int
+    #: Los actores nombrados en el rol. Más de uno es una historia que en QUS
+    #: tendría que ser dos, o un rol que nadie definió.
+    actors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,0 +1,104 @@
+/* Mapa de actores: quién pide qué.
+
+   La lista no es una tabla porque las filas no comparten estructura —un actor
+   tiene un requisito y otro tiene diez—, y una tabla con celdas de largo
+   dispar obliga a leer columnas vacías. */
+
+.actors {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.actors__hint {
+  margin: 0 0 0.9rem;
+  max-width: 78ch;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.actors__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.actor {
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.actor:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.actor__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.45rem;
+}
+
+.actor__name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.actor__count {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.actor__reqs {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+/* Cada identificador va a su requisito. Es la mitad útil de la trazabilidad:
+   ver el reparto sin poder abrir lo que se reparte deja la pregunta a medias. */
+.actor__req {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  padding: 0.15em 0.45em;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.actor__req:hover {
+  background: var(--hover);
+  border-color: var(--ok-line);
+}
+
+.actors__split {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.actors__split li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.actors__roles {
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+.tile__value--warn {
+  color: var(--warn-text);
+}

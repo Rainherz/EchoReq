@@ -18,6 +18,7 @@ from app.requirements.domain.rules import (
     ATOMIC_LIMIT,
     count_actions,
     estimate_responsibilities,
+    extract_actors,
     is_minimal,
 )
 
@@ -129,3 +130,50 @@ def test_un_texto_sin_plantilla_cae_en_las_oraciones() -> None:
 def test_los_marcadores_de_subordinada_siguen_sumando() -> None:
     texto = "Como X quiero registrar la visita, salvo cuando no haya cupo."
     assert estimate_responsibilities(texto) > ATOMIC_LIMIT - 1
+
+
+# --- actores ------------------------------------------------------------
+
+
+def test_parte_el_actor_compuesto() -> None:
+    """Once de los veintitrés requisitos del corpus nombran dos actores."""
+    assert extract_actors(
+        "Como especialista o directivo quiero registrar la ficha, para X."
+    ) == ("especialista", "directivo")
+
+
+def test_conserva_el_actor_simple() -> None:
+    assert extract_actors(
+        "Como docente evaluado quiero consultar mis reportes, para X."
+    ) == ("docente evaluado",)
+
+
+def test_saca_el_articulo_de_adelante() -> None:
+    """«un directivo» y «directivo» son el mismo: contarlos aparte partiría
+    la trazabilidad de esa persona en dos filas."""
+    assert extract_actors("Como un directivo quiero X, para Y.") == ("directivo",)
+
+
+def test_no_repite_el_mismo_actor() -> None:
+    assert extract_actors("Como Directivo o directivo quiero X, para Y.") == (
+        "Directivo",
+    )
+
+
+def test_no_rompe_las_siglas() -> None:
+    """Pasar todo a minúscula dejaba «especialista de la ugel»: una sigla rota
+    en pantalla es un actor que nadie reconoce."""
+    assert extract_actors(
+        "Como especialista de la UGEL quiero X, para Y."
+    ) == ("especialista de la UGEL",)
+
+
+def test_no_parte_un_rol_que_lleva_y_adentro() -> None:
+    """El corte es por coordinación de roles, no por cualquier «y»."""
+    assert extract_actors(
+        "Como jefe de gestión pedagógica quiero X, para Y."
+    ) == ("jefe de gestión pedagógica",)
+
+
+def test_sin_plantilla_no_hay_actor() -> None:
+    assert extract_actors("El sistema registra visitas.") == ()

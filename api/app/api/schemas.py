@@ -176,6 +176,7 @@ class DocumentEntryOut(Schema):
     last_revision: int
     change_count: int
     responsibilities: int
+    actors: list[str] = []
 
 
 class RevisionOut(Schema):

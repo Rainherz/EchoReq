@@ -651,6 +651,7 @@ class PostgresDocumentRepository:
                     last_revision=row["revision"],
                     change_count=row["entries"] - 1,
                     responsibilities=rules.estimate_responsibilities(row["content"]),
+                    actors=rules.extract_actors(row["content"]),
                 )
                 for row in cur.fetchall()
             ]

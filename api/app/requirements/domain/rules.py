@@ -144,3 +144,47 @@ def check(text: str) -> list[dict[str, str]]:
         )
 
     return signals
+
+
+#: El rol de la historia: lo que va entre «como» y «quiero».
+_ROLE_CLAUSE = re.compile(r"^como\s+(.+?)\s+quiero\b", re.IGNORECASE | re.DOTALL)
+
+#: Artículos y determinantes que a veces se cuelan delante del rol y lo
+#: convertirían en un actor distinto: «un directivo» y «directivo» son el
+#: mismo, y contarlos aparte parte la trazabilidad en dos filas.
+_LEADING = re.compile(r"^(?:el|la|los|las|un|una|unos|unas)\s+", re.IGNORECASE)
+
+
+def extract_actors(text: str) -> tuple[str, ...]:
+    """Los actores nombrados en el rol de la historia.
+
+    Una historia de usuario tiene un rol. «Como especialista o directivo
+    quiero X» nombra dos, y eso no es un detalle de redacción: o son dos
+    historias, o es un rol sobregeneralizado que nadie definió. Devolver los
+    dos por separado es lo que deja verlo.
+
+    Devuelve el texto tal como está escrito, sólo sin el artículo de adelante
+    —«un directivo» y «directivo» son el mismo— y con los espacios
+    normalizados. No pasa a minúscula: «especialista de la UGEL» quedaría
+    «especialista de la ugel», y una sigla rota en pantalla es un actor que
+    nadie reconoce. Agrupar sin distinguir mayúsculas es tarea de quien
+    consume, que ahí sí puede mostrar la forma original.
+
+    Decidir que «especialista» y «especialista de la UGEL» son la misma
+    persona es juicio de dominio, no de texto: la herramienta los pone al
+    lado para que alguien lo decida, y el arreglo va en el requisito, no en
+    un diccionario de alias que dejaría el documento diciendo lo que no
+    quiere decir.
+    """
+    clause = _ROLE_CLAUSE.match(text.strip())
+    if clause is None:
+        return ()
+    role = re.sub(r"\s+", " ", clause.group(1)).strip()
+    partes = [p.strip(" ,") for p in re.split(r"\s+(?:o|y)\s+", role)]
+    limpias = [_LEADING.sub("", p) for p in partes if p.strip(" ,")]
+    # Conserva el orden y saca repetidos, sin distinguir mayúsculas: «como
+    # Directivo o directivo» es uno solo, y se muestra como vino el primero.
+    vistos: dict[str, str] = {}
+    for actor in limpias:
+        vistos.setdefault(actor.lower(), actor)
+    return tuple(vistos.values())

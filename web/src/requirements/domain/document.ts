@@ -28,6 +28,9 @@ export interface DocumentEntry {
   lastRevision: number;
   changeCount: number;
   responsibilities: number;
+  /** Los actores nombrados en el rol. Más de uno es una historia que en QUS
+      tendría que ser dos, o un rol que nadie terminó de definir. */
+  actors: string[];
 }
 
 /** Propuesta rechazada: no dejó texto, pero la ausencia es un dato. */

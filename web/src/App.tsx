@@ -10,6 +10,7 @@ import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { IterationsScreen } from "./requirements/iterations/IterationsScreen";
+import { ActorsScreen } from "./requirements/actors/ActorsScreen";
 import { AgreementScreen } from "./requirements/agreement/AgreementScreen";
 import { ExportScreen } from "./requirements/export/ExportScreen";
 import { WorkspacesScreen } from "./workspaces/WorkspacesScreen";
@@ -48,6 +49,7 @@ const SECTIONS: Section[] = [
   "discovery",
   "review",
   "document",
+  "actors",
   "traceability",
   "iterations",
   "agreement",
@@ -59,6 +61,7 @@ const SECTION_LABEL: Record<Section, string> = {
   discovery: "Descubrimiento",
   review: "Revisión",
   document: "Documento",
+  actors: "Actores",
   traceability: "Trazabilidad",
   iterations: "Iteraciones",
   agreement: "Concordancia",
@@ -533,6 +536,16 @@ function ProjectApp({
                 onGoReview={() => navigate("review")}
                 meetingLabels={meetingLabels}
                 focusRequirementId={route.focus}
+              />
+            )}
+
+            {route.section === "actors" && (
+              <ActorsScreen
+                projectId={projectId}
+                upToRevision={Math.min(iteration, progress.through)}
+                blockedAt={progress.blockedAt}
+                onGoReview={() => navigate("review")}
+                onOpenRequirement={(id) => navigate("document", id)}
               />
             )}
 
