@@ -176,6 +176,15 @@ function Matrix({
   );
   const orphan = rows.filter((row) => row.roles.length === 0);
 
+  // Cuántas formas de escribir había en esta revisión. La matriz muestra los
+  // roles ya normalizados, así que se ve más prolija de lo que la reunión fue:
+  // cuatro columnas limpias donde en su momento había cinco maneras de
+  // nombrar. Decir las dos cifras evita presentar como ordenado algo que no
+  // lo estaba.
+  const written = new Set(
+    entries.flatMap((entry) => (entry.actors ?? []).map((a) => a.toLowerCase())),
+  ).size;
+
   if (roles.length === 0) {
     return (
       <>
@@ -204,8 +213,8 @@ function Matrix({
         <span className="screen__title">Funciones</span>
         <span className="screen__meta">
           al cierre de la reunión {revision} · {rows.length} requisitos ·{" "}
-          {roles.length} roles · {shared.length} compartidas ·{" "}
-          {forEveryone.length} para todos
+          {roles.length} roles de {written} nombres escritos · {shared.length}{" "}
+          compartidas · {forEveryone.length} para todos
         </span>
       </div>
 
@@ -214,6 +223,13 @@ function Matrix({
           Quién puede hacer qué
           <span className="card__count">una marca por rol que participa</span>
         </div>
+        <p className="functions__hint">
+          Las columnas son roles ya normalizados: en esta revisión el documento
+          usaba <strong>{written}</strong> formas de escribirlos, agrupadas en{" "}
+          <strong>{roles.length}</strong>. La tabla se ve más ordenada de lo que
+          la reunión fue, y ése es el trabajo de Actores, no un dato de la
+          reunión.
+        </p>
         <p className="functions__hint">
           Cada fila es una función que pide el cliente. Una fila con dos marcas
           es una función que hacen dos roles distintos: son{" "}
