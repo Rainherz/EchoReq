@@ -202,6 +202,35 @@ export interface Participant {
   createdAt?: string | null;
 }
 
+/** Un rol que el proyecto reconoce. Configuración, no dato del estudio:
+    se corrige y se borra. */
+export interface GlossaryActor {
+  name: string;
+  description: string;
+}
+
+export const fetchGlossary = (projectId: string): Promise<GlossaryActor[]> =>
+  request<GlossaryActor[]>(`/projects/${projectId}/glossary`);
+
+export const addGlossaryActor = (
+  projectId: string,
+  name: string,
+  description: string,
+): Promise<GlossaryActor> =>
+  request<GlossaryActor>(`/projects/${projectId}/glossary`, {
+    method: "POST",
+    body: JSON.stringify({ name, description }),
+  });
+
+export const removeGlossaryActor = (
+  projectId: string,
+  name: string,
+): Promise<void> =>
+  request<void>(
+    `/projects/${projectId}/glossary/${encodeURIComponent(name)}`,
+    { method: "DELETE" },
+  );
+
 export interface NewParticipant {
   displayName: string;
   role: string;

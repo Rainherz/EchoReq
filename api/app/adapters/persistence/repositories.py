@@ -15,6 +15,7 @@ from ...requirements.domain import rules
 from ...requirements.domain.injection import detected
 from ...requirements.domain.slug import slugify
 from ...requirements.domain.entities import (
+    GlossaryActor,
     Participant,
     ChangeProposal,
     DecisionCorrection,
@@ -141,6 +142,49 @@ class PostgresCatalogRepository:
                 (participant_id, project_id),
             )
             return [Meeting(**row) for row in cur.fetchall()]
+
+
+class DuplicateActor(Exception):
+    """Ese rol ya está en el glosario."""
+
+
+class PostgresGlossaryRepository:
+    """Los roles que el proyecto reconoce."""
+
+    def all(self, project_id: str) -> list[GlossaryActor]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT name, description FROM actor_glossary
+                WHERE project_id = %s ORDER BY lower(name)
+                """,
+                (project_id,),
+            )
+            return [GlossaryActor(**row) for row in cur.fetchall()]
+
+    def add(self, project_id: str, name: str, description: str) -> GlossaryActor:
+        try:
+            with cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO actor_glossary (project_id, name, description)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (project_id, name.strip(), description.strip()),
+                )
+        except psycopg.errors.UniqueViolation as exc:
+            raise DuplicateActor(
+                f"«{name.strip()}» ya está en el glosario."
+            ) from exc
+        return GlossaryActor(name=name.strip(), description=description.strip())
+
+    def remove(self, project_id: str, name: str) -> bool:
+        with cursor() as cur:
+            cur.execute(
+                "DELETE FROM actor_glossary WHERE project_id = %s AND lower(name) = lower(%s)",
+                (project_id, name),
+            )
+            return cur.rowcount > 0
 
 
 class DuplicateParticipant(Exception):

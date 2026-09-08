@@ -69,6 +69,16 @@ class ParticipantIn(Schema):
     role: str = Field(min_length=2, max_length=40)
 
 
+class GlossaryActorOut(Schema):
+    name: str
+    description: str = ""
+
+
+class GlossaryActorIn(Schema):
+    name: str = Field(min_length=2, max_length=60)
+    description: str = Field(default="", max_length=280)
+
+
 class MeetingOut(Schema):
     id: str
     iteration: int

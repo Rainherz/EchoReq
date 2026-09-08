@@ -189,6 +189,19 @@ class Participant:
 
 
 @dataclass(frozen=True, slots=True)
+class GlossaryActor:
+    """Un rol que el proyecto reconoce.
+
+    Configuración, no dato del estudio: se corrige y se borra. Existe para
+    tener contra qué comparar los actores que aparecen en los requisitos, no
+    para reescribirlos.
+    """
+
+    name: str
+    description: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class Project:
     """Un workspace: un proyecto de software cuya especificación se mantiene."""
 

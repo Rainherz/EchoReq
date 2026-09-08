@@ -1,5 +1,12 @@
-import { useCallback, useMemo } from "react";
-import { fetchDocument } from "../../adapters/api/client";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { FormEvent, RefObject } from "react";
+import {
+  addGlossaryActor,
+  fetchDocument,
+  fetchGlossary,
+  removeGlossaryActor,
+} from "../../adapters/api/client";
+import type { GlossaryActor } from "../../adapters/api/client";
 import type { DocumentEntry } from "../domain/document";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
@@ -11,6 +18,11 @@ interface ActorsScreenProps {
   /** Hasta dónde puede leer esta persona. Cero cierra la pantalla, igual que
       el documento: los actores salen de los requisitos. */
   upToRevision: number;
+  /** Todo lo que esta persona puede leer, sin el tope de la reunión elegida.
+      «Sin usar» es una pregunta sobre el documento entero: contra la reunión
+      que se está mirando, un rol que sólo aparece en la 4 saldría sin usar
+      mientras mirás la 1, que es otra cosa. */
+  readableRevision: number;
   blockedAt: number | null;
   onGoReview: () => void;
   onOpenRequirement: (requirementId: string) => void;
@@ -38,6 +50,7 @@ interface Actor {
 export function ActorsScreen({
   projectId,
   upToRevision,
+  readableRevision,
   blockedAt,
   onGoReview,
   onOpenRequirement,
@@ -51,6 +64,20 @@ export function ActorsScreen({
       [projectId, upToRevision],
     ),
     [projectId, upToRevision],
+  );
+  const glossary = useResource(
+    useCallback(() => fetchGlossary(projectId), [projectId]),
+    [projectId],
+  );
+  const whole = useResource(
+    useCallback(
+      () =>
+        readableRevision < 1
+          ? Promise.resolve([] as DocumentEntry[])
+          : fetchDocument(projectId, readableRevision),
+      [projectId, readableRevision],
+    ),
+    [projectId, readableRevision],
   );
 
   if (upToRevision < 1) {
@@ -72,7 +99,14 @@ export function ActorsScreen({
     <div className="actors">
       <AsyncBoundary resource={document}>
         {(entries) => (
-          <ActorMap entries={entries} onOpenRequirement={onOpenRequirement} />
+          <ActorMap
+            projectId={projectId}
+            entries={entries}
+            whole={whole.data ?? entries}
+            glossary={glossary.data ?? []}
+            onGlossaryChange={glossary.reload}
+            onOpenRequirement={onOpenRequirement}
+          />
         )}
       </AsyncBoundary>
     </div>
@@ -83,10 +117,19 @@ export function ActorsScreen({
     de JavaScript dentro del módulo, y el `new Map()` de acá abajo deja de
     compilar. */
 function ActorMap({
+  projectId,
   entries,
+  whole,
+  glossary,
+  onGlossaryChange,
   onOpenRequirement,
 }: {
+  projectId: string;
   entries: DocumentEntry[];
+  /** El documento completo que esta persona puede leer. */
+  whole: DocumentEntry[];
+  glossary: GlossaryActor[];
+  onGlossaryChange: () => void;
   onOpenRequirement: (requirementId: string) => void;
 }) {
   const actors = useMemo(() => {
@@ -109,6 +152,32 @@ function ActorMap({
           a.name.localeCompare(b.name),
       );
   }, [entries]);
+
+  // Definido es coincidencia exacta, sin distinguir mayúsculas. No hay
+  // traducción: «especialista de la UGEL» sigue marcado hasta que alguien
+  // arregle el texto de R-03 y R-07, que es donde está el problema.
+  const definidos = new Set(glossary.map((a) => a.name.toLowerCase()));
+  const sinDefinir = actors.filter((a) => !definidos.has(a.name.toLowerCase()));
+  // Roles declarados que ningún requisito usa: o falta escribirlos, o el
+  // glosario quedó con un nombre que ya nadie usa.
+  const enTodoElDocumento = new Set(
+    whole.flatMap((entry) => (entry.actors ?? []).map((a) => a.toLowerCase())),
+  );
+  const sinUsar = glossary.filter(
+    (a) => !enTodoElDocumento.has(a.name.toLowerCase()),
+  );
+
+  // El nombre del formulario vive acá arriba para que cada fila sin definir
+  // pueda prellenarlo con su nombre exacto. Retipear quince roles que ya
+  // están en pantalla es quince chances de escribir uno distinto, que es el
+  // problema que el glosario vino a cerrar.
+  const [draftName, setDraftName] = useState("");
+  const descriptionRef = useRef<HTMLInputElement>(null);
+  const declare = (name: string) => {
+    setDraftName(name);
+    // El nombre ya viene puesto: lo que falta escribir es quién es.
+    descriptionRef.current?.focus();
+  };
 
   const compuestos = entries.filter((entry) => (entry.actors ?? []).length > 1);
   const solitarios = actors.filter((actor) => actor.requirements.length === 1);
@@ -163,7 +232,39 @@ function ActorMap({
             trazabilidad de esa persona está partida en dos.
           </p>
         </div>
+        <div className="card">
+          <span className="tile__label">Sin definir</span>
+          <div
+            className={
+              glossary.length > 0 && sinDefinir.length > 0
+                ? "tile__value tile__value--warn"
+                : "tile__value"
+            }
+          >
+            {glossary.length === 0 ? "—" : sinDefinir.length}
+            {glossary.length > 0 && (
+              <span className="tile__of"> / {actors.length}</span>
+            )}
+          </div>
+          <p className="tile__note">
+            {glossary.length === 0
+              ? "Sin glosario no hay contra qué comparar. Declará los roles abajo."
+              : sinUsar.length > 0
+                ? `Aparecen en un requisito y no están declarados. Y ${sinUsar.length} declarados que ningún requisito usa.`
+                : "Aparecen en un requisito y no están declarados."}
+          </p>
+        </div>
       </div>
+
+      <Glossary
+        projectId={projectId}
+        actors={glossary}
+        unused={sinUsar}
+        name={draftName}
+        onName={setDraftName}
+        descriptionRef={descriptionRef}
+        onChange={onGlossaryChange}
+      />
 
       <div className="card">
         <div className="card__head">
@@ -189,6 +290,20 @@ function ActorMap({
                     {actor.requirements.length}{" "}
                     {actor.requirements.length === 1 ? "requisito" : "requisitos"}
                   </span>
+                  {!definidos.has(actor.name.toLowerCase()) && (
+                    <>
+                      {glossary.length > 0 && (
+                        <span className="tag">sin definir</span>
+                      )}
+                      <button
+                        type="button"
+                        className="actor__declare"
+                        onClick={() => declare(actor.name)}
+                      >
+                        declarar
+                      </button>
+                    </>
+                  )}
                   {variante && (
                     <span className="tag tag--warn">nombre solapado</span>
                   )}
@@ -236,5 +351,152 @@ function ActorMap({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Los roles que el proyecto reconoce.
+ *
+ * Declara quién existe; no reescribe quién pidió. Un actor que aparece en un
+ * requisito y no figura acá queda marcado, y sigue marcado hasta que alguien
+ * arregle el texto del requisito —que es donde está el problema. Una tabla de
+ * alias que tradujera «especialista de la UGEL» a «especialista» dejaría el
+ * documento diciendo lo que no quiere decir, prolijo por fuera.
+ *
+ * Es configuración, no dato del estudio: se corrige y se borra. El log de
+ * requisitos y las decisiones, que sí son el dato, llevan un trigger que
+ * rechaza UPDATE y DELETE.
+ */
+function Glossary({
+  projectId,
+  actors,
+  unused,
+  name,
+  onName,
+  descriptionRef,
+  onChange,
+}: {
+  projectId: string;
+  actors: GlossaryActor[];
+  /** Declarados que ningún requisito usa, en todo el documento. */
+  unused: GlossaryActor[];
+  /** Controlado desde afuera: cada fila sin definir lo prellena. */
+  name: string;
+  onName: (name: string) => void;
+  descriptionRef: RefObject<HTMLInputElement | null>;
+  onChange: () => void;
+}) {
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const sinUsar = new Set(unused.map((a) => a.name.toLowerCase()));
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (name.trim().length < 2) return;
+    setSaving(true);
+    setFailure(null);
+    try {
+      await addGlossaryActor(projectId, name.trim(), description.trim());
+      onName("");
+      setDescription("");
+      onChange();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (actorName: string) => {
+    setFailure(null);
+    try {
+      await removeGlossaryActor(projectId, actorName);
+      onChange();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    }
+  };
+
+  return (
+    <div className="card">
+      <div className="card__head">
+        Glosario de roles
+        <span className="card__count">
+          {actors.length} {actors.length === 1 ? "declarado" : "declarados"}
+        </span>
+      </div>
+
+      <p className="actors__hint">
+        Los roles que este proyecto reconoce. Sirven de referencia, no de
+        traducción: declarar «especialista» no convierte a «especialista de la
+        UGEL» en ese rol, lo deja marcado hasta que se arregle el texto del
+        requisito.
+      </p>
+
+      {actors.length > 0 && (
+        <ul className="glossary">
+          {actors.map((actor) => (
+            <li key={actor.name} className="glossary__item">
+              <span className="glossary__name">{actor.name}</span>
+              {sinUsar.has(actor.name.toLowerCase()) && (
+                <span className="tag">sin usar</span>
+              )}
+              {actor.description && (
+                <span className="glossary__desc">{actor.description}</span>
+              )}
+              <button
+                type="button"
+                className="glossary__drop"
+                aria-label={`Sacar ${actor.name} del glosario`}
+                onClick={() => remove(actor.name)}
+              >
+                sacar
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form className="glossary__form" onSubmit={submit}>
+        <label className="glossary__field">
+          <span className="label">Rol</span>
+          <input
+            className="field"
+            type="text"
+            maxLength={60}
+            value={name}
+            placeholder="directivo"
+            onChange={(event) => onName(event.target.value)}
+          />
+        </label>
+        <label className="glossary__field glossary__field--wide">
+          <span className="label">Quién es</span>
+          <input
+            className="field"
+            type="text"
+            ref={descriptionRef}
+            maxLength={280}
+            value={description}
+            placeholder="Director o subdirector de una institución educativa"
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </label>
+        <button
+          type="submit"
+          className="btn btn--small btn--primary"
+          disabled={saving || name.trim().length < 2}
+        >
+          {saving ? "Guardando…" : "Declarar"}
+        </button>
+      </form>
+
+      {failure && (
+        <p className="resolve__error" role="alert">
+          {failure}
+        </p>
+      )}
+    </div>
   );
 }

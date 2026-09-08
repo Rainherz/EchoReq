@@ -543,6 +543,7 @@ function ProjectApp({
               <ActorsScreen
                 projectId={projectId}
                 upToRevision={Math.min(iteration, progress.through)}
+                readableRevision={progress.through}
                 blockedAt={progress.blockedAt}
                 onGoReview={() => navigate("review")}
                 onOpenRequirement={(id) => navigate("document", id)}

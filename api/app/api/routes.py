@@ -15,7 +15,9 @@ from ..adapters.persistence import transcript_store
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.storage import audio as audio_store
 from ..adapters.persistence.repositories import (
+    DuplicateActor,
     DuplicateParticipant,
+    PostgresGlossaryRepository,
     PostgresParticipantRepository,
     AlreadyCorrected,
     AlreadyDecided,
@@ -36,6 +38,8 @@ from .schemas import (
     SpeakerOut,
     SpeakerSampleOut,
     SuggestionOut,
+    GlossaryActorIn,
+    GlossaryActorOut,
     ParticipantIn,
     ParticipantOut,
     DecisionIn,
@@ -66,6 +70,7 @@ _transcripts = PostgresTranscriptRepository()
 _catalog = PostgresCatalogRepository()
 _meetings_repo = PostgresMeetingRepository()
 _participants = PostgresParticipantRepository()
+_glossary = PostgresGlossaryRepository()
 
 #: Tope del recorte de audio. Alcanza para reconocer una voz y evita que el
 #: endpoint se vuelva una vía para descargar la reunión entera de a pedazos.
@@ -96,6 +101,39 @@ def create_participant(payload: ParticipantIn) -> ParticipantOut:
     except DuplicateParticipant as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return ParticipantOut(**asdict(created))
+
+
+@router.get("/projects/{project_id}/glossary")
+def glossary(project_id: str) -> list[GlossaryActorOut]:
+    """Los roles que este proyecto reconoce.
+
+    Sirve de referencia para la pantalla de Actores: un actor que aparece en
+    un requisito y no figura acá queda marcado, y sigue marcado hasta que
+    alguien arregle el texto. El glosario no traduce nada.
+    """
+    return [GlossaryActorOut(**asdict(a)) for a in _glossary.all(project_id)]
+
+
+@router.post("/projects/{project_id}/glossary", status_code=201)
+def add_glossary_actor(
+    project_id: str, payload: GlossaryActorIn
+) -> GlossaryActorOut:
+    try:
+        created = _glossary.add(project_id, payload.name, payload.description)
+    except DuplicateActor as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return GlossaryActorOut(**asdict(created))
+
+
+@router.delete("/projects/{project_id}/glossary/{name}", status_code=204)
+def remove_glossary_actor(project_id: str, name: str) -> None:
+    """El glosario es configuración: se corrige y se borra.
+
+    A diferencia del log de requisitos y de las decisiones, que llevan un
+    trigger que rechaza UPDATE y DELETE porque son el dato del estudio.
+    """
+    if not _glossary.remove(project_id, name):
+        raise HTTPException(status_code=404, detail=f"«{name}» no está en el glosario.")
 
 
 @router.get("/projects")
