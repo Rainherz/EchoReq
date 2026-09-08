@@ -233,3 +233,45 @@
      tapa sin mover nada de lugar. */
   box-shadow: 0 -1rem 0 var(--bg);
 }
+
+/* Lista y historia, lado a lado.
+
+   La historia se abría debajo de la tabla entera: elegías un requisito y el
+   panel aparecía setecientos píxeles más abajo, pasando las veintitrés filas,
+   y para cuando llegabas el requisito elegido ya no estaba en pantalla. Se
+   leía la historia de algo que no se veía. */
+.doc-bench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 30rem);
+  gap: 1rem;
+  align-items: start;
+}
+
+/* Acompaña el scroll: la lista es larga y la historia tiene que seguir a la
+   vista mientras se recorre. El tope deja pasar la cabecera fija. */
+.doc-rail {
+  position: sticky;
+  top: 3.4rem;
+  max-height: calc(100vh - 5.5rem);
+  overflow-y: auto;
+}
+
+.doc-rail__hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* Debajo de esto el texto del requisito se comprime hasta dejar de leerse:
+   la historia vuelve abajo, que es donde cabe. */
+@media (max-width: 72rem) {
+  .doc-bench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doc-rail {
+    position: static;
+    max-height: none;
+  }
+}

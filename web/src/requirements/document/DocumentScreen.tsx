@@ -149,8 +149,9 @@ export function DocumentScreen({
         </span>
       </div>
 
-      <AsyncBoundary resource={document}>
-        {() => (
+      <div className="doc-bench">
+        <AsyncBoundary resource={document}>
+          {() => (
           <div className="card">
             <div className="card__head">
               Documento vigente
@@ -197,17 +198,31 @@ export function DocumentScreen({
               onSelect={(id) => setPicked(selectedId === id ? "" : id)}
             />
           </div>
-        )}
-      </AsyncBoundary>
+          )}
+        </AsyncBoundary>
 
-      {selectedId && history.length > 0 && (
-        <RequirementHistory
-          requirementId={selectedId}
-          history={history}
-          rejected={rejectedHere}
-          meetingLabel={(meetingId) => meetingLabels[meetingId] ?? meetingId}
-        />
-      )}
+        {/* Siempre presente, aunque no haya nada elegido: si apareciera y
+            desapareciera, elegir una fila reflowearía las veintitrés y la que
+            acabás de tocar se movería debajo del cursor. */}
+        <aside className="doc-rail">
+          {selectedId && history.length > 0 ? (
+            <RequirementHistory
+              requirementId={selectedId}
+              history={history}
+              rejected={rejectedHere}
+              meetingLabel={(meetingId) => meetingLabels[meetingId] ?? meetingId}
+            />
+          ) : (
+            <div className="card">
+              <div className="card__head">Historia del requisito</div>
+              <p className="doc-rail__hint">
+                Elegí una fila para ver de qué reunión salió, qué turnos la
+                sostienen y cómo cambió en cada revisión.
+              </p>
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }
