@@ -190,3 +190,12 @@
 .actor__declare:hover {
   color: var(--ink);
 }
+
+/* Sugerencia, no alarma: el actor se parece a un rol declarado. Se distingue
+   del «sin definir» neutro porque son dos situaciones distintas —una tiene un
+   candidato escrito y la otra hay que pensarla— y del ámbar de «nombre
+   solapado», que señala un problema y no una salida. */
+.tag--hint {
+  background: var(--ok-wash);
+  color: var(--ok-text);
+}

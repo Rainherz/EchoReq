@@ -33,6 +33,52 @@ interface Actor {
   requirements: string[];
 }
 
+/** Marcas de negación: lo que viene después dice a quién NO abarca el rol.
+    Buscar el actor en esa mitad daría vuelta la respuesta —«docente» aparece
+    en «No incluye docentes», que es justo lo contrario de lo que se pregunta. */
+const _NEGATION = /\b(no\s+incluye|no\s+excluye|no\s+aplica|excepto|salvo)\b/i;
+
+/**
+ * El rol declarado al que probablemente corresponde un actor sin definir.
+ *
+ * Dos vías, y las dos usan lo que ya está en pantalla. Una es de prefijo:
+ * «especialista de la UGEL» y «Especialista». La otra es la definición —
+ * «subdirector» está escrito adentro de «Director y subdirector de una I.E.»,
+ * o sea que la respuesta ya la había dado alguien y la herramienta no la
+ * leía.
+ *
+ * Sugiere, no decide. Que un actor se parezca a un rol declarado no lo
+ * convierte en ese rol: el requisito sigue diciendo otra cosa y por eso
+ * sigue marcado.
+ */
+function candidateFor(
+  actor: string,
+  glossary: GlossaryActor[],
+): GlossaryActor | null {
+  const name = actor.toLowerCase();
+
+  const byPrefix = glossary.find((role) => {
+    const declared = role.name.toLowerCase();
+    return name.startsWith(`${declared} `) || declared.startsWith(`${name} `);
+  });
+  if (byPrefix) return byPrefix;
+
+  return (
+    glossary.find((role) => {
+      const [included] = role.description.toLowerCase().split(_NEGATION);
+      return new RegExp(`(^|[^\\p{L}])${escapeForSearch(name)}([^\\p{L}]|$)`, "u").test(
+        included,
+      );
+    }) ?? null
+  );
+}
+
+/** Un nombre de rol puede traer paréntesis o puntos, y adentro de un regex
+    dejarían de ser texto para pasar a ser sintaxis. */
+function escapeForSearch(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Quién pide qué.
  *
@@ -179,6 +225,10 @@ function ActorMap({
     descriptionRef.current?.focus();
   };
 
+  const conCandidato = sinDefinir.filter(
+    (actor) => candidateFor(actor.name, glossary) !== null,
+  ).length;
+
   const compuestos = entries.filter((entry) => (entry.actors ?? []).length > 1);
   const solitarios = actors.filter((actor) => actor.requirements.length === 1);
   // Nombres que empiezan igual: «especialista» y «especialista de la UGEL».
@@ -249,8 +299,8 @@ function ActorMap({
           <p className="tile__note">
             {glossary.length === 0
               ? "Sin glosario no hay contra qué comparar. Declará los roles abajo."
-              : sinUsar.length > 0
-                ? `Aparecen en un requisito y no están declarados. Y ${sinUsar.length} declarados que ningún requisito usa.`
+              : conCandidato > 0
+                ? `${conCandidato} se parecen a un rol que ya declaraste. El resto hay que decidirlo.`
                 : "Aparecen en un requisito y no están declarados."}
           </p>
         </div>
@@ -292,9 +342,14 @@ function ActorMap({
                   </span>
                   {!definidos.has(actor.name.toLowerCase()) && (
                     <>
-                      {glossary.length > 0 && (
-                        <span className="tag">sin definir</span>
-                      )}
+                      {glossary.length > 0 &&
+                        (candidateFor(actor.name, glossary) ? (
+                          <span className="tag tag--hint">
+                            parece {candidateFor(actor.name, glossary)?.name}
+                          </span>
+                        ) : (
+                          <span className="tag">sin definir</span>
+                        ))}
                       <button
                         type="button"
                         className="actor__declare"
