@@ -17,6 +17,7 @@ from ..adapters.storage import audio as audio_store
 from ..adapters.persistence.repositories import (
     DuplicateActor,
     DuplicateParticipant,
+    PostgresActorDecisionRepository,
     PostgresGlossaryRepository,
     PostgresParticipantRepository,
     AlreadyCorrected,
@@ -38,8 +39,11 @@ from .schemas import (
     SpeakerOut,
     SpeakerSampleOut,
     SuggestionOut,
+    ActorDecisionIn,
+    ActorDecisionOut,
     GlossaryActorIn,
     GlossaryActorOut,
+    GlossaryActorPatch,
     ParticipantIn,
     ParticipantOut,
     DecisionIn,
@@ -71,6 +75,7 @@ _catalog = PostgresCatalogRepository()
 _meetings_repo = PostgresMeetingRepository()
 _participants = PostgresParticipantRepository()
 _glossary = PostgresGlossaryRepository()
+_actor_decisions = PostgresActorDecisionRepository()
 
 #: Tope del recorte de audio. Alcanza para reconocer una voz y evita que el
 #: endpoint se vuelva una vía para descargar la reunión entera de a pedazos.
@@ -119,10 +124,31 @@ def add_glossary_actor(
     project_id: str, payload: GlossaryActorIn
 ) -> GlossaryActorOut:
     try:
-        created = _glossary.add(project_id, payload.name, payload.description)
+        created = _glossary.add(
+            project_id, payload.name, payload.description, payload.transversal
+        )
     except DuplicateActor as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return GlossaryActorOut(**asdict(created))
+
+
+@router.put("/projects/{project_id}/glossary/{name}")
+def update_glossary_actor(
+    project_id: str, name: str, payload: GlossaryActorPatch
+) -> GlossaryActorOut:
+    """Corrige un rol declarado sin perder su definición.
+
+    Marcarlo transversal sacándolo y volviéndolo a declarar obligaría a
+    retipear la descripción, que es la parte que costó escribir.
+    """
+    updated = _glossary.update(
+        project_id, name, payload.description, payload.transversal
+    )
+    if updated is None:
+        raise HTTPException(
+            status_code=404, detail=f"«{name}» no está en el glosario."
+        )
+    return GlossaryActorOut(**asdict(updated))
 
 
 @router.delete("/projects/{project_id}/glossary/{name}", status_code=204)
@@ -134,6 +160,52 @@ def remove_glossary_actor(project_id: str, name: str) -> None:
     """
     if not _glossary.remove(project_id, name):
         raise HTTPException(status_code=404, detail=f"«{name}» no está en el glosario.")
+
+
+@router.get("/projects/{project_id}/actor-decisions")
+def actor_decisions(project_id: str) -> list[ActorDecisionOut]:
+    """Qué se decidió sobre cada nombre de actor.
+
+    Decidir no cambia el documento: el texto del requisito sigue diciendo lo
+    que decía y el log es inmutable. Cada decisión deja un pendiente que se
+    aplica al revisar una reunión futura, así que no hay estado «resuelto».
+    """
+    return [
+        ActorDecisionOut(**asdict(d)) for d in _actor_decisions.all(project_id)
+    ]
+
+
+@router.put("/projects/{project_id}/actor-decisions", status_code=200)
+def record_actor_decision(
+    project_id: str, payload: ActorDecisionIn
+) -> ActorDecisionOut:
+    """Anota la decisión. Se puede rehacer: es la postura del equipo sobre su
+    propio vocabulario, no una observación con hora."""
+    if payload.outcome == "same" and not (payload.role or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Decir que es el mismo rol necesita decir cuál.",
+        )
+    recorded = _actor_decisions.record(
+        project_id, payload.observed, payload.outcome, payload.role, payload.note
+    )
+    # Un rol propio que faltaba se declara solo: si no, la decisión quedaría
+    # registrada y el nombre seguiría apareciendo como si nadie lo hubiera
+    # mirado.
+    if payload.outcome == "new":
+        try:
+            _glossary.add(project_id, payload.observed, payload.note)
+        except DuplicateActor:
+            pass
+    return ActorDecisionOut(**asdict(recorded))
+
+
+@router.delete("/projects/{project_id}/actor-decisions/{observed}", status_code=204)
+def forget_actor_decision(project_id: str, observed: str) -> None:
+    if not _actor_decisions.forget(project_id, observed):
+        raise HTTPException(
+            status_code=404, detail=f"No hay decisión sobre «{observed}»."
+        )
 
 
 @router.get("/projects")

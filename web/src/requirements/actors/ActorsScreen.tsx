@@ -1,97 +1,50 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import type { FormEvent, RefObject } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
-  addGlossaryActor,
+  fetchActorDecisions,
   fetchDocument,
   fetchGlossary,
-  removeGlossaryActor,
+  forgetActorDecision,
+  recordActorDecision,
 } from "../../adapters/api/client";
-import type { GlossaryActor } from "../../adapters/api/client";
+import type {
+  ActorDecision,
+  ActorOutcome,
+  GlossaryActor,
+} from "../../adapters/api/client";
 import type { DocumentEntry } from "../domain/document";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
 import { LockedByProgress } from "../../shell/LockedByProgress";
+import { DecisionCard } from "./components/DecisionCard";
+import { Glossary } from "./components/Glossary";
+import { actorRows, isPending, recurringPairs, todosFrom } from "./lib/actors";
+import type { ActorRow } from "./lib/actors";
 import "./actors.css";
 
 interface ActorsScreenProps {
   projectId: string;
-  /** Hasta dónde puede leer esta persona. Cero cierra la pantalla, igual que
-      el documento: los actores salen de los requisitos. */
   upToRevision: number;
-  /** Todo lo que esta persona puede leer, sin el tope de la reunión elegida.
-      «Sin usar» es una pregunta sobre el documento entero: contra la reunión
-      que se está mirando, un rol que sólo aparece en la 4 saldría sin usar
-      mientras mirás la 1, que es otra cosa. */
+  /** Todo lo que esta persona puede leer, sin el tope de la reunión elegida:
+      los nombres se normalizan sobre el documento entero y no sobre la
+      reunión que se está mirando. */
   readableRevision: number;
   blockedAt: number | null;
   onGoReview: () => void;
   onOpenRequirement: (requirementId: string) => void;
 }
 
-interface Actor {
-  name: string;
-  requirements: string[];
-}
-
-/** Marcas de negación: lo que viene después dice a quién NO abarca el rol.
-    Buscar el actor en esa mitad daría vuelta la respuesta —«docente» aparece
-    en «No incluye docentes», que es justo lo contrario de lo que se pregunta. */
-const _NEGATION = /\b(no\s+incluye|no\s+excluye|no\s+aplica|excepto|salvo)\b/i;
-
 /**
- * El rol declarado al que probablemente corresponde un actor sin definir.
- *
- * Dos vías, y las dos usan lo que ya está en pantalla. Una es de prefijo:
- * «especialista de la UGEL» y «Especialista». La otra es la definición —
- * «subdirector» está escrito adentro de «Director y subdirector de una I.E.»,
- * o sea que la respuesta ya la había dado alguien y la herramienta no la
- * leía.
- *
- * Sugiere, no decide. Que un actor se parezca a un rol declarado no lo
- * convierte en ese rol: el requisito sigue diciendo otra cosa y por eso
- * sigue marcado.
- */
-function candidateFor(
-  actor: string,
-  glossary: GlossaryActor[],
-): GlossaryActor | null {
-  const name = actor.toLowerCase();
-
-  const byPrefix = glossary.find((role) => {
-    const declared = role.name.toLowerCase();
-    return name.startsWith(`${declared} `) || declared.startsWith(`${name} `);
-  });
-  if (byPrefix) return byPrefix;
-
-  return (
-    glossary.find((role) => {
-      const [included] = role.description.toLowerCase().split(_NEGATION);
-      return new RegExp(`(^|[^\\p{L}])${escapeForSearch(name)}([^\\p{L}]|$)`, "u").test(
-        included,
-      );
-    }) ?? null
-  );
-}
-
-/** Un nombre de rol puede traer paréntesis o puntos, y adentro de un regex
-    dejarían de ser texto para pasar a ser sintaxis. */
-function escapeForSearch(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/**
- * Quién pide qué.
+ * Normalización de nombres de rol.
  *
  * Una historia de usuario tiene un rol. Cuando el documento acumula reuniones
- * el vocabulario se desparrama: la misma persona entra como «especialista» en
- * una y como «especialista de la UGEL» en la siguiente, y ahí la trazabilidad
- * por actor deja de existir sin que nada avise.
+ * el vocabulario se desparrama —la misma persona entra como «especialista» en
+ * una y «especialista de la UGEL» en la siguiente— y la trazabilidad por
+ * actor deja de existir sin que nada avise.
  *
- * No es una métrica del estudio: es higiene del documento. No propone
- * fusiones ni guarda alias — decidir que dos nombres son la misma persona es
- * juicio de dominio, y el arreglo va en el texto del requisito. Un
- * diccionario de alias dejaría el documento diciendo lo que no quiere decir,
- * prolijo por fuera.
+ * La pantalla no arregla nada, y no puede: el log de requisitos es inmutable
+ * y las revisiones ya medidas no se reescriben. Lo que produce son decisiones
+ * y una lista de pendientes que se aplican al decidir propuestas de una
+ * reunión futura. Por eso no existe el estado «resuelto»: existe «decidido».
  */
 export function ActorsScreen({
   projectId,
@@ -104,26 +57,20 @@ export function ActorsScreen({
   const document = useResource(
     useCallback(
       () =>
-        upToRevision < 1
-          ? Promise.resolve([] as DocumentEntry[])
-          : fetchDocument(projectId, upToRevision),
-      [projectId, upToRevision],
-    ),
-    [projectId, upToRevision],
-  );
-  const glossary = useResource(
-    useCallback(() => fetchGlossary(projectId), [projectId]),
-    [projectId],
-  );
-  const whole = useResource(
-    useCallback(
-      () =>
         readableRevision < 1
           ? Promise.resolve([] as DocumentEntry[])
           : fetchDocument(projectId, readableRevision),
       [projectId, readableRevision],
     ),
     [projectId, readableRevision],
+  );
+  const glossary = useResource(
+    useCallback(() => fetchGlossary(projectId), [projectId]),
+    [projectId],
+  );
+  const decisions = useResource(
+    useCallback(() => fetchActorDecisions(projectId), [projectId]),
+    [projectId],
   );
 
   if (upToRevision < 1) {
@@ -141,16 +88,48 @@ export function ActorsScreen({
     );
   }
 
+  // Las tres fuentes se esperan juntas. Con `?? []` la pantalla dibujaba
+  // «0 decididos» mientras una de ellas fallaba, y eso es indistinguible de
+  // un vacío legítimo: quien mira cree que sabe y no sabe.
+  const failure = document.error ?? glossary.error ?? decisions.error;
+  if (failure !== null) {
+    return (
+      <div className="actors">
+        <div className="screen__head">
+          <span className="screen__title">Actores</span>
+        </div>
+        <div className="card">
+          <div className="card__head">No se pudo cargar</div>
+          <p style={{ margin: "0 0 .7rem", fontSize: ".88rem", lineHeight: 1.55 }}>
+            {failure}
+          </p>
+          <button
+            type="button"
+            className="btn btn--small"
+            onClick={() => {
+              document.reload();
+              glossary.reload();
+              decisions.reload();
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="actors">
       <AsyncBoundary resource={document}>
         {(entries) => (
-          <ActorMap
+          <Tray
             projectId={projectId}
             entries={entries}
-            whole={whole.data ?? entries}
             glossary={glossary.data ?? []}
+            decisions={decisions.data ?? []}
             onGlossaryChange={glossary.reload}
+            onDecisionsChange={decisions.reload}
             onOpenRequirement={onOpenRequirement}
           />
         )}
@@ -159,419 +138,282 @@ export function ActorsScreen({
   );
 }
 
-/** Se llama `ActorMap` y no `Map`: un componente llamado `Map` tapa el `Map`
-    de JavaScript dentro del módulo, y el `new Map()` de acá abajo deja de
-    compilar. */
-function ActorMap({
+function Tray({
   projectId,
   entries,
-  whole,
   glossary,
+  decisions,
   onGlossaryChange,
+  onDecisionsChange,
   onOpenRequirement,
 }: {
   projectId: string;
   entries: DocumentEntry[];
-  /** El documento completo que esta persona puede leer. */
-  whole: DocumentEntry[];
   glossary: GlossaryActor[];
+  decisions: ActorDecision[];
   onGlossaryChange: () => void;
+  onDecisionsChange: () => void;
   onOpenRequirement: (requirementId: string) => void;
 }) {
-  const actors = useMemo(() => {
-    // Se agrupa sin distinguir mayúsculas y se muestra la forma en que vino
-    // la primera vez: la API devuelve el texto como está escrito para no
-    // romper las siglas —«especialista de la UGEL» y no «de la ugel».
-    const seen = new Map<string, Actor>();
-    for (const entry of entries) {
-      for (const name of entry.actors ?? []) {
-        const key = name.toLowerCase();
-        const actor = seen.get(key) ?? { name, requirements: [] };
-        actor.requirements.push(entry.requirementId);
-        seen.set(key, actor);
-      }
-    }
-    return [...seen.values()]
-      .sort(
-        (a, b) =>
-          b.requirements.length - a.requirements.length ||
-          a.name.localeCompare(b.name),
-      );
-  }, [entries]);
-
-  // Definido es coincidencia exacta, sin distinguir mayúsculas. No hay
-  // traducción: «especialista de la UGEL» sigue marcado hasta que alguien
-  // arregle el texto de R-03 y R-07, que es donde está el problema.
-  const definidos = new Set(glossary.map((a) => a.name.toLowerCase()));
-  const sinDefinir = actors.filter((a) => !definidos.has(a.name.toLowerCase()));
-  // Roles declarados que ningún requisito usa: o falta escribirlos, o el
-  // glosario quedó con un nombre que ya nadie usa.
-  const enTodoElDocumento = new Set(
-    whole.flatMap((entry) => (entry.actors ?? []).map((a) => a.toLowerCase())),
-  );
-  const sinUsar = glossary.filter(
-    (a) => !enTodoElDocumento.has(a.name.toLowerCase()),
-  );
-
-  // El nombre del formulario vive acá arriba para que cada fila sin definir
-  // pueda prellenarlo con su nombre exacto. Retipear quince roles que ya
-  // están en pantalla es quince chances de escribir uno distinto, que es el
-  // problema que el glosario vino a cerrar.
+  const [saving, setSaving] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const descriptionRef = useRef<HTMLInputElement>(null);
-  const declare = (name: string) => {
-    setDraftName(name);
-    // El nombre ya viene puesto: lo que falta escribir es quién es.
-    descriptionRef.current?.focus();
+
+  const rows = actorRows(entries, glossary, decisions);
+  const pending = rows.filter(isPending);
+  const settled = rows.filter((row) => !isPending(row));
+  const todos = todosFrom(rows);
+  const patterns = recurringPairs(entries);
+
+  // Requisitos que terminan en cada rol: los que ya lo nombran más los que
+  // una decisión mandó ahí. Cero es un rol que nadie pide, y eso es un hueco
+  // de la especificación, no un error del glosario.
+  const reach = new Map<string, number>();
+  for (const role of glossary) reach.set(role.name, 0);
+  for (const row of rows) {
+    const declared = glossary.find(
+      (role) => role.name.toLowerCase() === row.name.toLowerCase(),
+    );
+    const target = row.declared ? declared?.name : (row.decision?.role ?? null);
+    if (target && reach.has(target)) {
+      reach.set(target, (reach.get(target) ?? 0) + row.requirements.length);
+    }
+  }
+
+  const record = async (
+    row: ActorRow,
+    outcome: ActorOutcome,
+    role: string | null,
+  ) => {
+    setSaving(row.name);
+    setFailure(null);
+    try {
+      await recordActorDecision(projectId, {
+        observed: row.name,
+        outcome,
+        role,
+      });
+      onDecisionsChange();
+      if (outcome === "new") onGlossaryChange();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setSaving(null);
+    }
   };
 
-  const conCandidato = sinDefinir.filter(
-    (actor) => candidateFor(actor.name, glossary) !== null,
-  ).length;
+  const undo = async (observed: string) => {
+    setFailure(null);
+    try {
+      await forgetActorDecision(projectId, observed);
+      onDecisionsChange();
+    } catch (cause) {
+      setFailure(cause instanceof Error ? cause.message : String(cause));
+    }
+  };
 
-  const compuestos = entries.filter((entry) => (entry.actors ?? []).length > 1);
-  const solitarios = actors.filter((actor) => actor.requirements.length === 1);
-  // Nombres que empiezan igual: «especialista» y «especialista de la UGEL».
-  // Es la forma que toma el vocabulario cuando se desparrama reunión a
-  // reunión, y es lo único que se puede detectar sin juicio de dominio.
-  const solapesDe = (actor: Actor) =>
-    actors.filter(
-      (otro) =>
-        otro !== actor &&
-        otro.name.toLowerCase().startsWith(`${actor.name.toLowerCase()} `),
-    );
-  const variantes = actors.filter((actor) => solapesDe(actor).length > 0);
+  const total = rows.length;
+  const done = settled.length;
+  const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 
   return (
     <>
       <div className="screen__head">
         <span className="screen__title">Actores</span>
         <span className="screen__meta">
-          {actors.length} actores · {entries.length} requisitos
+          {entries.length} requisitos · {total} nombres · {pending.length} sin
+          decidir
         </span>
       </div>
-
-      <div className="tiles">
-        <div className="card">
-          <span className="tile__label">Con dos actores</span>
-          <div
-            className={
-              compuestos.length > 0 ? "tile__value tile__value--warn" : "tile__value"
-            }
-          >
-            {compuestos.length}
-            <span className="tile__of"> / {entries.length}</span>
-          </div>
-          <p className="tile__note">
-            «Como A o B quiero X» son dos historias, o es un rol que nadie
-            terminó de definir.
-          </p>
-        </div>
-        <div className="card">
-          <span className="tile__label">Con un solo requisito</span>
-          <div className="tile__value">{solitarios.length}</div>
-          <p className="tile__note">
-            Candidatos a ser otra forma de nombrar a alguien que ya está.
-          </p>
-        </div>
-        <div className="card">
-          <span className="tile__label">Nombres que se solapan</span>
-          <div className="tile__value">{variantes.length}</div>
-          <p className="tile__note">
-            Uno empieza igual que otro. Si son la misma persona, la
-            trazabilidad de esa persona está partida en dos.
-          </p>
-        </div>
-        <div className="card">
-          <span className="tile__label">Sin definir</span>
-          <div
-            className={
-              glossary.length > 0 && sinDefinir.length > 0
-                ? "tile__value tile__value--warn"
-                : "tile__value"
-            }
-          >
-            {glossary.length === 0 ? "—" : sinDefinir.length}
-            {glossary.length > 0 && (
-              <span className="tile__of"> / {actors.length}</span>
-            )}
-          </div>
-          <p className="tile__note">
-            {glossary.length === 0
-              ? "Sin glosario no hay contra qué comparar. Declará los roles abajo."
-              : conCandidato > 0
-                ? `${conCandidato} se parecen a un rol que ya declaraste. El resto hay que decidirlo.`
-                : "Aparecen en un requisito y no están declarados."}
-          </p>
-        </div>
-      </div>
-
-      <Glossary
-        projectId={projectId}
-        actors={glossary}
-        unused={sinUsar}
-        name={draftName}
-        onName={setDraftName}
-        descriptionRef={descriptionRef}
-        onChange={onGlossaryChange}
-      />
-
-      <div className="card">
-        <div className="card__head">
-          Quién pide qué
-          <span className="card__count">de más a menos requisitos</span>
-        </div>
-        <p className="actors__hint">
-          Los actores salen del rol de cada historia. Dos nombres distintos son
-          dos actores hasta que alguien decida lo contrario: la herramienta los
-          pone al lado, y el arreglo va en el texto del requisito, no en un
-          diccionario de alias que dejaría el documento diciendo lo que no
-          quiere decir.
-        </p>
-        {/* Sin marca es el caso bueno y por eso no se dibuja: una lista donde
-            cada fila lleva una etiqueta no distingue nada. */}
-        <p className="actors__hint">
-          Un actor sin marca coincide con un rol declarado.{" "}
-          <span className="tag tag--hint">parece Docente</span> se parece a uno
-          que ya declaraste,{" "}
-          <span className="tag">sin definir</span> no se parece a ninguno y hay
-          que decidirlo, y{" "}
-          <span className="tag tag--warn">solapa con …</span> avisa que otro
-          actor de esta misma lista empieza igual. Las dos preguntas son
-          independientes: un rol puede estar declarado y solaparse igual.
-        </p>
-
-        <ul className="actors__list">
-          {actors.map((actor) => {
-            const solapes = solapesDe(actor);
-            return (
-              <li key={actor.name} className="actor">
-                <div className="actor__head">
-                  <span className="actor__name">{actor.name}</span>
-                  <span className="actor__count">
-                    {actor.requirements.length}{" "}
-                    {actor.requirements.length === 1 ? "requisito" : "requisitos"}
-                  </span>
-                  {!definidos.has(actor.name.toLowerCase()) && (
-                    <>
-                      {glossary.length > 0 &&
-                        (candidateFor(actor.name, glossary) ? (
-                          <span className="tag tag--hint">
-                            parece {candidateFor(actor.name, glossary)?.name}
-                          </span>
-                        ) : (
-                          <span className="tag">sin definir</span>
-                        ))}
-                      <button
-                        type="button"
-                        className="actor__declare"
-                        onClick={() => declare(actor.name)}
-                      >
-                        declarar
-                      </button>
-                    </>
-                  )}
-                  {solapes.length > 0 && (
-                    <span className="tag tag--warn">
-                      solapa con {solapes[0].name}
-                      {solapes.length > 1 && ` y ${solapes.length - 1} más`}
-                    </span>
-                  )}
-                </div>
-                <div className="actor__reqs">
-                  {actor.requirements.map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className="actor__req"
-                      onClick={() => onOpenRequirement(id)}
-                    >
-                      {id}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {compuestos.length > 0 && (
-        <div className="card">
-          <div className="card__head">
-            Requisitos con dos actores
-            <span className="card__count">{compuestos.length}</span>
-          </div>
-          <ul className="actors__split">
-            {compuestos.map((entry) => (
-              <li key={entry.requirementId}>
-                <button
-                  type="button"
-                  className="actor__req"
-                  onClick={() => onOpenRequirement(entry.requirementId)}
-                >
-                  {entry.requirementId}
-                </button>
-                <span className="actors__roles">
-                  {(entry.actors ?? []).join("  ·  ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </>
-  );
-}
-
-/**
- * Los roles que el proyecto reconoce.
- *
- * Declara quién existe; no reescribe quién pidió. Un actor que aparece en un
- * requisito y no figura acá queda marcado, y sigue marcado hasta que alguien
- * arregle el texto del requisito —que es donde está el problema. Una tabla de
- * alias que tradujera «especialista de la UGEL» a «especialista» dejaría el
- * documento diciendo lo que no quiere decir, prolijo por fuera.
- *
- * Es configuración, no dato del estudio: se corrige y se borra. El log de
- * requisitos y las decisiones, que sí son el dato, llevan un trigger que
- * rechaza UPDATE y DELETE.
- */
-function Glossary({
-  projectId,
-  actors,
-  unused,
-  name,
-  onName,
-  descriptionRef,
-  onChange,
-}: {
-  projectId: string;
-  actors: GlossaryActor[];
-  /** Declarados que ningún requisito usa, en todo el documento. */
-  unused: GlossaryActor[];
-  /** Controlado desde afuera: cada fila sin definir lo prellena. */
-  name: string;
-  onName: (name: string) => void;
-  descriptionRef: RefObject<HTMLInputElement | null>;
-  onChange: () => void;
-}) {
-  const [description, setDescription] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-
-  const sinUsar = new Set(unused.map((a) => a.name.toLowerCase()));
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (name.trim().length < 2) return;
-    setSaving(true);
-    setFailure(null);
-    try {
-      await addGlossaryActor(projectId, name.trim(), description.trim());
-      onName("");
-      setDescription("");
-      onChange();
-    } catch (cause) {
-      setFailure(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const remove = async (actorName: string) => {
-    setFailure(null);
-    try {
-      await removeGlossaryActor(projectId, actorName);
-      onChange();
-    } catch (cause) {
-      setFailure(cause instanceof Error ? cause.message : String(cause));
-    }
-  };
-
-  return (
-    <div className="card">
-      <div className="card__head">
-        Glosario de roles
-        <span className="card__count">
-          {actors.length} {actors.length === 1 ? "declarado" : "declarados"}
-        </span>
-      </div>
-
-      <p className="actors__hint">
-        Los roles que este proyecto reconoce. Sirven de referencia, no de
-        traducción: declarar «especialista» no convierte a «especialista de la
-        UGEL» en ese rol, lo deja marcado hasta que se arregle el texto del
-        requisito.
-      </p>
-
-      {actors.length > 0 && (
-        <ul className="glossary">
-          {actors.map((actor) => (
-            <li key={actor.name} className="glossary__item">
-              <span className="glossary__name">{actor.name}</span>
-              {sinUsar.has(actor.name.toLowerCase()) && (
-                <span className="tag">ningún requisito lo usa</span>
-              )}
-              {actor.description && (
-                <span className="glossary__desc">{actor.description}</span>
-              )}
-              <button
-                type="button"
-                className="glossary__drop"
-                aria-label={`Sacar ${actor.name} del glosario`}
-                onClick={() => remove(actor.name)}
-              >
-                sacar
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <form className="glossary__form" onSubmit={submit}>
-        <label className="glossary__field">
-          <span className="label">Rol</span>
-          <input
-            className="field"
-            type="text"
-            maxLength={60}
-            value={name}
-            placeholder="directivo"
-            onChange={(event) => onName(event.target.value)}
-          />
-        </label>
-        <label className="glossary__field glossary__field--wide">
-          {/* No «qué hace»: eso ya lo dice la lista de arriba, y repetirlo acá
-              daría dos fuentes que se desincronizan en cuanto entre un
-              requisito nuevo. La pregunta que el glosario tiene que contestar
-              es de límite —¿«subdirector» entra en «directivo» o es otro
-              rol?—, que es la que convierte quince actores en seis. */}
-          <span className="label">A quién incluye</span>
-          <input
-            className="field"
-            type="text"
-            ref={descriptionRef}
-            maxLength={280}
-            value={description}
-            placeholder="Director y subdirector de una IE. No incluye al jefe de gestión."
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </label>
-        <button
-          type="submit"
-          className="btn btn--small btn--primary"
-          disabled={saving || name.trim().length < 2}
-        >
-          {saving ? "Guardando…" : "Declarar"}
-        </button>
-      </form>
 
       {failure && (
-        <p className="resolve__error" role="alert">
+        <p className="decide__failure" role="alert">
           {failure}
         </p>
       )}
-    </div>
+
+      <div className="tray">
+        <div className="tray__main">
+          <div className="card">
+            <div className="card__head">
+              Normalización de nombres
+              <span className="card__count">
+                {done} de {total} decididos
+              </span>
+            </div>
+            {/* La barra mide decisiones tomadas, no texto arreglado: el texto
+                no se puede arreglar acá. */}
+            <div
+              className="progress"
+              role="img"
+              aria-label={`${done} de ${total} nombres decididos, ${percent} por ciento`}
+            >
+              <div className="progress__fill" style={{ width: `${percent}%` }} />
+            </div>
+            <p className="actors__hint">
+              Decidir no cambia el documento. Cada decisión deja un pendiente
+              que se aplica al revisar una reunión futura, así que esto mide
+              criterio tomado, no texto corregido.
+            </p>
+          </div>
+
+          {patterns.map((pattern) => (
+            <div key={pattern.pair.join("|")} className="card">
+              <div className="card__head">
+                Patrón recurrente
+                <span className="card__count">
+                  {pattern.requirements.length} requisitos
+                </span>
+              </div>
+              <p className="actors__hint">
+                «{pattern.pair[0]} o {pattern.pair[1]}» aparece{" "}
+                {pattern.requirements.length} veces. Eso no son{" "}
+                {pattern.requirements.length} descuidos: es un rol que nadie
+                nombró, o son dos historias metidas en una.
+              </p>
+              <div className="actor__reqs">
+                {pattern.requirements.map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className="actor__req"
+                    onClick={() => onOpenRequirement(id)}
+                  >
+                    {id}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="card">
+            <div className="card__head">
+              Sin decidir
+              <span className="card__count">{pending.length}</span>
+            </div>
+            {glossary.length === 0 ? (
+              <p className="actors__hint">
+                Antes de decidir hace falta contra qué comparar. Declará los
+                roles del proyecto en el glosario.
+              </p>
+            ) : pending.length === 0 ? (
+              <p className="actors__hint">
+                No queda ningún nombre sin decidir. Lo que sigue está en los
+                pendientes, y se aplica al revisar la próxima reunión.
+              </p>
+            ) : (
+              <div className="decisions">
+                {pending.map((row) => (
+                  <DecisionCard
+                    key={row.name}
+                    row={row}
+                    glossary={glossary}
+                    saving={saving === row.name}
+                    onRecord={(outcome, role) => record(row, outcome, role)}
+                    onOpenRequirement={onOpenRequirement}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+        <div className="card">
+          <div className="card__head">
+            Pendientes de aplicar
+            <span className="card__count">{todos.length}</span>
+          </div>
+          {todos.length === 0 ? (
+            <p className="actors__hint">
+              Todavía no hay nada que aplicar. Aparece acá a medida que se
+              decide.
+            </p>
+          ) : (
+            <>
+              <p className="actors__hint">
+                Al revisar la próxima reunión, estos requisitos tendrían que
+                quedar con el nombre decidido.
+              </p>
+              <ul className="todos">
+                {todos.map((todo) => (
+                  <li
+                    key={`${todo.requirementId}-${todo.observed}`}
+                    className="todos__item"
+                  >
+                    <button
+                      type="button"
+                      className="actor__req"
+                      onClick={() => onOpenRequirement(todo.requirementId)}
+                    >
+                      {todo.requirementId}
+                    </button>
+                    <span className="todos__what">
+                      dice «{todo.observed}»
+                      {todo.shouldSay &&
+                        ` · debería decir «${todo.shouldSay}»`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+
+          {settled.length > 0 && (
+            <div className="card">
+              <div className="card__head">
+                Ya decididos
+                <span className="card__count">{settled.length}</span>
+              </div>
+              <ul className="settled">
+                {settled.map((row) => (
+                  <li key={row.name} className="settled__item">
+                    <span className="settled__name">{row.name}</span>
+                    <span className="settled__what">
+                      {row.declared
+                        ? "coincide con un rol declarado"
+                        : row.decision?.outcome === "same"
+                          ? `es ${row.decision.role}`
+                          : row.decision?.outcome === "new"
+                            ? "rol propio, ya declarado"
+                            : `actor equivocado${
+                                row.decision?.role
+                                  ? `, sería ${row.decision.role}`
+                                  : ""
+                              }`}
+                    </span>
+                    <span className="settled__uses">
+                      {row.requirements.length}
+                    </span>
+                    {row.decision && (
+                      <button
+                        type="button"
+                        className="glossary__drop"
+                        onClick={() => undo(row.name)}
+                      >
+                        rehacer
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <aside className="tray__rail">
+          <Glossary
+            projectId={projectId}
+            actors={glossary}
+            reach={reach}
+            name={draftName}
+            onName={setDraftName}
+            descriptionRef={descriptionRef}
+            onChange={onGlossaryChange}
+          />
+
+        </aside>
+      </div>
+    </>
   );
 }

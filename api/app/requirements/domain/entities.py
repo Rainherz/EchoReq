@@ -199,6 +199,25 @@ class GlossaryActor:
 
     name: str
     description: str = ""
+    #: No distingue a nadie: aplica a cualquiera. «Usuario» en un requisito de
+    #: sesión no dice quién lo pide, dice que no depende de quién sos. Se
+    #: marca para no comparar su conteo con el de un rol de dominio.
+    transversal: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ActorDecision:
+    """Qué se decidió sobre un nombre de actor del documento.
+
+    Decidir no arregla nada: el texto del requisito sigue diciendo lo que
+    decía. Por eso no hay «resuelto», hay «decidido», y cada decisión deja un
+    pendiente que se aplica al revisar una reunión futura.
+    """
+
+    observed: str
+    outcome: str
+    role: str | None = None
+    note: str = ""
 
 
 @dataclass(frozen=True, slots=True)

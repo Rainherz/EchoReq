@@ -15,6 +15,7 @@ from ...requirements.domain import rules
 from ...requirements.domain.injection import detected
 from ...requirements.domain.slug import slugify
 from ...requirements.domain.entities import (
+    ActorDecision,
     GlossaryActor,
     Participant,
     ChangeProposal,
@@ -155,14 +156,20 @@ class PostgresGlossaryRepository:
         with cursor() as cur:
             cur.execute(
                 """
-                SELECT name, description FROM actor_glossary
-                WHERE project_id = %s ORDER BY lower(name)
+                SELECT name, description, transversal FROM actor_glossary
+                WHERE project_id = %s ORDER BY transversal, lower(name)
                 """,
                 (project_id,),
             )
             return [GlossaryActor(**row) for row in cur.fetchall()]
 
-    def add(self, project_id: str, name: str, description: str) -> GlossaryActor:
+    def add(
+        self,
+        project_id: str,
+        name: str,
+        description: str,
+        transversal: bool = False,
+    ) -> GlossaryActor:
         # Se normaliza al guardar y no al comparar: un punto de más rompía la
         # coincidencia en silencio y quedaba guardado así, marcando «sin usar»
         # para siempre sin decir por qué.
@@ -171,20 +178,103 @@ class PostgresGlossaryRepository:
             with cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO actor_glossary (project_id, name, description)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO actor_glossary
+                        (project_id, name, description, transversal)
+                    VALUES (%s, %s, %s, %s)
                     """,
-                    (project_id, name, description.strip()),
+                    (project_id, name, description.strip(), transversal),
                 )
         except psycopg.errors.UniqueViolation as exc:
             raise DuplicateActor(f"«{name}» ya está en el glosario.") from exc
-        return GlossaryActor(name=name, description=description.strip())
+        return GlossaryActor(
+            name=name, description=description.strip(), transversal=transversal
+        )
+
+    def update(
+        self, project_id: str, name: str, description: str, transversal: bool
+    ) -> GlossaryActor | None:
+        """Corrige un rol ya declarado sin perder su definición.
+
+        Marcarlo transversal sacándolo y volviéndolo a declarar obligaría a
+        retipear la descripción, que es la parte que costó escribir.
+        """
+        with cursor() as cur:
+            cur.execute(
+                """
+                UPDATE actor_glossary
+                SET description = %s, transversal = %s
+                WHERE project_id = %s AND lower(name) = lower(%s)
+                RETURNING name, description, transversal
+                """,
+                (description.strip(), transversal, project_id, name),
+            )
+            row = cur.fetchone()
+        return GlossaryActor(**row) if row else None
 
     def remove(self, project_id: str, name: str) -> bool:
         with cursor() as cur:
             cur.execute(
                 "DELETE FROM actor_glossary WHERE project_id = %s AND lower(name) = lower(%s)",
                 (project_id, name),
+            )
+            return cur.rowcount > 0
+
+
+class PostgresActorDecisionRepository:
+    """Lo decidido sobre cada nombre de actor."""
+
+    def all(self, project_id: str) -> list[ActorDecision]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT observed, outcome, role, note FROM actor_decisions
+                WHERE project_id = %s ORDER BY lower(observed)
+                """,
+                (project_id,),
+            )
+            return [ActorDecision(**row) for row in cur.fetchall()]
+
+    def record(
+        self,
+        project_id: str,
+        observed: str,
+        outcome: str,
+        role: str | None,
+        note: str,
+    ) -> ActorDecision:
+        """Anota la decisión, pisando la anterior sobre el mismo nombre.
+
+        Se puede rehacer: es la postura del equipo sobre su vocabulario, no
+        una observación con hora. Las decisiones de revisión, que sí lo son,
+        llevan un trigger que rechaza UPDATE.
+        """
+        clean_role = rules.normalize_role(role) if role else None
+        with cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO actor_decisions
+                    (project_id, observed, outcome, role, note)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (project_id, lower(observed)) DO UPDATE
+                SET outcome = EXCLUDED.outcome,
+                    role = EXCLUDED.role,
+                    note = EXCLUDED.note,
+                    decided_at = now()
+                """,
+                (project_id, observed.strip(), outcome, clean_role, note.strip()),
+            )
+        return ActorDecision(
+            observed=observed.strip(),
+            outcome=outcome,
+            role=clean_role,
+            note=note.strip(),
+        )
+
+    def forget(self, project_id: str, observed: str) -> bool:
+        with cursor() as cur:
+            cur.execute(
+                "DELETE FROM actor_decisions WHERE project_id = %s AND lower(observed) = lower(%s)",
+                (project_id, observed),
             )
             return cur.rowcount > 0
 

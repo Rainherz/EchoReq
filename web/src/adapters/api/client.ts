@@ -207,6 +207,10 @@ export interface Participant {
 export interface GlossaryActor {
   name: string;
   description: string;
+  /** No distingue a nadie: aplica a cualquiera. «Usuario» en un requisito de
+      sesión no dice quién lo pide, dice que no depende de quién sos. Se marca
+      para no comparar su conteo con el de un rol de dominio. */
+  transversal: boolean;
 }
 
 export const fetchGlossary = (projectId: string): Promise<GlossaryActor[]> =>
@@ -216,11 +220,23 @@ export const addGlossaryActor = (
   projectId: string,
   name: string,
   description: string,
+  transversal = false,
 ): Promise<GlossaryActor> =>
   request<GlossaryActor>(`/projects/${projectId}/glossary`, {
     method: "POST",
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name, description, transversal }),
   });
+
+export const updateGlossaryActor = (
+  projectId: string,
+  name: string,
+  description: string,
+  transversal: boolean,
+): Promise<GlossaryActor> =>
+  request<GlossaryActor>(
+    `/projects/${projectId}/glossary/${encodeURIComponent(name)}`,
+    { method: "PUT", body: JSON.stringify({ description, transversal }) },
+  );
 
 export const removeGlossaryActor = (
   projectId: string,
@@ -228,6 +244,50 @@ export const removeGlossaryActor = (
 ): Promise<void> =>
   request<void>(
     `/projects/${projectId}/glossary/${encodeURIComponent(name)}`,
+    { method: "DELETE" },
+  );
+
+/** Qué se decidió sobre un nombre de actor del documento.
+
+    Decidir no arregla nada: el requisito sigue diciendo lo que decía y el log
+    es inmutable. Por eso no hay «resuelto», hay «decidido», y cada decisión
+    deja un pendiente que se aplica al revisar una reunión futura. */
+export type ActorOutcome = "same" | "new" | "wrong";
+
+export interface ActorDecision {
+  /** El nombre tal como aparece escrito en los requisitos. */
+  observed: string;
+  outcome: ActorOutcome;
+  /** El rol que rige. Obligatorio para «same». */
+  role: string | null;
+  note: string;
+}
+
+export const fetchActorDecisions = (
+  projectId: string,
+): Promise<ActorDecision[]> =>
+  request<ActorDecision[]>(`/projects/${projectId}/actor-decisions`);
+
+export const recordActorDecision = (
+  projectId: string,
+  decision: {
+    observed: string;
+    outcome: ActorOutcome;
+    role?: string | null;
+    note?: string;
+  },
+): Promise<ActorDecision> =>
+  request<ActorDecision>(`/projects/${projectId}/actor-decisions`, {
+    method: "PUT",
+    body: JSON.stringify(decision),
+  });
+
+export const forgetActorDecision = (
+  projectId: string,
+  observed: string,
+): Promise<void> =>
+  request<void>(
+    `/projects/${projectId}/actor-decisions/${encodeURIComponent(observed)}`,
     { method: "DELETE" },
   );
 

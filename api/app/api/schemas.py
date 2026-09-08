@@ -72,11 +72,36 @@ class ParticipantIn(Schema):
 class GlossaryActorOut(Schema):
     name: str
     description: str = ""
+    transversal: bool = False
 
 
 class GlossaryActorIn(Schema):
     name: str = Field(min_length=2, max_length=60)
     description: str = Field(default="", max_length=280)
+    #: No distingue a nadie: aplica a cualquiera.
+    transversal: bool = False
+
+
+class GlossaryActorPatch(Schema):
+    description: str = Field(default="", max_length=280)
+    transversal: bool = False
+
+
+class ActorDecisionOut(Schema):
+    observed: str
+    outcome: str
+    role: str | None = None
+    note: str = ""
+
+
+class ActorDecisionIn(Schema):
+    observed: str = Field(min_length=2, max_length=80)
+    #: «same» es el mismo rol escrito distinto, «new» un rol propio que
+    #: faltaba declarar, «wrong» un requisito que nombra a quien no
+    #: corresponde. Las tres contestan «qué representa este nombre».
+    outcome: Literal["same", "new", "wrong"]
+    role: str | None = Field(default=None, max_length=60)
+    note: str = Field(default="", max_length=280)
 
 
 class MeetingOut(Schema):
