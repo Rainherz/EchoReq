@@ -193,6 +193,10 @@ export interface Participant {
   id: string;
   displayName: string;
   role: string;
+  /** Arbitra los desacuerdos: es quien ve y usa Concordancia. Sale de una
+      columna propia y no de `role`, que es texto descriptivo que alguien
+      tipea —conviven «analista» y «Analista» en la misma base. */
+  isLead: boolean;
   /** Decisiones ya registradas, en todos los proyectos. */
   decisions: number;
   createdAt?: string | null;

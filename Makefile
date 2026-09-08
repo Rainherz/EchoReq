@@ -61,6 +61,9 @@ api: db ## Levanta la API en :8010
 web: ## Levanta la interfaz en :5180
 	cd web && pnpm dev
 
+test: ## Reglas de calidad del dominio · pytest
+	cd api && ../$(PY) -m pytest tests/ -q
+
 check: ## Tipos, linter y build de la interfaz
 	cd web && pnpm exec tsc --noEmit && pnpm exec oxlint src && pnpm build
 

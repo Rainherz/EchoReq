@@ -176,6 +176,10 @@ class Participant:
     id: str
     display_name: str
     role: str
+    #: Arbitra los desacuerdos. `role` es texto descriptivo que alguien tipea
+    #: —conviven «analista» y «Analista»—, así que el permiso no puede salir
+    #: de compararlo: sale de su propia columna.
+    is_lead: bool = False
     #: Decisiones que ya registró, en todos los proyectos.
     decisions: int = 0
     created_at: datetime | None = None

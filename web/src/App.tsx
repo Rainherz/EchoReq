@@ -213,6 +213,11 @@ function ProjectApp({
   setMeetingId,
 }: ProjectAppProps) {
   const projectId = project.id;
+  // Quién arbitra. Sale de su propia columna y no de comparar `role`, que es
+  // texto descriptivo que alguien tipea: en la misma base conviven «analista»
+  // y «Analista», y un permiso colgado de eso dependería de una mayúscula.
+  const isLead =
+    allParticipants.find((person) => person.id === participantId)?.isLead ?? false;
 
   // El routing por hash evita que un refresh saque al revisor de su pantalla
   // en medio de la cola.
@@ -389,6 +394,7 @@ function ProjectApp({
       onNavigate={(section) => navigate(section)}
       onLeaveProject={onLeave}
       identity={identity}
+      isLead={isLead}
       pendingReview={selected?.pendingProposals ?? 0}
       meetingCount={meetings.data?.length ?? 0}
       discoveryMeeting={selected?.mode === "discovery"}
@@ -549,19 +555,48 @@ function ProjectApp({
               />
             )}
 
-            {route.section === "agreement" && (
-              <AgreementScreen
-                projectId={projectId}
-                participants={allParticipants}
-                resolvedBy={participantId}
-              />
-            )}
+            {route.section === "agreement" &&
+              (isLead ? (
+                <AgreementScreen
+                  projectId={projectId}
+                  participants={allParticipants}
+                  resolvedBy={participantId}
+                />
+              ) : (
+                <NotForYou onGo={() => navigate("review")} />
+              ))}
 
             {route.section === "export" && <ExportScreen projectId={projectId} />}
           </>
         )}
       </AsyncBoundary>
     </AppShell>
+  );
+}
+
+/**
+ * Concordancia mirada por alguien que no arbitra.
+ *
+ * No alcanza con sacarla del menú: la ruta va en el hash y un refresh o un
+ * enlace pegado la abriría igual. Y en vez de redirigir en silencio, dice qué
+ * pasó: que la pantalla exista y no sea tuya es información, esconderla haría
+ * pensar en una falla.
+ */
+function NotForYou({ onGo }: { onGo: () => void }) {
+  return (
+    <div className="card">
+      <div className="card__head">Concordancia la lleva el jefe de analistas</div>
+      <p style={{ margin: "0 0 .9rem", maxWidth: "68ch", lineHeight: 1.6 }}>
+        Consolidar no es una decisión del revisor: es la postura del equipo
+        sobre su propio documento, y quien llega segundo no puede hacer regir
+        su propia versión sobre la del otro. La pantalla además muestra el
+        texto que dejó cada uno, y leerlo daría calibración para la reunión
+        siguiente. Tus decisiones siguen siendo tuyas y quedan como están.
+      </p>
+      <button type="button" className="btn btn--small" onClick={onGo}>
+        Ir a Revisión
+      </button>
+    </div>
   );
 }
 

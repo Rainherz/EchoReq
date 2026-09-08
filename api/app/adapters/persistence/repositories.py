@@ -154,7 +154,7 @@ class PostgresParticipantRepository:
         with cursor() as cur:
             cur.execute(
                 """
-                SELECT p.id, p.display_name, p.role, p.created_at,
+                SELECT p.id, p.display_name, p.role, p.is_lead, p.created_at,
                        (SELECT count(*) FROM review_decisions d
                          WHERE d.participant_id = p.id) AS decisions
                 FROM participants p

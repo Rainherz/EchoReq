@@ -58,6 +58,8 @@ class ParticipantOut(Schema):
     id: str
     display_name: str
     role: str
+    #: Arbitra los desacuerdos: es quien ve y usa Concordancia.
+    is_lead: bool = False
     decisions: int
     created_at: datetime | None = None
 

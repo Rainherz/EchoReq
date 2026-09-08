@@ -25,18 +25,73 @@ _USER_STORY = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
+#: La acción pedida: lo que va entre «quiero» y el «para» del beneficio. El
+#: beneficio queda afuera a propósito —«para mantener el padrón» describe por
+#: qué se pide, no una obligación más.
+_WANT_CLAUSE = re.compile(
+    r"\bquiero\s+(.+?)(?:,\s*para\b|$)", re.IGNORECASE | re.DOTALL
+)
+
+#: Cabeza de acción: un infinitivo («registrar»), o una subordinada impersonal
+#: («que se bloquee», «que el sistema notifique»), que es como el español
+#: expresa una obligación sin nombrar al ejecutor.
+_ACTION_HEAD = re.compile(
+    r"^(?:que\s+(?:se\b|el\s+sistema\b)|\w+(?:ar|er|ir)\b)", re.IGNORECASE
+)
+
+
+def count_actions(text: str) -> int:
+    """Acciones coordinadas dentro de la cláusula «quiero …».
+
+    «registrar, editar y dar de baja» son tres obligaciones, no una. Es la
+    violación canónica de atomicidad en QUS y la que más aparece cuando un
+    requisito acumula alcance reunión a reunión.
+
+    El corte por comas también parte las enumeraciones de campos, así que se
+    cuenta sólo el tramo inicial: los verbos coordinados van juntos a la
+    cabeza de la cláusula, y la lista de campos viene después. Al primer
+    fragmento que no es una acción se corta.
+
+    Contarlos sueltos por todo el texto no alcanza, porque el español tiene
+    sustantivos que terminan como un infinitivo: en «DNI, nombre, correo,
+    celular y permisos», la palabra «celular» pasaría por verbo y sumaría una
+    responsabilidad que nadie pidió.
+    """
+    clause = _WANT_CLAUSE.search(text)
+    if clause is None:
+        return 0
+    actions = 0
+    for fragment in re.split(r",|\sy\s", clause.group(1)):
+        if not _ACTION_HEAD.match(fragment.strip()):
+            break
+        actions += 1
+    return actions
+
 
 def estimate_responsibilities(text: str) -> int:
     """Cuenta obligaciones distintas empaquetadas en un requisito.
 
-    Heurística provisional: oraciones más los marcadores de subordinada que
-    el español usa para colgar comportamiento extra sobre una historia ya
-    existente. Alcanza para exponer la deriva de atomicidad que mide el
-    estudio; el motor de reglas QUS completo la reemplaza.
+    Tres sumandos: oraciones, los marcadores de subordinada que el español
+    usa para colgar comportamiento extra, y las acciones coordinadas de más
+    dentro de la cláusula «quiero …».
+
+    El tercero no estaba y dejaba la métrica ciega. Contra requisitos reales
+    en español —historias de una sola oración, sin ninguno de los marcadores—
+    la cuenta daba uno siempre, por construcción: un requisito con tres
+    verbos y once campos puntuaba igual que uno atómico. La línea plana de H1
+    no decía que el documento fuera atómico, decía que el instrumento no veía.
+
+    De las acciones se descuenta una: la primera ya está contada como la
+    oración que la contiene. Sumarlas todas contaría dos veces la misma.
+
+    Sigue siendo una heurística. Ve acciones coordinadas; no ve la
+    responsabilidad múltiple semántica —«gestionar el padrón» es un CRUD
+    entero detrás de un verbo— y ninguna regla de texto la va a ver.
     """
     sentences = len([part for part in re.split(r"(?<=\.)\s+", text.strip()) if part])
     extra = sum(len(re.findall(marker, text, re.IGNORECASE)) for marker in _CLAUSE_MARKERS)
-    return sentences + extra
+    actions = count_actions(text)
+    return sentences + extra + max(0, actions - 1)
 
 
 def is_well_formed(text: str) -> bool:

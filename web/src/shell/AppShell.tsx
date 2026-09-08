@@ -69,6 +69,9 @@ interface AppShellProps {
   toolbar?: ReactNode;
   /** Quién revisa. Siempre a la vista: cada decisión se le atribuye. */
   identity?: ReactNode;
+  /** Arbitra los desacuerdos. Concordancia es su pantalla y de nadie más:
+      además de consolidar, ahí se ve el texto que dejó el otro revisor. */
+  isLead?: boolean;
   children: ReactNode;
 }
 
@@ -83,6 +86,7 @@ export function AppShell({
   meetingCount = 0,
   toolbar,
   identity,
+  isLead = false,
   children,
 }: AppShellProps) {
   const PROJECT_NAV = projectNav({
@@ -133,7 +137,7 @@ export function AppShell({
           <span className="sidebar__group">Proyecto</span>
           {renderNav(PROJECT_NAV)}
           <span className="sidebar__group">Estudio</span>
-          {renderNav(STUDY_NAV)}
+          {renderNav(STUDY_NAV.filter((entry) => entry.id !== "agreement" || isLead))}
         </nav>
 
         <main className="main">{children}</main>
