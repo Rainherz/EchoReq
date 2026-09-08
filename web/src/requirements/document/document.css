@@ -214,3 +214,22 @@
     grid-column: 2;
   }
 }
+
+/* La revisión que se está viendo es el dato central de esta pantalla, y se
+   iba de vista a los tres renglones de scroll: la lista es larga y quien
+   bajaba perdía de vista qué momento del documento estaba leyendo. Sólo la
+   cabecera de la pantalla, no la de la tarjeta —esa acompaña a su contenido. */
+.document > .screen__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 0;
+  padding: 0.35rem 0 0.6rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  /* El contenedor de scroll tiene padding propio, así que `top: 0` fija la
+     cabecera un centímetro por debajo del borde real y por esa franja se ve
+     pasar el texto. La sombra sólida pinta esa franja del color del fondo:
+     tapa sin mover nada de lugar. */
+  box-shadow: 0 -1rem 0 var(--bg);
+}
