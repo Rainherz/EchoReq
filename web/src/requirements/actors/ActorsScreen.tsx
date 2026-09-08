@@ -234,13 +234,13 @@ function ActorMap({
   // Nombres que empiezan igual: «especialista» y «especialista de la UGEL».
   // Es la forma que toma el vocabulario cuando se desparrama reunión a
   // reunión, y es lo único que se puede detectar sin juicio de dominio.
-  const variantes = actors.filter((actor) =>
-    actors.some(
+  const solapesDe = (actor: Actor) =>
+    actors.filter(
       (otro) =>
         otro !== actor &&
         otro.name.toLowerCase().startsWith(`${actor.name.toLowerCase()} `),
-    ),
-  );
+    );
+  const variantes = actors.filter((actor) => solapesDe(actor).length > 0);
 
   return (
     <>
@@ -328,10 +328,22 @@ function ActorMap({
           diccionario de alias que dejaría el documento diciendo lo que no
           quiere decir.
         </p>
+        {/* Sin marca es el caso bueno y por eso no se dibuja: una lista donde
+            cada fila lleva una etiqueta no distingue nada. */}
+        <p className="actors__hint">
+          Un actor sin marca coincide con un rol declarado.{" "}
+          <span className="tag tag--hint">parece Docente</span> se parece a uno
+          que ya declaraste,{" "}
+          <span className="tag">sin definir</span> no se parece a ninguno y hay
+          que decidirlo, y{" "}
+          <span className="tag tag--warn">solapa con …</span> avisa que otro
+          actor de esta misma lista empieza igual. Las dos preguntas son
+          independientes: un rol puede estar declarado y solaparse igual.
+        </p>
 
         <ul className="actors__list">
           {actors.map((actor) => {
-            const variante = variantes.includes(actor);
+            const solapes = solapesDe(actor);
             return (
               <li key={actor.name} className="actor">
                 <div className="actor__head">
@@ -359,8 +371,11 @@ function ActorMap({
                       </button>
                     </>
                   )}
-                  {variante && (
-                    <span className="tag tag--warn">nombre solapado</span>
+                  {solapes.length > 0 && (
+                    <span className="tag tag--warn">
+                      solapa con {solapes[0].name}
+                      {solapes.length > 1 && ` y ${solapes.length - 1} más`}
+                    </span>
                   )}
                 </div>
                 <div className="actor__reqs">
@@ -496,7 +511,7 @@ function Glossary({
             <li key={actor.name} className="glossary__item">
               <span className="glossary__name">{actor.name}</span>
               {sinUsar.has(actor.name.toLowerCase()) && (
-                <span className="tag">sin usar</span>
+                <span className="tag">ningún requisito lo usa</span>
               )}
               {actor.description && (
                 <span className="glossary__desc">{actor.description}</span>
