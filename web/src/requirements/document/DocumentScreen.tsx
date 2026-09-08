@@ -6,6 +6,7 @@ import {
 } from "../../adapters/api/client";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
+import { LockedByProgress } from "../../shell/LockedByProgress";
 import { RequirementTable } from "./components/RequirementTable";
 import { RequirementHistory } from "./components/RequirementHistory";
 import { ATOMIC_LIMIT } from "./components/ClauseMeter";
@@ -15,8 +16,14 @@ interface DocumentScreenProps {
   projectId: string;
   /** Hasta dónde llega el documento: la iteración de la reunión elegida en la
       barra. Estando en la reunión 1 el documento no pasa de la revisión 1;
-      las que vienen después son el futuro de esa reunión. */
+      las que vienen después son el futuro de esa reunión.
+
+      Vale cero cuando quien mira todavía no terminó ninguna reunión: ahí el
+      documento no se abre. */
   upToRevision: number;
+  /** Reunión donde le quedan propuestas sin decidir, si le quedan. */
+  blockedAt: number | null;
+  onGoReview: () => void;
   meetingLabels: Record<string, string>;
   /** Requisito a abrir al entrar, si la ruta lo trae. */
   focusRequirementId?: string | null;
@@ -33,6 +40,8 @@ interface DocumentScreenProps {
 export function DocumentScreen({
   projectId,
   upToRevision,
+  blockedAt,
+  onGoReview,
   meetingLabels,
   focusRequirementId = null,
 }: DocumentScreenProps) {
@@ -54,7 +63,10 @@ export function DocumentScreen({
   const selectedId = picked ?? focusRequirementId;
 
   const document = useResource(
-    useCallback(() => fetchDocument(projectId, revision), [projectId, revision]),
+    useCallback(
+      () => (revision < 1 ? Promise.resolve([]) : fetchDocument(projectId, revision)),
+      [projectId, revision],
+    ),
     [projectId, revision],
   );
   const revisions = useResource(
@@ -99,6 +111,21 @@ export function DocumentScreen({
   const revisionLanded = (revisions.data ?? []).some(
     (row) => row.revision === revision,
   );
+
+  if (upToRevision < 1) {
+    return (
+      <div className="document">
+        <div className="screen__head">
+          <span className="screen__title">Especificación</span>
+        </div>
+        <LockedByProgress
+          blockedAt={blockedAt}
+          what="La especificación"
+          onGo={onGoReview}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="document">

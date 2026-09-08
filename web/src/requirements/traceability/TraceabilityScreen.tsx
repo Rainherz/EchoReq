@@ -8,6 +8,7 @@ import {
 } from "../../adapters/api/client";
 import { useResource } from "../../adapters/api/useResource";
 import { AsyncBoundary } from "../../shell/AsyncBoundary";
+import { LockedByProgress } from "../../shell/LockedByProgress";
 import { ATOMIC_LIMIT } from "../document/components/ClauseMeter";
 import "./traceability.css";
 
@@ -30,7 +31,11 @@ interface TraceabilityScreenProps {
   projectId: string;
   /** Quién revisa: las decisiones son por persona. */
   participantId: string;
+  /** Tope de lectura: la última reunión que esta persona terminó de decidir.
+      Cero mientras no haya terminado ninguna. */
   currentRevision: number;
+  blockedAt: number | null;
+  onGoReview: () => void;
   meetingDates: Record<number, string>;
   /** Abre la historia del requisito en Documento. */
   onOpenRequirement: (requirementId: string) => void;
@@ -53,15 +58,25 @@ export function TraceabilityScreen({
   projectId,
   participantId,
   currentRevision,
+  blockedAt,
+  onGoReview,
   meetingDates,
   onOpenRequirement,
 }: TraceabilityScreenProps) {
   const resource = useResource<MatrixData>(
     useCallback(
       async () => ({
-        revisions: await fetchRevisions(projectId),
+        // El log viene entero y hay que recortarlo acá: las filas salen de
+        // los identificadores que aparecen en él, así que sin el recorte la
+        // matriz lista requisitos de revisiones que esta persona todavía no
+        // puede ver —con las celdas vacías, pero listados.
+        revisions: (await fetchRevisions(projectId)).filter(
+          (row) => row.revision <= currentRevision,
+        ),
         snapshots: await fetchDocumentSnapshots(projectId, currentRevision),
-        rejections: await fetchRejections(projectId, participantId),
+        rejections: (await fetchRejections(projectId, participantId)).filter(
+          (row) => row.iteration <= currentRevision,
+        ),
       }),
       [projectId, currentRevision],
     ),
@@ -69,6 +84,21 @@ export function TraceabilityScreen({
   );
 
   const columns = Array.from({ length: currentRevision }, (_, i) => i + 1);
+
+  if (currentRevision < 1) {
+    return (
+      <div className="trace">
+        <div className="screen__head">
+          <span className="screen__title">Matriz de trazabilidad</span>
+        </div>
+        <LockedByProgress
+          blockedAt={blockedAt}
+          what="La matriz"
+          onGo={onGoReview}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="trace">

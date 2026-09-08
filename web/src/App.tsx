@@ -248,11 +248,25 @@ function ProjectApp({
   }, [meetings.data, meetingId]);
 
   const iteration = selected?.iteration ?? 1;
-  const currentRevision = Math.max(
-    1,
-    ...(meetings.data ?? []).map((m) => m.iteration),
-  );
 
+  // Hasta dónde puede leer el documento esta persona: la última reunión que
+  // terminó de decidir. El documento es uno solo para el proyecto y avanza
+  // con las decisiones del que llega primero, así que leer más adelante es
+  // ver —ya redactadas por el otro revisor— las propuestas que todavía tiene
+  // que juzgar. Dos series que se leyeron entre sí dejan de ser
+  // independientes, y la concordancia entre ellas mide copia, no acuerdo.
+  const progress = useMemo(() => {
+    let through = 0;
+    let blockedAt: number | null = null;
+    for (const meeting of meetings.data ?? []) {
+      if (meeting.pendingProposals > 0) {
+        blockedAt = meeting.iteration;
+        break;
+      }
+      through = meeting.iteration;
+    }
+    return { through, blockedAt };
+  }, [meetings.data]);
   const meetingLabels = useMemo(
     () => Object.fromEntries((meetings.data ?? []).map((m) => [m.id, m.label])),
     [meetings.data],
@@ -508,7 +522,9 @@ function ProjectApp({
             {route.section === "document" && (
               <DocumentScreen
                 projectId={projectId}
-                upToRevision={iteration}
+                upToRevision={Math.min(iteration, progress.through)}
+                blockedAt={progress.blockedAt}
+                onGoReview={() => navigate("review")}
                 meetingLabels={meetingLabels}
                 focusRequirementId={route.focus}
               />
@@ -518,7 +534,9 @@ function ProjectApp({
               <TraceabilityScreen
                 projectId={projectId}
                 participantId={participantId}
-                currentRevision={currentRevision}
+                currentRevision={progress.through}
+                blockedAt={progress.blockedAt}
+                onGoReview={() => navigate("review")}
                 meetingDates={meetingDates}
                 onOpenRequirement={(id) => navigate("document", id)}
               />
