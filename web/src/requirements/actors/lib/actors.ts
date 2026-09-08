@@ -161,3 +161,69 @@ export function recurringPairs(entries: DocumentEntry[]): Pattern[] {
     .filter((pattern) => pattern.requirements.length >= 3)
     .sort((a, b) => b.requirements.length - a.requirements.length);
 }
+
+/**
+ * El rol que rige para un nombre escrito en un requisito.
+ *
+ * Un nombre declarado se representa a sí mismo. Uno decidido apunta al rol
+ * que se resolvió. Uno sin decidir todavía no tiene rol: devuelve nulo en vez
+ * de inventarle uno, porque una tabla que muestra un rol que nadie decidió
+ * dice más de lo que sabe.
+ */
+export function effectiveRole(
+  name: string,
+  glossary: GlossaryActor[],
+  decisions: ActorDecision[],
+): string | null {
+  const key = name.toLowerCase();
+  const declared = glossary.find((role) => role.name.toLowerCase() === key);
+  if (declared) return declared.name;
+  const decided = decisions.find(
+    (decision) => decision.observed.toLowerCase() === key,
+  );
+  return decided?.role ?? null;
+}
+
+/** Lo que el requisito pide, en corto: lo que va entre «quiero» y el «para»
+    del beneficio. El beneficio explica por qué se pide, no qué se hace. */
+export function functionLabel(content: string): string {
+  const clause = /\bquiero\s+(.+?)(?:,\s*para\b|$)/is.exec(content);
+  const text = (clause?.[1] ?? content).replace(/\s+/g, " ").trim();
+  return text.replace(/\.$/, "");
+}
+
+export interface FunctionRow {
+  requirementId: string;
+  label: string;
+  /** Los roles que participan, sin repetir. Un requisito que nombra
+      «directivo o subdirector» y resuelve los dos al mismo rol lo cuenta una
+      vez: es una función, no dos. */
+  roles: string[];
+  /** Nombres cuyo rol todavía no se decidió. */
+  undecided: string[];
+}
+
+/** Qué función pide cada requisito y qué roles la comparten. */
+export function functionRows(
+  entries: DocumentEntry[],
+  glossary: GlossaryActor[],
+  decisions: ActorDecision[],
+): FunctionRow[] {
+  return entries
+    .map((entry): FunctionRow => {
+      const roles = new Set<string>();
+      const undecided: string[] = [];
+      for (const name of entry.actors ?? []) {
+        const role = effectiveRole(name, glossary, decisions);
+        if (role) roles.add(role);
+        else undecided.push(name);
+      }
+      return {
+        requirementId: entry.requirementId,
+        label: functionLabel(entry.content),
+        roles: [...roles],
+        undecided,
+      };
+    })
+    .sort((a, b) => a.requirementId.localeCompare(b.requirementId));
+}

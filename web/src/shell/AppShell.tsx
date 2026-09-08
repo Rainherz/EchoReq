@@ -9,6 +9,7 @@ export type Section =
   | "traceability"
   | "iterations"
   | "actors"
+  | "functions"
   | "agreement"
   | "export";
 
@@ -40,6 +41,7 @@ function projectNav(counts: NavCounts): NavEntry[] {
     { id: "review", label: "Revisión", count: counts.pendingReview },
     { id: "document", label: "Documento" },
     { id: "actors", label: "Actores" },
+    { id: "functions", label: "Funciones" },
     { id: "traceability", label: "Trazabilidad" },
   ];
 }

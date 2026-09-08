@@ -1,0 +1,137 @@
+/* Matriz de funciones: qué pide cada rol, y qué piden varios.
+
+   Es una tabla y no una lista por rol a propósito. La lista esconde el
+   solapamiento —hay que notar que el mismo requisito aparece en dos bloques
+   distintos—; acá una fila con dos marcas se ve de una. */
+
+.functions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.functions__hint {
+  margin: 0 0 0.9rem;
+  max-width: 78ch;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* La matriz crece a lo ancho con cada rol nuevo. Scrollea adentro de su
+   caja: dejar que empuje la página haría scrollear el documento entero de
+   costado para leer una columna. */
+.functions__scroll {
+  overflow-x: auto;
+  margin: 0 -0.2rem;
+  padding: 0 0.2rem;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.grid th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--card);
+  text-align: left;
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.5rem 0.6rem 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: bottom;
+}
+
+/* Los nombres de rol se escriben enteros y en vertical no: rotarlos ahorra
+   ancho y obliga a ladear la cabeza para leer siete etiquetas. */
+.grid__role {
+  min-width: 5.5rem;
+  text-align: center;
+}
+
+.grid__roleName {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--f-body);
+  font-size: 0.74rem;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.grid__roleCount {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--faint);
+}
+
+.grid td {
+  padding: 0.5rem 0.6rem 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.grid__row:hover > td {
+  background: var(--hover);
+}
+
+/* Banda neutra, no ámbar. Una función que hacen dos roles no es un problema
+   —que el directivo y el especialista registren la misma ficha es real— y
+   pintarla de advertencia acusaría a diez filas de veintitrés de algo que no
+   pasa. Lo que hace falta es verlas agrupadas, no alarmarse.
+
+   Y el fondo no porta la señal solo: la fila lleva dos marcas en vez de una,
+   y la cuenta está escrita arriba. */
+.grid__row--shared > td {
+  background: var(--sunken);
+}
+
+.grid__row--shared:hover > td {
+  background: var(--hover);
+}
+
+.grid__label {
+  max-width: 46ch;
+  line-height: 1.5;
+}
+
+.grid__cell {
+  text-align: center;
+}
+
+.grid__dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.functions__orphans {
+  list-style: none;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.functions__orphans li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.functions__orphanWho {
+  font-size: 0.8rem;
+  color: var(--muted);
+}

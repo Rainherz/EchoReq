@@ -1,0 +1,309 @@
+import { useCallback } from "react";
+import {
+  fetchActorDecisions,
+  fetchDocument,
+  fetchGlossary,
+} from "../../adapters/api/client";
+import type { ActorDecision, GlossaryActor } from "../../adapters/api/client";
+import type { DocumentEntry } from "../domain/document";
+import { useResource } from "../../adapters/api/useResource";
+import { AsyncBoundary } from "../../shell/AsyncBoundary";
+import { LockedByProgress } from "../../shell/LockedByProgress";
+import { functionRows } from "../actors/lib/actors";
+import type { FunctionRow } from "../actors/lib/actors";
+import "./functions.css";
+
+interface FunctionsScreenProps {
+  projectId: string;
+  upToRevision: number;
+  readableRevision: number;
+  blockedAt: number | null;
+  onGoReview: () => void;
+  onGoActors: () => void;
+  onOpenRequirement: (requirementId: string) => void;
+}
+
+/**
+ * Qué pide cada rol, y qué piden varios.
+ *
+ * Una fila por requisito, una columna por rol. La lista por rol esconde el
+ * solapamiento —hay que notar que el mismo requisito aparece en dos bloques
+ * distintos—; la matriz lo muestra de una: cualquier fila con dos marcas es
+ * una función compartida, que es la pregunta que originó esta pantalla.
+ *
+ * Sólo es legible después de normalizar. Con los quince nombres crudos serían
+ * quince columnas de las cuales tres son la misma persona.
+ */
+export function FunctionsScreen({
+  projectId,
+  upToRevision,
+  readableRevision,
+  blockedAt,
+  onGoReview,
+  onGoActors,
+  onOpenRequirement,
+}: FunctionsScreenProps) {
+  const document = useResource(
+    useCallback(
+      () =>
+        readableRevision < 1
+          ? Promise.resolve([] as DocumentEntry[])
+          : fetchDocument(projectId, readableRevision),
+      [projectId, readableRevision],
+    ),
+    [projectId, readableRevision],
+  );
+  const glossary = useResource(
+    useCallback(() => fetchGlossary(projectId), [projectId]),
+    [projectId],
+  );
+  const decisions = useResource(
+    useCallback(() => fetchActorDecisions(projectId), [projectId]),
+    [projectId],
+  );
+
+  if (upToRevision < 1) {
+    return (
+      <div className="functions">
+        <div className="screen__head">
+          <span className="screen__title">Funciones</span>
+        </div>
+        <LockedByProgress
+          blockedAt={blockedAt}
+          what="La matriz de funciones"
+          onGo={onGoReview}
+        />
+      </div>
+    );
+  }
+
+  // Las tres fuentes se esperan juntas: una matriz a la que le falta el
+  // glosario dibuja columnas vacías como si nadie pidiera nada.
+  const failure = document.error ?? glossary.error ?? decisions.error;
+  if (failure !== null) {
+    return (
+      <div className="functions">
+        <div className="screen__head">
+          <span className="screen__title">Funciones</span>
+        </div>
+        <div className="card">
+          <div className="card__head">No se pudo cargar</div>
+          <p style={{ margin: "0 0 .7rem", fontSize: ".88rem", lineHeight: 1.55 }}>
+            {failure}
+          </p>
+          <button
+            type="button"
+            className="btn btn--small"
+            onClick={() => {
+              document.reload();
+              glossary.reload();
+              decisions.reload();
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="functions">
+      <AsyncBoundary resource={document}>
+        {(entries) => (
+          <Matrix
+            entries={entries}
+            glossary={glossary.data ?? []}
+            decisions={decisions.data ?? []}
+            onGoActors={onGoActors}
+            onOpenRequirement={onOpenRequirement}
+          />
+        )}
+      </AsyncBoundary>
+    </div>
+  );
+}
+
+function Matrix({
+  entries,
+  glossary,
+  decisions,
+  onGoActors,
+  onOpenRequirement,
+}: {
+  entries: DocumentEntry[];
+  glossary: GlossaryActor[];
+  decisions: ActorDecision[];
+  onGoActors: () => void;
+  onOpenRequirement: (requirementId: string) => void;
+}) {
+  const rows = functionRows(entries, glossary, decisions);
+
+  // Columnas: los roles que alguien pide, de más a menos. Los transversales
+  // van al final —no distinguen a nadie, así que ordenarlos por cantidad los
+  // pondría a competir con los de dominio.
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    for (const role of row.roles) {
+      counts.set(role, (counts.get(role) ?? 0) + 1);
+    }
+  }
+  const isTransversal = (role: string) =>
+    glossary.find((r) => r.name === role)?.transversal ?? false;
+  const roles = [...counts.keys()].sort((a, b) => {
+    if (isTransversal(a) !== isTransversal(b)) return isTransversal(a) ? 1 : -1;
+    return (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b);
+  });
+
+  const shared = rows.filter((row) => row.roles.length > 1);
+  const orphan = rows.filter((row) => row.roles.length === 0);
+
+  if (roles.length === 0) {
+    return (
+      <>
+        <div className="screen__head">
+          <span className="screen__title">Funciones</span>
+        </div>
+        <div className="card">
+          <div className="card__head">Todavía no hay roles resueltos</div>
+          <p style={{ margin: "0 0 .9rem", maxWidth: "68ch", lineHeight: 1.6 }}>
+            La matriz cruza requisitos contra roles, y los roles salen del
+            glosario y de lo que se haya decidido sobre cada nombre. Sin eso
+            serían tantas columnas como formas de escribir hay en el
+            documento, y varias serían la misma persona.
+          </p>
+          <button type="button" className="btn btn--small" onClick={onGoActors}>
+            Ir a Actores
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="screen__head">
+        <span className="screen__title">Funciones</span>
+        <span className="screen__meta">
+          {rows.length} requisitos · {roles.length} roles · {shared.length}{" "}
+          compartidas
+        </span>
+      </div>
+
+      <div className="card">
+        <div className="card__head">
+          Quién puede hacer qué
+          <span className="card__count">una marca por rol que participa</span>
+        </div>
+        <p className="functions__hint">
+          Cada fila es una función que pide el cliente. Una fila con dos marcas
+          es una función que hacen dos roles distintos: son{" "}
+          <strong>{shared.length} de {rows.length}</strong>.
+        </p>
+
+        <div className="functions__scroll">
+          <table className="grid">
+            <caption className="sr-only">
+              Requisitos en las filas, roles en las columnas. Una marca indica
+              que ese rol pide esa función.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Requisito</th>
+                <th scope="col">Función</th>
+                {roles.map((role) => (
+                  <th key={role} scope="col" className="grid__role">
+                    <span className="grid__roleName">{role}</span>
+                    <span className="grid__roleCount">{counts.get(role)}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <Row
+                  key={row.requirementId}
+                  row={row}
+                  roles={roles}
+                  onOpen={() => onOpenRequirement(row.requirementId)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {orphan.length > 0 && (
+        <div className="card">
+          <div className="card__head">
+            Sin rol resuelto
+            <span className="card__count">{orphan.length}</span>
+          </div>
+          <p className="functions__hint">
+            Estos requisitos nombran actores que todavía no se decidieron, así
+            que no aparecen en ninguna columna. La matriz los deja afuera en vez
+            de inventarles un rol.
+          </p>
+          <ul className="functions__orphans">
+            {orphan.map((row) => (
+              <li key={row.requirementId}>
+                <button
+                  type="button"
+                  className="actor__req"
+                  onClick={() => onOpenRequirement(row.requirementId)}
+                >
+                  {row.requirementId}
+                </button>
+                <span className="functions__orphanWho">
+                  {row.undecided.join(" · ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="btn btn--small" onClick={onGoActors}>
+            Ir a decidirlos
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Row({
+  row,
+  roles,
+  onOpen,
+}: {
+  row: FunctionRow;
+  roles: string[];
+  onOpen: () => void;
+}) {
+  return (
+    <tr className={row.roles.length > 1 ? "grid__row grid__row--shared" : "grid__row"}>
+      <td>
+        <button type="button" className="actor__req" onClick={onOpen}>
+          {row.requirementId}
+        </button>
+      </td>
+      <td className="grid__label">{row.label}</td>
+      {roles.map((role) => {
+        const has = row.roles.includes(role);
+        return (
+          <td key={role} className="grid__cell">
+            {has ? (
+              <>
+                {/* El punto es decorativo: lo que lee un lector de pantalla es
+                    el texto de al lado, porque una marca de color sola no dice
+                    nada fuera de la pantalla. */}
+                <span className="grid__dot" aria-hidden="true" />
+                <span className="sr-only">{role} sí</span>
+              </>
+            ) : (
+              <span className="sr-only">{role} no</span>
+            )}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}

@@ -11,6 +11,7 @@ import { DocumentScreen } from "./requirements/document/DocumentScreen";
 import { TraceabilityScreen } from "./requirements/traceability/TraceabilityScreen";
 import { IterationsScreen } from "./requirements/iterations/IterationsScreen";
 import { ActorsScreen } from "./requirements/actors/ActorsScreen";
+import { FunctionsScreen } from "./requirements/functions/FunctionsScreen";
 import { AgreementScreen } from "./requirements/agreement/AgreementScreen";
 import { ExportScreen } from "./requirements/export/ExportScreen";
 import { WorkspacesScreen } from "./workspaces/WorkspacesScreen";
@@ -50,6 +51,7 @@ const SECTIONS: Section[] = [
   "review",
   "document",
   "actors",
+  "functions",
   "traceability",
   "iterations",
   "agreement",
@@ -62,6 +64,7 @@ const SECTION_LABEL: Record<Section, string> = {
   review: "Revisión",
   document: "Documento",
   actors: "Actores",
+  functions: "Funciones",
   traceability: "Trazabilidad",
   iterations: "Iteraciones",
   agreement: "Concordancia",
@@ -546,6 +549,18 @@ function ProjectApp({
                 readableRevision={progress.through}
                 blockedAt={progress.blockedAt}
                 onGoReview={() => navigate("review")}
+                onOpenRequirement={(id) => navigate("document", id)}
+              />
+            )}
+
+            {route.section === "functions" && (
+              <FunctionsScreen
+                projectId={projectId}
+                upToRevision={Math.min(iteration, progress.through)}
+                readableRevision={progress.through}
+                blockedAt={progress.blockedAt}
+                onGoReview={() => navigate("review")}
+                onGoActors={() => navigate("actors")}
                 onOpenRequirement={(id) => navigate("document", id)}
               />
             )}
