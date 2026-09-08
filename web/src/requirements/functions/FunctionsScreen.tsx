@@ -15,8 +15,11 @@ import "./functions.css";
 
 interface FunctionsScreenProps {
   projectId: string;
+  /** La matriz sigue al selector de reunión: ver cómo el mapa de roles crece
+      reunión a reunión es la mitad de para qué existe. Los roles en cambio
+      salen del glosario y de las decisiones, que no tienen versión: son la
+      interpretación de hoy aplicada a todo el historial. */
   upToRevision: number;
-  readableRevision: number;
   blockedAt: number | null;
   onGoReview: () => void;
   onGoActors: () => void;
@@ -37,7 +40,6 @@ interface FunctionsScreenProps {
 export function FunctionsScreen({
   projectId,
   upToRevision,
-  readableRevision,
   blockedAt,
   onGoReview,
   onGoActors,
@@ -46,12 +48,12 @@ export function FunctionsScreen({
   const document = useResource(
     useCallback(
       () =>
-        readableRevision < 1
+        upToRevision < 1
           ? Promise.resolve([] as DocumentEntry[])
-          : fetchDocument(projectId, readableRevision),
-      [projectId, readableRevision],
+          : fetchDocument(projectId, upToRevision),
+      [projectId, upToRevision],
     ),
-    [projectId, readableRevision],
+    [projectId, upToRevision],
   );
   const glossary = useResource(
     useCallback(() => fetchGlossary(projectId), [projectId]),
@@ -112,6 +114,7 @@ export function FunctionsScreen({
       <AsyncBoundary resource={document}>
         {(entries) => (
           <Matrix
+            revision={upToRevision}
             entries={entries}
             glossary={glossary.data ?? []}
             decisions={decisions.data ?? []}
@@ -125,12 +128,14 @@ export function FunctionsScreen({
 }
 
 function Matrix({
+  revision,
   entries,
   glossary,
   decisions,
   onGoActors,
   onOpenRequirement,
 }: {
+  revision: number;
   entries: DocumentEntry[];
   glossary: GlossaryActor[];
   decisions: ActorDecision[];
@@ -198,8 +203,9 @@ function Matrix({
       <div className="screen__head">
         <span className="screen__title">Funciones</span>
         <span className="screen__meta">
-          {rows.length} requisitos · {roles.length} roles · {shared.length}{" "}
-          compartidas · {forEveryone.length} para todos
+          al cierre de la reunión {revision} · {rows.length} requisitos ·{" "}
+          {roles.length} roles · {shared.length} compartidas ·{" "}
+          {forEveryone.length} para todos
         </span>
       </div>
 

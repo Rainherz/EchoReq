@@ -557,7 +557,6 @@ function ProjectApp({
               <FunctionsScreen
                 projectId={projectId}
                 upToRevision={Math.min(iteration, progress.through)}
-                readableRevision={progress.through}
                 blockedAt={progress.blockedAt}
                 onGoReview={() => navigate("review")}
                 onGoActors={() => navigate("actors")}
