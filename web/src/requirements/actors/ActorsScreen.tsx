@@ -472,14 +472,19 @@ function Glossary({
           />
         </label>
         <label className="glossary__field glossary__field--wide">
-          <span className="label">Quién es</span>
+          {/* No «qué hace»: eso ya lo dice la lista de arriba, y repetirlo acá
+              daría dos fuentes que se desincronizan en cuanto entre un
+              requisito nuevo. La pregunta que el glosario tiene que contestar
+              es de límite —¿«subdirector» entra en «directivo» o es otro
+              rol?—, que es la que convierte quince actores en seis. */}
+          <span className="label">A quién incluye</span>
           <input
             className="field"
             type="text"
             ref={descriptionRef}
             maxLength={280}
             value={description}
-            placeholder="Director o subdirector de una institución educativa"
+            placeholder="Director y subdirector de una IE. No incluye al jefe de gestión."
             onChange={(event) => setDescription(event.target.value)}
           />
         </label>
