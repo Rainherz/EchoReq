@@ -150,12 +150,25 @@ function Matrix({
   }
   const isTransversal = (role: string) =>
     glossary.find((r) => r.name === role)?.transversal ?? false;
-  const roles = [...counts.keys()].sort((a, b) => {
-    if (isTransversal(a) !== isTransversal(b)) return isTransversal(a) ? 1 : -1;
-    return (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b);
-  });
 
-  const shared = rows.filter((row) => row.roles.length > 1);
+  // Un rol transversal no es una columna. La matriz contesta «quién puede
+  // hacer qué», y para iniciar sesión la respuesta no es un conjunto de roles
+  // sino «cualquiera»: una marca solitaria bajo «Usuario» leería que sólo el
+  // Usuario inicia sesión, y su conteo al lado del de un rol de dominio los
+  // pondría a competir otra vez.
+  const roles = [...counts.keys()]
+    .filter((role) => !isTransversal(role))
+    .sort(
+      (a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0) || a.localeCompare(b),
+    );
+
+  const forEveryone = rows.filter(
+    (row) => row.roles.length > 0 && row.roles.every(isTransversal),
+  );
+  const inMatrix = rows.filter((row) => row.roles.some((r) => !isTransversal(r)));
+  const shared = inMatrix.filter(
+    (row) => row.roles.filter((r) => !isTransversal(r)).length > 1,
+  );
   const orphan = rows.filter((row) => row.roles.length === 0);
 
   if (roles.length === 0) {
@@ -186,7 +199,7 @@ function Matrix({
         <span className="screen__title">Funciones</span>
         <span className="screen__meta">
           {rows.length} requisitos · {roles.length} roles · {shared.length}{" "}
-          compartidas
+          compartidas · {forEveryone.length} para todos
         </span>
       </div>
 
@@ -198,7 +211,10 @@ function Matrix({
         <p className="functions__hint">
           Cada fila es una función que pide el cliente. Una fila con dos marcas
           es una función que hacen dos roles distintos: son{" "}
-          <strong>{shared.length} de {rows.length}</strong>.
+          <strong>
+            {shared.length} de {inMatrix.length}
+          </strong>
+          .
         </p>
 
         <div className="functions__scroll">
@@ -220,11 +236,12 @@ function Matrix({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {inMatrix.map((row) => (
                 <Row
                   key={row.requirementId}
                   row={row}
                   roles={roles}
+                  alsoTransversal={row.roles.filter(isTransversal)}
                   onOpen={() => onOpenRequirement(row.requirementId)}
                 />
               ))}
@@ -232,6 +249,34 @@ function Matrix({
           </table>
         </div>
       </div>
+
+      {forEveryone.length > 0 && (
+        <div className="card">
+          <div className="card__head">
+            Funciones de todos
+            <span className="card__count">{forEveryone.length}</span>
+          </div>
+          <p className="functions__hint">
+            No dependen de quién sos: las hace cualquiera que entre al sistema.
+            Van aparte de la matriz porque ahí tendrían que marcar todas las
+            columnas —o una sola, que leería como que sólo un rol puede.
+          </p>
+          <ul className="functions__orphans">
+            {forEveryone.map((row) => (
+              <li key={row.requirementId}>
+                <button
+                  type="button"
+                  className="actor__req"
+                  onClick={() => onOpenRequirement(row.requirementId)}
+                >
+                  {row.requirementId}
+                </button>
+                <span className="functions__everyone">{row.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {orphan.length > 0 && (
         <div className="card">
@@ -272,10 +317,16 @@ function Matrix({
 function Row({
   row,
   roles,
+  alsoTransversal,
   onOpen,
 }: {
   row: FunctionRow;
   roles: string[];
+  /** Roles transversales que este requisito también nombra. No tienen columna,
+      así que sin decirlo acá su participación desaparecería sin dejar rastro.
+      Que aparezca es además la señal de que algo está mal declarado: una
+      función no puede ser de un rol concreto y de cualquiera a la vez. */
+  alsoTransversal: string[];
   onOpen: () => void;
 }) {
   return (
@@ -285,7 +336,15 @@ function Row({
           {row.requirementId}
         </button>
       </td>
-      <td className="grid__label">{row.label}</td>
+      <td className="grid__label">
+        {row.label}
+        {alsoTransversal.length > 0 && (
+          <span className="grid__mixed">
+            también nombra a {alsoTransversal.join(" y ")}, que está declarado
+            transversal
+          </span>
+        )}
+      </td>
       {roles.map((role) => {
         const has = row.roles.includes(role);
         return (

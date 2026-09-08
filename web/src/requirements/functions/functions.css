@@ -135,3 +135,21 @@
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+.functions__everyone {
+  flex: 1;
+  min-width: 18rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+/* Un requisito no puede ser de un rol concreto y de cualquiera a la vez: si
+   esta nota aparece, hay un rol mal declarado. Se dice en vez de descartar en
+   silencio la participación que no tiene columna. */
+.grid__mixed {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--warn-text);
+}
