@@ -188,3 +188,22 @@ def extract_actors(text: str) -> tuple[str, ...]:
     for actor in limpias:
         vistos.setdefault(actor.lower(), actor)
     return tuple(vistos.values())
+
+
+#: Puntuación de cierre que se cuela al tipear un nombre de rol. Nunca es
+#: parte del rol y rompe la coincidencia en silencio: «Jefe de Gestión.» no
+#: coincide con «jefe de gestión», y en pantalla el punto es invisible al
+#: lado de un nombre en negrita.
+_TRAILING_PUNCT = ".,;:·-–— "
+
+
+def normalize_role(name: str) -> str:
+    """Deja el nombre de un rol como se compara.
+
+    Espacios normalizados, sin el artículo de adelante y sin puntuación de
+    cierre. No toca mayúsculas: la comparación las ignora y la pantalla
+    muestra la forma que se escribió, para no romper las siglas.
+    """
+    limpio = re.sub(r"\s+", " ", name).strip()
+    limpio = _LEADING.sub("", limpio)
+    return limpio.strip(_TRAILING_PUNCT)

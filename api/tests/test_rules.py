@@ -20,6 +20,7 @@ from app.requirements.domain.rules import (
     estimate_responsibilities,
     extract_actors,
     is_minimal,
+    normalize_role,
 )
 
 # --- lo que hay que ver -------------------------------------------------
@@ -177,3 +178,22 @@ def test_no_parte_un_rol_que_lleva_y_adentro() -> None:
 
 def test_sin_plantilla_no_hay_actor() -> None:
     assert extract_actors("El sistema registra visitas.") == ()
+
+
+# --- nombres de rol -----------------------------------------------------
+
+
+def test_saca_el_punto_final_del_rol() -> None:
+    """Un punto de más rompía la coincidencia en silencio: «Jefe de Gestión.»
+    nunca iba a encontrarse con «jefe de gestión», y en pantalla el punto es
+    invisible al lado de un nombre en negrita."""
+    assert normalize_role("Jefe de Gestión.") == "Jefe de Gestión"
+
+
+def test_normaliza_espacios_y_articulo() -> None:
+    assert normalize_role("  el  Jefe   de Área ") == "Jefe de Área"
+
+
+def test_no_toca_las_mayusculas() -> None:
+    """La comparación las ignora; la pantalla muestra lo que se escribió."""
+    assert normalize_role("Especialista de la UGEL") == "Especialista de la UGEL"

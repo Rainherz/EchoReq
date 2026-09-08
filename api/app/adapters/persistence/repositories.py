@@ -163,6 +163,10 @@ class PostgresGlossaryRepository:
             return [GlossaryActor(**row) for row in cur.fetchall()]
 
     def add(self, project_id: str, name: str, description: str) -> GlossaryActor:
+        # Se normaliza al guardar y no al comparar: un punto de más rompía la
+        # coincidencia en silencio y quedaba guardado así, marcando «sin usar»
+        # para siempre sin decir por qué.
+        name = rules.normalize_role(name)
         try:
             with cursor() as cur:
                 cur.execute(
@@ -170,13 +174,11 @@ class PostgresGlossaryRepository:
                     INSERT INTO actor_glossary (project_id, name, description)
                     VALUES (%s, %s, %s)
                     """,
-                    (project_id, name.strip(), description.strip()),
+                    (project_id, name, description.strip()),
                 )
         except psycopg.errors.UniqueViolation as exc:
-            raise DuplicateActor(
-                f"«{name.strip()}» ya está en el glosario."
-            ) from exc
-        return GlossaryActor(name=name.strip(), description=description.strip())
+            raise DuplicateActor(f"«{name}» ya está en el glosario.") from exc
+        return GlossaryActor(name=name, description=description.strip())
 
     def remove(self, project_id: str, name: str) -> bool:
         with cursor() as cur:
