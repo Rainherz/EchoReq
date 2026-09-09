@@ -159,10 +159,24 @@ class SpecificationReader:
         ]
 
     def drift_by_revision(self, project_id: str) -> list[dict[str, object]]:
-        """Deriva sintáctica por revisión.
+        """Deriva del documento por revisión, en sus dos ejes.
 
-        Métrica automática y determinista: proporción de requisitos que
-        exceden el límite de atomicidad y promedio de responsabilidades.
+        Automática y determinista: se recalcula sobre todo el historial sin
+        costo ni variabilidad.
+
+        Son dos cosas distintas y hasta ahora se reportaba una sola:
+
+        - Atomicidad — cuánto se *hincha* un requisito. Es un indicador
+          derivado de la propiedad «atomic, represent a single decision»
+          (SWEBOK v4 §3.1), por el mecanismo que autoriza §7.5: «quality
+          indicators [...] can be derived from the desirable properties
+          discussed in Section 3.1».
+
+        - Volatilidad — cuánto se *mueve*. SWEBOK v4 §7.4 la define como «the
+          likelihood that a requirement will change in a given time». Acá se
+          mide por revisión: qué proporción del documento vigente se tocó en
+          ella. Un alta no cuenta —crear no es cambiar— y por eso la primera
+          revisión da cero por construcción.
         """
         revisions = self._documents.revisions(project_id)
         if not revisions:
@@ -174,6 +188,11 @@ class SpecificationReader:
             if not entries:
                 continue
             over = [e for e in entries if e.responsibilities > rules.ATOMIC_LIMIT]
+            touched = [
+                row
+                for row in revisions
+                if row.revision == revision and row.operation != "create"
+            ]
             out.append(
                 {
                     "revision": revision,
@@ -183,6 +202,8 @@ class SpecificationReader:
                         sum(e.responsibilities for e in entries) / len(entries), 2
                     ),
                     "max_responsibilities": max(e.responsibilities for e in entries),
+                    "reopened": len(touched),
+                    "volatility": round(len(touched) / len(entries) * 100, 1),
                 }
             )
         return out

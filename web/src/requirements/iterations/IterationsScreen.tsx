@@ -80,6 +80,17 @@ function Panels({ data }: { data: Panel }) {
     detail: `${row.meanResponsibilities} responsabilidades por requisito en promedio · máximo ${row.maxResponsibilities} · ${row.overAtomicLimit} sobre el límite`,
   }));
 
+  // El otro eje de la deriva. Cuánto se hincha un requisito y cuánto se mueve
+  // son dos cosas distintas, y hasta acá se reportaba una sola: la reunión 3
+  // movió el triple que la 4 y las dos terminaron con la misma media de
+  // responsabilidades.
+  const volatilitySeries: TrendPoint[] = drift.map((row) => ({
+    x: row.revision,
+    y: row.volatility,
+    label: `Reunión ${row.revision}`,
+    detail: `${row.reopened} de ${row.requirements} requisitos vigentes se volvieron a tocar`,
+  }));
+
   // La curva de decisión excluye descubrimiento. Ahí los candidatos se
   // muestran todos a la vez y el revisor entra y sale de ellos, así que el
   // intervalo mide cuánto estuvo uno al frente — no cuánto costó decidirlo.
@@ -150,7 +161,7 @@ function Panels({ data }: { data: Panel }) {
         {driftSeries.length >= MIN_SERIES ? (
           <TrendChart
             points={driftSeries}
-            measure="Responsabilidades por requisito, en promedio, al cierre de cada revisión."
+            measure="Responsabilidades por requisito, en promedio, al cierre de cada revisión. Indicador derivado de la propiedad «atomic» de SWEBOK §3.1, por el mecanismo que autoriza §7.5."
             axisLabel="reunión procesada"
             threshold={{ value: ATOMIC_LIMIT, label: "límite" }}
           />
@@ -159,6 +170,28 @@ function Panels({ data }: { data: Panel }) {
             label="Responsabilidades por requisito"
             value={lastDrift ? String(lastDrift.meanResponsibilities) : "—"}
             note="Hace falta una segunda revisión para que haya tendencia. Con un solo punto no hay deriva que medir, solo un valor inicial."
+          />
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card__head">
+          Volatilidad del documento
+          <span className="card__count">SWEBOK §7.4</span>
+        </div>
+        {volatilitySeries.length >= MIN_SERIES ? (
+          <TrendChart
+            points={volatilitySeries}
+            measure="Porcentaje del documento vigente que la revisión volvió a tocar. Un alta no cuenta: crear no es cambiar, y por eso la primera da cero por construcción."
+            axisLabel="reunión procesada"
+            unit="%"
+            tone="warn"
+          />
+        ) : (
+          <NotYet
+            label="Volatilidad"
+            value={lastDrift ? `${lastDrift.volatility}%` : "—"}
+            note="Hace falta una segunda revisión: en la primera todo es alta, y crear no es cambiar."
           />
         )}
       </div>
@@ -239,6 +272,8 @@ function NumbersTable({
     mean: row.meanResponsibilities,
     max: row.maxResponsibilities,
     over: row.overAtomicLimit,
+    reopened: row.reopened,
+    volatility: row.volatility,
     metrics: metrics.find((m) => m.iteration === row.revision),
   }));
 
@@ -251,6 +286,8 @@ function NumbersTable({
           <th>Responsab. media</th>
           <th>Máx.</th>
           <th>Sobre el límite</th>
+          <th>Reabiertos</th>
+          <th>Volatilidad</th>
           <th>Decisiones</th>
           <th>Mediana</th>
           <th>Defectuosas</th>
@@ -264,6 +301,8 @@ function NumbersTable({
             <td className="num">{row.mean}</td>
             <td className="num">{row.max}</td>
             <td className="num">{row.over}</td>
+            <td className="num">{row.reopened}</td>
+            <td className="num">{row.volatility}%</td>
             <td className="num">{row.metrics?.decisions ?? "—"}</td>
             <td className="num">
               {row.metrics ? `${row.metrics.medianSeconds} s` : "—"}

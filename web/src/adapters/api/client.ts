@@ -119,9 +119,17 @@ export interface IterationMetrics {
 export interface DriftPoint {
   revision: number;
   requirements: number;
+  /** Cuánto se hincha un requisito: indicador derivado de la propiedad
+      «atomic» de SWEBOK v4 §3.1, por el mecanismo que autoriza §7.5. */
   overAtomicLimit: number;
   meanResponsibilities: number;
   maxResponsibilities: number;
+  /** Requisitos ya existentes que esta revisión volvió a tocar. */
+  reopened: number;
+  /** Cuánto se mueve el documento: `reopened` sobre el vigente, en
+      porcentaje. Es el otro eje de deriva —SWEBOK v4 §7.4 volatility— y no
+      el mismo que la atomicidad. */
+  volatility: number;
 }
 
 interface RawRevision {

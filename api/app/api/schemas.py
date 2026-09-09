@@ -300,3 +300,8 @@ class DriftOut(Schema):
     over_atomic_limit: int
     mean_responsibilities: float
     max_responsibilities: int
+    #: Requisitos ya existentes que esta revisión volvió a tocar. Un alta no
+    #: cuenta: crear no es cambiar.
+    reopened: int
+    #: `reopened` sobre el documento vigente, en porcentaje. SWEBOK v4 §7.4.
+    volatility: float
