@@ -64,7 +64,7 @@ export function DecisionCard({
     },
     {
       value: "wrong",
-      label: "El requisito nombra al actor equivocado",
+      label: "El requisito nombra al rol equivocado",
       hint: "No es un problema de vocabulario sino de contenido.",
     },
   ];

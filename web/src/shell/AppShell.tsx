@@ -40,7 +40,7 @@ function projectNav(counts: NavCounts): NavEntry[] {
     },
     { id: "review", label: "Revisión", count: counts.pendingReview },
     { id: "document", label: "Documento" },
-    { id: "actors", label: "Actores" },
+    { id: "actors", label: "Roles" },
     { id: "functions", label: "Funciones" },
     { id: "traceability", label: "Trazabilidad" },
   ];

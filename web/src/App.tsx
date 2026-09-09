@@ -63,7 +63,7 @@ const SECTION_LABEL: Record<Section, string> = {
   discovery: "Descubrimiento",
   review: "Revisión",
   document: "Documento",
-  actors: "Actores",
+  actors: "Roles",
   functions: "Funciones",
   traceability: "Trazabilidad",
   iterations: "Iteraciones",

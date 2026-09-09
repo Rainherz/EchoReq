@@ -77,11 +77,11 @@ export function ActorsScreen({
     return (
       <div className="actors">
         <div className="screen__head">
-          <span className="screen__title">Actores</span>
+          <span className="screen__title">Roles</span>
         </div>
         <LockedByProgress
           blockedAt={blockedAt}
-          what="El mapa de actores"
+          what="El mapa de roles"
           onGo={onGoReview}
         />
       </div>
@@ -96,7 +96,7 @@ export function ActorsScreen({
     return (
       <div className="actors">
         <div className="screen__head">
-          <span className="screen__title">Actores</span>
+          <span className="screen__title">Roles</span>
         </div>
         <div className="card">
           <div className="card__head">No se pudo cargar</div>
@@ -220,7 +220,7 @@ function Tray({
   return (
     <>
       <div className="screen__head">
-        <span className="screen__title">Actores</span>
+        <span className="screen__title">Roles</span>
         <span className="screen__meta">
           {entries.length} requisitos · {total} nombres · {pending.length} sin
           decidir
@@ -376,7 +376,7 @@ function Tray({
                           ? `es ${row.decision.role}`
                           : row.decision?.outcome === "new"
                             ? "rol propio, ya declarado"
-                            : `actor equivocado${
+                            : `rol equivocado${
                                 row.decision?.role
                                   ? `, sería ${row.decision.role}`
                                   : ""

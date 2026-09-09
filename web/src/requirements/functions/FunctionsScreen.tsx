@@ -200,7 +200,7 @@ function Matrix({
             documento, y varias serían la misma persona.
           </p>
           <button type="button" className="btn btn--small" onClick={onGoActors}>
-            Ir a Actores
+            Ir a Roles
           </button>
         </div>
       </>
@@ -227,7 +227,7 @@ function Matrix({
           Las columnas son roles ya normalizados: en esta revisión el documento
           usaba <strong>{written}</strong> formas de escribirlos, agrupadas en{" "}
           <strong>{roles.length}</strong>. La tabla se ve más ordenada de lo que
-          la reunión fue, y ése es el trabajo de Actores, no un dato de la
+          la reunión fue, y ése es el trabajo de Roles, no un dato de la
           reunión.
         </p>
         <p className="functions__hint">
@@ -307,7 +307,7 @@ function Matrix({
             <span className="card__count">{orphan.length}</span>
           </div>
           <p className="functions__hint">
-            Estos requisitos nombran actores que todavía no se decidieron, así
+            Estos requisitos nombran roles que todavía no se decidieron, así
             que no aparecen en ninguna columna. La matriz los deja afuera en vez
             de inventarles un rol.
           </p>
