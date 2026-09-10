@@ -10,6 +10,7 @@ export type Section =
   | "iterations"
   | "actors"
   | "functions"
+  | "criteria"
   | "agreement"
   | "export";
 
@@ -42,6 +43,7 @@ function projectNav(counts: NavCounts): NavEntry[] {
     { id: "document", label: "Documento" },
     { id: "actors", label: "Roles" },
     { id: "functions", label: "Funciones" },
+    { id: "criteria", label: "Criterios" },
     { id: "traceability", label: "Trazabilidad" },
   ];
 }

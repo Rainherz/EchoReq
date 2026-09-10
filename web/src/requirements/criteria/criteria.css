@@ -1,0 +1,202 @@
+/* Criterios de aceptación en formato BDD.
+
+   Un requisito por fila, sus escenarios adentro. Se despliega en la misma
+   lista y no en un panel aparte porque escribir un criterio se hace mirando
+   el texto del requisito: mandarlo a otra columna obliga a recordar lo que
+   dice mientras se escribe el Given. */
+
+.criteria {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.criteria__hint {
+  margin: 0.7rem 0 0;
+  max-width: 78ch;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* Un criterio escrito contra una revisión anterior describe un texto que ya
+   cambió: miente en silencio, que es peor que faltar. */
+.criteria__stale {
+  margin: 0.7rem 0 0;
+  max-width: 78ch;
+  padding: 0.5rem 0.7rem;
+  border-radius: 5px;
+  background: var(--warn-wash);
+  color: var(--warn-text);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+/* --------------------------------------------------------- requisitos */
+
+.crit__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.crit {
+  border-top: 1px solid var(--line);
+  padding: 0.6rem 0;
+}
+
+.crit:first-child { border-top: 0; padding-top: 0; }
+
+.crit__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.crit__toggle {
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.15em 0.45em;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--sunken);
+  color: var(--ink);
+  flex: none;
+}
+
+.crit__toggle:hover { border-color: var(--ok-line); }
+
+.crit__text {
+  flex: 1;
+  min-width: 20rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.crit__tags {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.crit__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: flex-start;
+  margin: 0.9rem 0 0.3rem;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* --------------------------------------------------------- escenarios */
+
+.scen__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.scen {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.65rem 0.85rem 0.7rem;
+}
+
+/* La pregunta abierta no es un escenario a medias: es la otra salida de la
+   actividad, y se distingue para que no se lea como algo sin terminar. */
+.scen--question {
+  border-color: var(--warn-line);
+  background: var(--warn-wash);
+}
+
+.scen__name {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* Given / When / Then en dos columnas: las etiquetas son el andamio del
+   formato y alinearlas deja leer los tres pasos en vertical. */
+.scen__body {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  gap: 0.25rem 0.7rem;
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.scen__body dt {
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  color: var(--ok-text);
+  padding-top: 0.1em;
+}
+
+.scen__body dd { margin: 0; }
+
+.scen__question {
+  margin: 0 0 0.3rem;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.scen__ask {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.scen__foot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--line);
+}
+
+.scen__rev {
+  flex: 1;
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--faint);
+}
+
+/* ------------------------------------------------------------- alta */
+
+.newcrit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 44rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.newcrit__kinds {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.newcrit__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+}

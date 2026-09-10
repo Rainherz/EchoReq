@@ -206,6 +206,31 @@ class GlossaryActor:
 
 
 @dataclass(frozen=True, slots=True)
+class AcceptanceCriterion:
+    """Un criterio de aceptación de un requisito, en formato BDD.
+
+    Dos salidas, porque la actividad tiene dos resultados honestos: se pudo
+    escribir el escenario, o no se pudo sin volver a preguntar. El segundo no
+    es un hueco del registro — es el dato con el que se mide la ambigüedad,
+    que SWEBOK v4 pone como uno de los dos problemas primarios.
+    """
+
+    id: int
+    requirement_id: str
+    #: Revisión del requisito contra la que se escribió. Si el requisito
+    #: cambió después, el criterio quedó desactualizado.
+    written_against: int
+    kind: str
+    name: str = ""
+    context: str = ""
+    stimulus: str = ""
+    outcome: str = ""
+    question: str = ""
+    ask_to: str = ""
+    author: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class ActorDecision:
     """Qué se decidió sobre un nombre de actor del documento.
 

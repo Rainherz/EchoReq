@@ -18,6 +18,7 @@ from ..adapters.persistence.repositories import (
     DuplicateActor,
     DuplicateParticipant,
     PostgresActorDecisionRepository,
+    PostgresCriteriaRepository,
     PostgresGlossaryRepository,
     PostgresParticipantRepository,
     AlreadyCorrected,
@@ -39,6 +40,8 @@ from .schemas import (
     SpeakerOut,
     SpeakerSampleOut,
     SuggestionOut,
+    AcceptanceCriterionIn,
+    AcceptanceCriterionOut,
     ActorDecisionIn,
     ActorDecisionOut,
     GlossaryActorIn,
@@ -76,6 +79,7 @@ _meetings_repo = PostgresMeetingRepository()
 _participants = PostgresParticipantRepository()
 _glossary = PostgresGlossaryRepository()
 _actor_decisions = PostgresActorDecisionRepository()
+_criteria = PostgresCriteriaRepository()
 
 #: Tope del recorte de audio. Alcanza para reconocer una voz y evita que el
 #: endpoint se vuelva una vía para descargar la reunión entera de a pedazos.
@@ -160,6 +164,56 @@ def remove_glossary_actor(project_id: str, name: str) -> None:
     """
     if not _glossary.remove(project_id, name):
         raise HTTPException(status_code=404, detail=f"«{name}» no está en el glosario.")
+
+
+@router.get("/projects/{project_id}/criteria")
+def criteria(project_id: str) -> list[AcceptanceCriterionOut]:
+    """Criterios de aceptación del proyecto, en formato BDD.
+
+    Viven aparte de la cola de propuestas: si el agente los propusiera junto
+    con el texto, el revisor tendría más para leer en cada decisión y las
+    medianas de tiempo subirían por una razón que no es fatiga.
+    """
+    return [
+        AcceptanceCriterionOut(**asdict(c)) for c in _criteria.all(project_id)
+    ]
+
+
+@router.post("/projects/{project_id}/criteria", status_code=201)
+def add_criterion(
+    project_id: str, payload: AcceptanceCriterionIn
+) -> AcceptanceCriterionOut:
+    if payload.kind == "scenario" and not all(
+        (payload.context.strip(), payload.stimulus.strip(), payload.outcome.strip())
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Un escenario necesita las tres partes: contexto, estímulo y resultado.",
+        )
+    if payload.kind == "question" and not payload.question.strip():
+        raise HTTPException(
+            status_code=422, detail="Anotar una pregunta necesita la pregunta."
+        )
+    created = _criteria.add(
+        project_id,
+        payload.requirement_id,
+        payload.written_against,
+        payload.kind,
+        payload.author,
+        payload.name,
+        payload.context,
+        payload.stimulus,
+        payload.outcome,
+        payload.question,
+        payload.ask_to,
+    )
+    return AcceptanceCriterionOut(**asdict(created))
+
+
+@router.delete("/projects/{project_id}/criteria/{criterion_id}", status_code=204)
+def remove_criterion(project_id: str, criterion_id: int) -> None:
+    if not _criteria.remove(project_id, criterion_id):
+        raise HTTPException(status_code=404, detail="Ese criterio no existe.")
 
 
 @router.get("/projects/{project_id}/actor-decisions")

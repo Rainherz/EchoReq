@@ -87,6 +87,35 @@ class GlossaryActorPatch(Schema):
     transversal: bool = False
 
 
+class AcceptanceCriterionOut(Schema):
+    id: int
+    requirement_id: str
+    written_against: int
+    kind: str
+    name: str = ""
+    context: str = ""
+    stimulus: str = ""
+    outcome: str = ""
+    question: str = ""
+    ask_to: str = ""
+    author: str = ""
+
+
+class AcceptanceCriterionIn(Schema):
+    requirement_id: str = Field(min_length=1, max_length=40)
+    written_against: int = Field(ge=1)
+    #: «scenario» cuando se pudo escribir el criterio; «question» cuando no se
+    #: pudo sin volver a preguntar. El segundo es el dato de ambigüedad.
+    kind: Literal["scenario", "question"]
+    name: str = Field(default="", max_length=120)
+    context: str = Field(default="", max_length=400)
+    stimulus: str = Field(default="", max_length=400)
+    outcome: str = Field(default="", max_length=400)
+    question: str = Field(default="", max_length=400)
+    ask_to: str = Field(default="", max_length=80)
+    author: str = Field(min_length=1, max_length=80)
+
+
 class ActorDecisionOut(Schema):
     observed: str
     outcome: str

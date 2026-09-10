@@ -255,6 +255,63 @@ export const removeGlossaryActor = (
     { method: "DELETE" },
   );
 
+/** Un criterio de aceptación de un requisito, en formato BDD.
+
+    SWEBOK v4 §4.3 los escribe como «Given <some context> when <stimulus>
+    then <outcome>»; las tres partes se llaman como el estándar las nombra. */
+export type CriterionKind = "scenario" | "question";
+
+export interface AcceptanceCriterion {
+  id: number;
+  requirementId: string;
+  /** Revisión del requisito contra la que se escribió. Si el requisito
+      cambió después, el criterio quedó desactualizado. */
+  writtenAgainst: number;
+  kind: CriterionKind;
+  name: string;
+  context: string;
+  stimulus: string;
+  outcome: string;
+  /** Cuando no se pudo escribir el criterio sin volver a preguntar. No es un
+      hueco del registro: es con lo que se mide la ambigüedad. */
+  question: string;
+  askTo: string;
+  author: string;
+}
+
+export const fetchCriteria = (
+  projectId: string,
+): Promise<AcceptanceCriterion[]> =>
+  request<AcceptanceCriterion[]>(`/projects/${projectId}/criteria`);
+
+export const addCriterion = (
+  projectId: string,
+  criterion: {
+    requirementId: string;
+    writtenAgainst: number;
+    kind: CriterionKind;
+    author: string;
+    name?: string;
+    context?: string;
+    stimulus?: string;
+    outcome?: string;
+    question?: string;
+    askTo?: string;
+  },
+): Promise<AcceptanceCriterion> =>
+  request<AcceptanceCriterion>(`/projects/${projectId}/criteria`, {
+    method: "POST",
+    body: JSON.stringify(criterion),
+  });
+
+export const removeCriterion = (
+  projectId: string,
+  criterionId: number,
+): Promise<void> =>
+  request<void>(`/projects/${projectId}/criteria/${criterionId}`, {
+    method: "DELETE",
+  });
+
 /** Qué se decidió sobre un nombre de actor del documento.
 
     Decidir no arregla nada: el requisito sigue diciendo lo que decía y el log

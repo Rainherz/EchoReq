@@ -15,6 +15,7 @@ from ...requirements.domain import rules
 from ...requirements.domain.injection import detected
 from ...requirements.domain.slug import slugify
 from ...requirements.domain.entities import (
+    AcceptanceCriterion,
     ActorDecision,
     GlossaryActor,
     Participant,
@@ -216,6 +217,75 @@ class PostgresGlossaryRepository:
             cur.execute(
                 "DELETE FROM actor_glossary WHERE project_id = %s AND lower(name) = lower(%s)",
                 (project_id, name),
+            )
+            return cur.rowcount > 0
+
+
+class PostgresCriteriaRepository:
+    """Criterios de aceptación por requisito."""
+
+    def all(self, project_id: str) -> list[AcceptanceCriterion]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, requirement_id, written_against, kind, name,
+                       context, stimulus, outcome, question, ask_to, author
+                FROM acceptance_criteria
+                WHERE project_id = %s
+                ORDER BY requirement_id, id
+                """,
+                (project_id,),
+            )
+            return [AcceptanceCriterion(**row) for row in cur.fetchall()]
+
+    def add(
+        self,
+        project_id: str,
+        requirement_id: str,
+        written_against: int,
+        kind: str,
+        author: str,
+        name: str = "",
+        context: str = "",
+        stimulus: str = "",
+        outcome: str = "",
+        question: str = "",
+        ask_to: str = "",
+    ) -> AcceptanceCriterion:
+        with cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO acceptance_criteria
+                    (project_id, requirement_id, written_against, kind, name,
+                     context, stimulus, outcome, question, ask_to, author)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, requirement_id, written_against, kind, name,
+                          context, stimulus, outcome, question, ask_to, author
+                """,
+                (
+                    project_id,
+                    requirement_id,
+                    written_against,
+                    kind,
+                    name.strip(),
+                    context.strip(),
+                    stimulus.strip(),
+                    outcome.strip(),
+                    question.strip(),
+                    ask_to.strip(),
+                    author,
+                ),
+            )
+            return AcceptanceCriterion(**cur.fetchone())
+
+    def remove(self, project_id: str, criterion_id: int) -> bool:
+        """Se puede borrar: un criterio es la postura del equipo sobre cómo
+        verificar un requisito, no una observación con hora. Las decisiones de
+        revisión, que sí lo son, llevan un trigger que lo impide."""
+        with cursor() as cur:
+            cur.execute(
+                "DELETE FROM acceptance_criteria WHERE project_id = %s AND id = %s",
+                (project_id, criterion_id),
             )
             return cur.rowcount > 0
 
