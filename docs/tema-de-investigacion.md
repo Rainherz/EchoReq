@@ -252,35 +252,81 @@ Editar el texto no cuenta: en una cita desplazada el texto es correcto y
 editarlo deja la evidencia falsa intacta. De las dos citas desplazadas sembradas,
 ninguna fue detectada; en una de ellas ambos revisores editaron el texto.
 
+**Verificación contra trabajo relacionado (septiembre 2026).** Broccia et al.,
+*"Human-AI Collaboration in Requirements Engineering: Evidence of the Negative
+Effect of LLMs on Requirements Inspection"* (arXiv:2608.21298v1, ago. 2026), es
+el trabajo empírico más reciente localizado sobre LLMs y calidad de requisitos.
+Su taxonomía de nueve tipos de *requirements smell* (léxicos, sintácticos,
+semánticos) y los ocho trabajos relacionados que resume no incluyen ninguna
+categoría que verifique si una fuente atribuida a un requisito efectivamente lo
+sostiene — la razón estructural es que su LLM es un asistente de consulta sobre
+un documento ya fijo, nunca un agente que genera requisitos con evidencia
+atribuida, así que el defecto que describe `citation_drift` no tiene dónde
+existir en ese diseño. Sostiene, con esta evidencia negativa concreta, que el
+aporte permanece sin cubrir en la literatura revisada hasta la fecha.
+
+El mismo trabajo aporta la cita más sólida para el planteamiento del problema:
+con un experimento *crossover* controlado (34 sujetos, inferencia causal
+bayesiana explícita) encuentran que ChatGPT **no** reduce el tiempo de
+inspección y **empeora** en ~8 % la detección de *smells* respecto de la
+inspección sin asistencia — evidencia directa de que la asistencia de un LLM no
+es sinónimo de mejora en tareas de ingeniería de requisitos.
+
+Y marca una diferencia de diseño que conviene reconocer explícitamente en
+limitaciones: ellos logran causalidad mediante manipulación controlada (con LLM
+/ sin LLM) sobre documentos ficticios más simples que los industriales —amenaza
+a validez externa que los propios autores declaran—; el presente estudio, al
+ser un caso longitudinal único sin grupo de control y con el agente siempre
+activo, no puede aislar su efecto causal de la misma manera, y sacrifica esa
+fuerza inferencial a cambio de validez ecológica: un proyecto real, no un
+documento de laboratorio.
+
 ---
 
 ## LIMITACIONES A DECLARAR
 
-1. **El cliente no valida.** §5.1 recomienda revisar desde múltiples
+1. **Sin inferencia causal.** El diseño es un caso longitudinal único, sin
+   grupo de control y con el agente siempre activo: no permite aislar el
+   efecto del LLM del resto de las variables del proyecto, a diferencia de un
+   experimento *crossover* controlado como el de Broccia et al. (2026), que sí
+   logra causalidad mediante manipulación con/sin LLM sobre 34 sujetos. Se
+   opta deliberadamente por validez ecológica —un proyecto real, no un
+   documento de laboratorio— a cambio de esa fuerza inferencial.
+2. **El cliente no valida.** §5.1 recomienda revisar desde múltiples
    perspectivas —cliente, ingeniero de requisitos, constructor—. Los dos
    revisores son ambos analistas. Es replicación deliberada para medir
    concordancia entre observadores equivalentes, no cumplimiento de §5.1.
-2. **El documento avanza con quien decide primero.** §6.2 exige *"a responsible
+3. **El documento avanza con quien decide primero.** §6.2 exige *"a responsible
    person or group"*, singular y designado. El instrumento permite que cualquiera
    de los dos revisores escriba la revisión, porque las series deben correr en
    paralelo. Decisión de diseño experimental.
-3. **Las decisiones no trazan al cliente.** §3.4 señala que, por razones
+4. **Las decisiones no trazan al cliente.** §3.4 señala que, por razones
    contractuales, la resolución de conflictos debería ser trazable al cliente.
    Las consolidaciones registran al analista que resolvió y su motivo.
-4. **El instrumento implementa dos de las tres salidas de §6.2.** Falta `defer`.
+5. **El instrumento implementa dos de las tres salidas de §6.2.** Falta `defer`.
    Se mantuvo así para no alterar la población de decisiones medidas a mitad de
    la serie.
-5. **Reunión 3 contaminada.** El investigador conoció qué propuestas habían sido
+6. **Reunión 3 contaminada.** El investigador conoció qué propuestas habían sido
    sembradas antes de revisarlas.
-6. **Un revisor pudo leer el documento antes del tope por avance.** Las
+7. **Un revisor pudo leer el documento antes del tope por avance.** Las
    decisiones de la reunión 1 del segundo revisor se tomaron cuando los
    requisitos resultantes ya eran visibles con las ediciones del primero.
-7. **El estimador de atomicidad es heurístico.** Detecta acciones coordinadas; no
+8. **El estimador de atomicidad es heurístico.** Detecta acciones coordinadas; no
    detecta responsabilidad múltiple semántica —«gestionar el padrón» es un CRUD
    completo detrás de un solo verbo—.
-8. **La detección de defectos puede dar falsos positivos.** Un rechazo por causa
+9. **La detección de defectos puede dar falsos positivos.** Un rechazo por causa
    ajena al defecto sembrado se contabiliza como detección. El instrumento
    registra el motivo del rechazo, de modo que la revisión es manual y caso por
    caso.
-9. **`clause_collapse` no tiene casos.** El instrumento define cuatro tipos de
+10. **`clause_collapse` no tiene casos.** El instrumento define cuatro tipos de
    defecto y sólo se sembraron tres. El cuarto queda sin observaciones.
+
+---
+
+## TRABAJO RELACIONADO
+
+Broccia, G., Frattini, J., Arora, C., ter Beek, M. H., Fantechi, A., Ferrari,
+A., & Vogelsang, A. (2026). *Human-AI Collaboration in Requirements
+Engineering: Evidence of the Negative Effect of LLMs on Requirements
+Inspection.* arXiv:2608.21298v1. Preprint, no confirmada revisión por pares al
+momento de la consulta.
