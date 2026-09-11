@@ -82,7 +82,7 @@ proyecto real.
 > **Nota sobre la estructura.** El trabajo tiene dos partes con métodos
 > distintos, y las preguntas se separan en consecuencia. **P1 se responde con la
 > revisión sistemática de literatura** —a la que corresponden los criterios de
-> inclusión y exclusión de más abajo—. **P2 a P5 se responden con el
+> inclusión y exclusión de más abajo—. **P2 a P6 se responden con el
 > instrumento**, sobre el proyecto real. Mezclarlas en una sola lista deja sin
 > método declarado a la mitad de las preguntas.
 
@@ -107,6 +107,18 @@ revisión humana, y difiere esa proporción según el tipo de defecto?
 admite un criterio de aceptación verificable sin consulta adicional al
 stakeholder?
 
+**P6.** ¿Con qué frecuencia dos revisores que trabajan la misma cola de forma
+independiente producen decisiones o redacciones distintas, y qué caracteriza a
+las propuestas que los dividen?
+
+> **Corrección.** P6 estaba en los objetivos específicos (objetivo 6) pero no
+> tenía pregunta propia: quedaba implícita y ninguna de P1 a P5 la cubre. Es la
+> pregunta que responde la pantalla de Concordancia, y la que Cheng et al.
+> señalan como hueco de la literatura —*"few studies triangulated human and
+> quantitative evaluations or reported inter-rater reliability"*—, así que
+> omitirla dejaba sin pregunta el punto donde el trabajo tiene más respaldo
+> externo de que hace falta.
+
 > **Corrección respecto de la versión anterior.** La lista tenía tres preguntas
 > y dejaba sin cubrir dos de las tres cosas que el título y el objetivo
 > prometen: el desempeño del revisor y la detección de defectos. Se agregaron P3
@@ -129,7 +141,7 @@ stakeholder?
   especificación, validación o gestión de cambios.
 - Que presenten evaluación empírica: caso de estudio, experimento o métricas.
 
-### Criterios de inclusión del estudio de caso (P2–P5)
+### Criterios de inclusión del estudio de caso (P2–P6)
 
 - Proyecto de software real, en ejecución, con stakeholders que no participan de
   la investigación.
@@ -157,7 +169,7 @@ stakeholder?
 - Propuestas sin ninguna evaluación.
 - Publicaciones anteriores a 2022.
 
-### Criterios de exclusión del estudio de caso (P2–P5)
+### Criterios de exclusión del estudio de caso (P2–P6)
 
 **Del análisis cuantitativo**
 
