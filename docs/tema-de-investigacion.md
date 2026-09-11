@@ -1,7 +1,6 @@
 # Ficha del tema de investigación
 
-Corregida contra lo que el instrumento hace hoy. Los números salen de la base
-del estudio al cierre de la reunión 4: 4 reuniones procesadas, 700 turnos,
+Números al cierre de la reunión 4: 4 reuniones procesadas, 700 turnos,
 29 propuestas, 58 decisiones, 23 requisitos vigentes, 4 defectos sembrados,
 2 revisores.
 
@@ -12,181 +11,165 @@ del estudio al cierre de la reunión 4: 4 reuniones procesadas, 700 turnos,
 **Software Requirements** — Capítulo 01, SWEBOK Guide v4.0a (IEEE Computer
 Society, 2024).
 
-Subáreas que el trabajo toca directamente:
-
 | Subárea | Qué del instrumento cae ahí |
 |---|---|
 | §2.2 Elicitation techniques | Transcripción y diarización de reuniones (*protocol analysis*) |
+| §3.1 Basic requirements analysis | Propiedad *atomic*, de la que se deriva el indicador de atomicidad |
 | §4.2 Structured natural language | Historias de usuario `Como <rol> quiero <capacidad> para <beneficio>` |
 | §4.3 Acceptance criteria-based | Escenarios BDD `Given / When / Then` |
 | §4.5 Additional attributes | Log inmutable de revisiones (*change history*), motivo de consolidación (*rationale*) |
+| §5.1 Requirements reviews | Qué busca un revisor: *errors, omissions, invalid assumptions* |
 | §6.2 Requirements change control | Decisión por revisor sobre cada propuesta de cambio |
-| §7.3 Requirements tracing | Trazabilidad de cada requisito a los turnos de reunión que lo sostienen |
-| §7.4 Stability and volatility | Métrica de volatilidad por revisión |
-| §7.5 Measuring requirements | Indicadores derivados de las propiedades de §3.1 |
+| §7.3 Requirements tracing | Trazabilidad de cada requisito a los turnos que lo sostienen |
+| §7.4 Stability and volatility | Volatilidad por revisión |
+| §7.5 Measuring requirements | Volumen, y el mecanismo que autoriza derivar indicadores de §3.1 |
 
 ---
 
 ## TEMA DE INVESTIGACIÓN
 
-**Documentación viva de requisitos asistida por LLM: deriva de la
-especificación y desempeño del revisor humano a lo largo de iteraciones de
-elicitación.**
-
-> **Corrección respecto de la versión anterior.** El enunciado original decía
-> «LLM+GraphRAG». El instrumento **no usa GraphRAG ni recuperación aumentada**:
-> el agente recibe en el contexto la transcripción de la reunión y la
-> especificación vigente completa. Los únicos vectores del sistema son huellas
-> de voz (`speaker_voiceprints`, pgvector) usadas para reconocer al mismo
-> hablante entre reuniones, no para recuperar requisitos. Sostener «GraphRAG»
-> en la ficha es una afirmación falsable en la primera pregunta del jurado.
+**Requisitos asistidos por un agente LLM: efectos sobre la calidad de la
+especificación y el desempeño del revisor humano.**
 
 ---
 
 ## DESCRIPCIÓN DEL PROBLEMA
 
-SWEBOK v4 §Introduction identifica **dos problemas primarios** de los
-requisitos:
+Los agentes LLM pueden generar y actualizar requisitos a partir de reuniones,
+pero no se conoce suficientemente cómo esta asistencia afecta la calidad de la
+especificación ni el desempeño del revisor humano a lo largo de varias
+iteraciones.
 
-1. **Incompleteness** — existen necesidades de stakeholders que nunca se
-   revelaron ni se comunicaron.
-2. **Ambiguity** — el requisito se comunicó de forma abierta a múltiples
-   interpretaciones, y sólo una es correcta.
+La acumulación de cambios puede aumentar la ambigüedad, reducir la atomicidad e
+introducir defectos de trazabilidad —como `citation_drift`, donde la evidencia
+citada no respalda el requisito—.
 
-Un agente que procesa la transcripción íntegra de una reunión ataca el primero:
-no olvida lo que se dijo y puede citar el turno exacto que sostiene cada
-propuesta.
-
-**El hueco es el costo de esa asistencia, y nadie lo midió.** Tres preguntas
-quedan abiertas:
-
-- **Qué le pasa al documento.** La asistencia produce propuestas a un ritmo que
-  el proceso manual no alcanzaba. Si cada una acumula cláusulas sobre requisitos
-  existentes, la especificación se degrada en atomicidad —propiedad que §3.1
-  define como *«atomic, represent a single decision»*— sin que nadie lo advierta
-  requisito por requisito.
-- **Qué le pasa al revisor.** El humano decide propuesta tras propuesta, reunión
-  tras reunión. §5.1 asume un revisor atento; ningún trabajo mide qué ocurre con
-  esa atención en la iteración diez.
-- **Qué defectos se le pasan.** Un agente que cita turnos introduce una clase de
-  defecto que la elicitación humana no produce: el texto es correcto y la
-  evidencia que lo respalda no lo sostiene. §5.1 pide a los revisores buscar
-  *«errors, omissions, invalid assumptions»*, categorías que no cubren este caso.
-
-> **Corrección respecto de la versión anterior.** Se retiró la afirmación de que
-> el rework por requisitos mal entendidos consume 40–50 % del esfuerzo en
-> equipos ágiles. No se citaba fuente. Si se reincorpora, debe ir con la
-> referencia; de lo contrario debilita toda la sección.
+SWEBOK v4 identifica dos problemas primarios de los requisitos: *incompleteness*
+y *ambiguity*. Un agente que procesa la transcripción íntegra de una reunión
+ataca el primero: no olvida lo que se dijo y puede citar el turno exacto que
+sostiene cada propuesta. **El costo de esa asistencia sobre el segundo, y sobre
+la atención de quien revisa, es lo que no está medido.**
 
 ---
 
 ## OBJETIVO
 
-### General
+Diseñar y aplicar un instrumento para medir, durante varias iteraciones de
+elicitación asistida por LLM, la evolución de la calidad de la especificación de
+requisitos, el esfuerzo del revisor humano y la detección de defectos en un
+proyecto real.
 
-Construir un instrumento que registre, de forma reproducible y sin intervención
-manual sobre el dato, la cadena completa de elicitación asistida por LLM —de la
-transcripción de la reunión a la especificación vigente— y **medir cómo
-evolucionan la calidad del documento y el desempeño del revisor humano a lo
-largo de las iteraciones**, sobre un proyecto real en ejecución.
-
-> **Corrección respecto de la versión anterior.** El objetivo original prometía
-> «evaluar experimentalmente su impacto [...] frente a un proceso manual
-> tradicional». **No existe grupo de control manual**: la base tiene el proyecto
-> del estudio y un fixture de prueba, no una cadena llevada a mano. Sin control
-> no hay comparación posible, y prometerla es prometer un resultado que el
-> diseño no puede producir. El objetivo se reformula como estudio longitudinal
-> de un solo caso: se mide la evolución en el tiempo, no la diferencia contra
-> una alternativa.
-
-### Específicos
+### Objetivos específicos
 
 1. **Registrar la cadena completa** de forma auditable: reunión → turnos con
    hablante identificado → propuesta del agente con los turnos que la sostienen
    → decisión de cada revisor con su intervalo medido → revisión del documento.
-2. **Medir la deriva de la especificación** en dos ejes independientes:
-   acumulación de responsabilidades por requisito (§3.1 vía §7.5) y volatilidad
-   por revisión (§7.4).
-3. **Medir el desempeño del revisor** a lo largo de las iteraciones: tiempo
-   mediano de decisión y proporción de propuestas aceptadas sin editar.
+2. **Medir la calidad de la especificación** en tres indicadores: atomicidad
+   (§3.1 vía §7.5), volatilidad (§7.4) y volumen (§7.5).
+3. **Medir el esfuerzo del revisor**: tiempo mediano de decisión y proporción de
+   propuestas aceptadas sin editar, por iteración.
 4. **Medir la detección de defectos** mediante siembra controlada con semilla
-   declarada, distinguiendo tipos de defecto.
-5. **Medir la ambigüedad residual** de la especificación: proporción de
-   requisitos que no pueden expresarse como escenario de aceptación sin volver a
-   consultar al stakeholder.
-6. **Medir la concordancia entre revisores** sobre la misma cola, y registrar en
+   declarada, distinguiendo por tipo de defecto.
+5. **Medir la ambigüedad residual**: proporción de requisitos que no admiten un
+   criterio de aceptación verificable sin consulta adicional al stakeholder.
+6. **Medir la concordancia entre revisores** sobre la misma cola, registrando en
    una capa separada y corregible qué versión rige cuando difieren.
 
 ---
 
 ## PREGUNTAS DE INVESTIGACIÓN
 
-**P1 — Deriva del documento.** ¿La especificación mantenida con asistencia de
-LLM acumula responsabilidades por requisito a lo largo de las iteraciones, y con
-qué relación respecto de su volatilidad?
+> **Nota sobre la estructura.** El trabajo tiene dos partes con métodos
+> distintos, y las preguntas se separan en consecuencia. **P1 se responde con la
+> revisión sistemática de literatura** —a la que corresponden los criterios de
+> inclusión y exclusión de más abajo—. **P2 a P5 se responden con el
+> instrumento**, sobre el proyecto real. Mezclarlas en una sola lista deja sin
+> método declarado a la mitad de las preguntas.
 
-**P2 — Desempeño del revisor.** ¿El tiempo de decisión y la proporción de
-propuestas aceptadas sin editar varían sistemáticamente a medida que avanzan las
+### Parte I — Revisión sistemática de literatura
+
+**P1.** ¿Cómo se evalúa la calidad de los requisitos generados por LLM y con qué
+métricas?
+
+### Parte II — Estudio longitudinal de caso único
+
+**P2.** ¿Cómo evoluciona la calidad de la especificación —atomicidad,
+volatilidad y volumen— a lo largo de las iteraciones de elicitación asistida?
+
+**P3.** ¿El esfuerzo del revisor —tiempo de decisión y proporción de propuestas
+aceptadas sin editar— varía sistemáticamente a medida que avanzan las
 iteraciones?
 
-**P3 — Detección de defectos.** ¿Qué proporción de las propuestas defectuosas
-sembradas atraviesa la revisión humana, y difiere esa proporción según el tipo
-de defecto?
+**P4.** ¿Qué proporción de las propuestas defectuosas sembradas atraviesa la
+revisión humana, y difiere esa proporción según el tipo de defecto?
 
-**P4 — Concordancia.** ¿Con qué frecuencia dos revisores que trabajan la misma
-cola de forma independiente producen decisiones o redacciones distintas, y qué
-caracteriza a las propuestas que los dividen?
+**P5.** ¿Qué proporción de los requisitos producidos por la cadena asistida no
+admite un criterio de aceptación verificable sin consulta adicional al
+stakeholder?
 
-**P5 — Ambigüedad.** ¿Qué proporción de los requisitos producidos por la cadena
-asistida no admite un criterio de aceptación verificable sin consulta adicional
-al stakeholder?
+> **Corrección respecto de la versión anterior.** La lista tenía tres preguntas
+> y dejaba sin cubrir dos de las tres cosas que el título y el objetivo
+> prometen: el desempeño del revisor y la detección de defectos. Se agregaron P3
+> y P4. También se reformuló la pregunta sobre mantenibilidad: *«¿cuán mantenible
+> resulta la documentación?»* usaba un término que el instrumento no mide y que
+> el capítulo no define para requisitos. Lo que sí se mide —atomicidad,
+> volatilidad, volumen— pasa a nombrarse explícitamente en P2.
 
 ---
 
 ## CRITERIOS DE INCLUSIÓN
 
-**Del proyecto de estudio**
+*Aplican a la revisión sistemática de literatura (P1).*
+
+- Artículos publicados entre 2022 y 2026.
+- Publicados en revistas o congresos revisados por pares: Scopus, Web of
+  Science, IEEE Xplore, ACM Digital Library.
+- En inglés o español.
+- Que traten el uso de LLM en ingeniería de requisitos: elicitación,
+  especificación, validación o gestión de cambios.
+- Que presenten evaluación empírica: caso de estudio, experimento o métricas.
+
+### Criterios de inclusión del estudio de caso (P2–P5)
 
 - Proyecto de software real, en ejecución, con stakeholders que no participan de
   la investigación.
-- Elicitación por reuniones grabadas, con consentimiento registrado de los
-  participantes y su fecha.
+- Elicitación por reuniones grabadas, con consentimiento registrado y su fecha.
 - Especificación mantenida en historias de usuario en español.
 - Serie de al menos diez iteraciones procesadas con la misma configuración de
   modelo.
-
-**De las reuniones**
-
-- Audio de la reunión completa, no de fragmentos.
-- Transcripción y diarización producidas por la misma configuración declarada
-  (`faster-whisper large-v3`, `pyannote`), con sus parámetros registrados.
-- Consentimiento registrado antes del procesamiento.
-
-**De las propuestas y decisiones**
-
-- Propuestas generadas por el mismo motor y modelo a lo largo de toda la cadena.
+- Transcripción y diarización producidas por la misma configuración declarada,
+  con sus parámetros registrados.
 - Decisiones tomadas por revisores que no conocen qué propuestas fueron
   sembradas con defectos.
 - Intervalo de decisión medido por el instrumento, nunca declarado por la
   persona.
-- Decisiones registradas de forma inmutable, con corrección posible sólo en una
-  capa separada y con motivo escrito.
 
 ---
 
 ## CRITERIOS DE EXCLUSIÓN
+
+*Aplican a la revisión sistemática de literatura (P1).*
+
+- Artículos duplicados entre bases de datos.
+- Estudios sobre LLM que no aborden requisitos —por ejemplo, sólo generación de
+  código o testing—.
+- Resúmenes, pósters, editoriales o capítulos sin revisión por pares.
+- Propuestas sin ninguna evaluación.
+- Publicaciones anteriores a 2022.
+
+### Criterios de exclusión del estudio de caso (P2–P5)
 
 **Del análisis cuantitativo**
 
 - **Reuniones de descubrimiento.** Los candidatos se presentan todos a la vez y
   el revisor entra y sale de ellos: el intervalo mide cuánto estuvo uno al
   frente, no cuánto costó decidirlo. Excluidas de la curva de tiempo de decisión
-  (P2), incluidas en el resto.
+  (P3), incluidas en el resto.
 - **Propuestas revisadas por una sola persona.** Sin cruce no hay concordancia
-  que medir (P4).
+  que medir.
 - **Reuniones procesadas con un modelo distinto al de la serie.** La reunión 1
   se generó con `gemini-3.8-flash` y el resto con `gemini-3.7-flash`; queda
-  declarada como excepción y fuera de cualquier comparación entre iteraciones que
+  declarada como excepción y fuera de toda comparación entre iteraciones que
   dependa del comportamiento del modelo.
 - **Iteraciones cuya siembra de defectos no tenga semilla, proporción y tipos
   declarados.**
@@ -194,48 +177,50 @@ al stakeholder?
 **Del alcance del trabajo**
 
 - **Requisitos de proyecto** —costo, cronograma, dotación—. SWEBOK §1.3 los
-  asigna a las áreas de Gestión y Proceso, y el capítulo de requisitos
+  asigna a las áreas de Gestión y Proceso; el capítulo de requisitos
   explícitamente no los trata.
 - **§6.3 Scope Matching y §7.2 Prioritization.** Requieren costo, cronograma y
   entrega, que el estudio no observa.
 - **§3.3 Formal Analysis, §4.4 Model-Based Specification, §8.2 y §8.3.** El
-  corpus es lenguaje natural estructurado por diseño; no hay especificación
-  formal ni modelos sobre los cuales razonar mecánicamente.
-- **§5.2 Simulation y §5.3 Prototyping.** No se construye software, de modo que
-  no hay nada que simular ni prototipar.
-- **Comparación contra un proceso manual.** No existe grupo de control; ver la
-  corrección del objetivo.
+  corpus es lenguaje natural estructurado por diseño.
+- **§5.2 Simulation y §5.3 Prototyping.** No se construye software.
+- **Comparación contra un proceso manual.** No existe grupo de control: la base
+  contiene el proyecto del estudio y un fixture de prueba, no una cadena llevada
+  a mano. El diseño es longitudinal de caso único —mide evolución en el tiempo,
+  no diferencia contra una alternativa—.
 
 ---
 
-## LIMITACIONES A DECLARAR
+## QUÉ MIDE EL INSTRUMENTO HOY
 
-Se enuncian acá porque un jurado las va a encontrar, y declararlas es más fuerte
-que defenderlas.
+### Con cita directa del capítulo
 
-1. **El cliente no valida.** §5.1 recomienda revisar desde múltiples
-   perspectivas —cliente, ingeniero de requisitos, constructor—. Los dos
-   revisores del estudio son ambos analistas. Es replicación deliberada para
-   medir concordancia entre observadores equivalentes, no cumplimiento de la
-   recomendación de §5.1.
-2. **El documento avanza con quien decide primero.** §6.2 exige *«a responsible
-   person or group»*, singular y designado. El instrumento permite que cualquiera
-   de los dos revisores escriba la revisión, porque las dos series deben correr
-   en paralelo. Decisión de diseño experimental, no conformidad con el estándar.
-3. **Las decisiones no trazan al cliente.** §3.4 señala que, por razones
-   contractuales, la resolución de conflictos debería ser trazable al cliente.
-   Las consolidaciones registran al analista que resolvió y su motivo.
-4. **Reunión 3 contaminada.** El investigador conoció qué propuestas habían sido
-   sembradas antes de revisarlas. Esa serie queda marcada.
-5. **Un revisor pudo leer el documento antes del tope por avance.** Las
-   decisiones de la reunión 1 del segundo revisor se tomaron cuando los
-   requisitos resultantes ya eran visibles con las ediciones del primero.
-6. **El estimador de responsabilidades es heurístico.** Detecta acciones
-   coordinadas; no detecta responsabilidad múltiple semántica —«gestionar el
-   padrón» es un CRUD completo detrás de un solo verbo—.
-7. **El instrumento implementa dos de las tres salidas de §6.2.** Falta
-   `defer`. Se mantuvo así para no alterar la población de decisiones medidas a
-   mitad de la serie.
+| Indicador | Cita | Serie observada |
+|---|---|---|
+| **Atomicidad** — responsabilidades por requisito | §3.1 *"atomic, represent a single decision"* + §7.5 autoriza derivarlo | media 1,29 → 1,42 → 1,55 → 1,52 · sobre el límite 0 → 1 → 4 → 4 |
+| **Volatilidad** — proporción del documento que la revisión vuelve a tocar | §7.4 *"the likelihood that a requirement will change in a given time"* | 0 % → 8,3 % → 15,0 % → 4,3 % |
+| **Volumen** — requisitos vigentes | §7.5 *"the denominator in other measurements"* | 7 → 12 → 20 → 23 |
+| **Trazabilidad** — requisitos con turnos citados | §7.3, dirección hacia atrás a *source documentation* | 23 de 23, entre 2 y 9 turnos cada uno |
+
+### Con respaldo indirecto
+
+| Indicador | Anclaje | Serie observada |
+|---|---|---|
+| **Detección de defectos** | §5.1 enumera qué busca un revisor | 3 de 4 sembrados sin detectar |
+| **Ambigüedad** | §Introduction la nombra problema primario; §4.3 aporta el mecanismo | sin datos aún |
+
+### Sin respaldo en el capítulo — aporte propio a declarar
+
+| Indicador | Serie observada |
+|---|---|
+| **Tiempo mediano de decisión** | 4,6 s → 3,0 s → 4,5 s → 12,0 s |
+| **Aceptadas sin editar** | 71 % → 100 % → 67 % → 100 % |
+| **Concordancia entre revisores** | 29 propuestas cruzadas · 79 % de coincidencia |
+| **Deriva de vocabulario de roles** | 5 → 6 → 13 → 15 nombres para 4 → 7 roles |
+
+§7.6 menciona *"requirements process measures and benchmarking"* de forma
+genérica y no respalda ninguno de estos indicadores en particular. Se declaran
+como aporte propio, no como conformidad con el estándar.
 
 ---
 
@@ -244,14 +229,58 @@ que defenderlas.
 **`citation_drift` como clase de defecto propia de la elicitación asistida.**
 
 El agente produce un requisito correcto en su redacción y lo respalda con turnos
-de reunión que no lo sostienen. El texto pasa cualquier revisión de redacción; la
-evidencia es falsa.
+de reunión que no lo sostienen. El texto pasa cualquier revisión de redacción;
+la evidencia es falsa.
 
-SWEBOK §5.1 enumera lo que los revisores deben buscar —*«errors, omissions,
-invalid assumptions, lack of clarity and deviation from accepted practice»*— y
-ninguna categoría lo cubre. No es una omisión del estándar: el capítulo asume
-elicitación humana, donde nadie cita turnos.
+§7.3 describe la verificación de trazabilidad como un ejercicio contable:
+*"For each identified software requirement, are there identified design elements
+intended to satisfy it?"* La pregunta es **si el vínculo existe**, no si el
+vínculo se sostiene. Con elicitación humana la distinción es irrelevante —quien
+escribe un requisito no fabrica su fuente—. **Con un agente, el vínculo puede
+existir y estar mal.**
+
+La contribución no es proponer una categoría inexistente, sino mostrar que un
+chequeo establecido descansa sobre un supuesto que la asistencia automatizada
+invalida.
 
 Los otros dos tipos sembrados sí tienen correspondencia: `invented_precision`
-cae bajo *invalid assumptions*, y `role_shift` viola la propiedad de §3.1 de
-representar necesidades reales del stakeholder.
+cae bajo *invalid assumptions* (§5.1) y `role_shift` viola la propiedad de §3.1
+de representar necesidades reales del stakeholder.
+
+**Operacionalización.** La detección se registra como rechazo de la propuesta.
+Editar el texto no cuenta: en una cita desplazada el texto es correcto y
+editarlo deja la evidencia falsa intacta. De las dos citas desplazadas sembradas,
+ninguna fue detectada; en una de ellas ambos revisores editaron el texto.
+
+---
+
+## LIMITACIONES A DECLARAR
+
+1. **El cliente no valida.** §5.1 recomienda revisar desde múltiples
+   perspectivas —cliente, ingeniero de requisitos, constructor—. Los dos
+   revisores son ambos analistas. Es replicación deliberada para medir
+   concordancia entre observadores equivalentes, no cumplimiento de §5.1.
+2. **El documento avanza con quien decide primero.** §6.2 exige *"a responsible
+   person or group"*, singular y designado. El instrumento permite que cualquiera
+   de los dos revisores escriba la revisión, porque las series deben correr en
+   paralelo. Decisión de diseño experimental.
+3. **Las decisiones no trazan al cliente.** §3.4 señala que, por razones
+   contractuales, la resolución de conflictos debería ser trazable al cliente.
+   Las consolidaciones registran al analista que resolvió y su motivo.
+4. **El instrumento implementa dos de las tres salidas de §6.2.** Falta `defer`.
+   Se mantuvo así para no alterar la población de decisiones medidas a mitad de
+   la serie.
+5. **Reunión 3 contaminada.** El investigador conoció qué propuestas habían sido
+   sembradas antes de revisarlas.
+6. **Un revisor pudo leer el documento antes del tope por avance.** Las
+   decisiones de la reunión 1 del segundo revisor se tomaron cuando los
+   requisitos resultantes ya eran visibles con las ediciones del primero.
+7. **El estimador de atomicidad es heurístico.** Detecta acciones coordinadas; no
+   detecta responsabilidad múltiple semántica —«gestionar el padrón» es un CRUD
+   completo detrás de un solo verbo—.
+8. **La detección de defectos puede dar falsos positivos.** Un rechazo por causa
+   ajena al defecto sembrado se contabiliza como detección. El instrumento
+   registra el motivo del rechazo, de modo que la revisión es manual y caso por
+   caso.
+9. **`clause_collapse` no tiene casos.** El instrumento define cuatro tipos de
+   defecto y sólo se sembraron tres. El cuarto queda sin observaciones.
