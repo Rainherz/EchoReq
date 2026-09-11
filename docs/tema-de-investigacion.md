@@ -281,6 +281,35 @@ activo, no puede aislar su efecto causal de la misma manera, y sacrifica esa
 fuerza inferencial a cambio de validez ecológica: un proyecto real, no un
 documento de laboratorio.
 
+**Segunda verificación, contra la revisión sistemática de mayor cobertura del
+área (septiembre 2026).** Cheng, Husen, Lu, Racharak, Yoshioka, Ubayashi y
+Washizaki, *"Generative AI for Requirements Engineering: A Systematic
+Literature Review"* (*Software: Practice and Experience*, 2026;56:141–170),
+sintetiza **238 estudios primarios** publicados entre 2019 y mayo de 2025 —la
+SLR más amplia localizada sobre GenAI aplicado a RE. Su framework de
+extracción cubre siete categorías de datos, una taxonomía de seis tipos de
+métrica de evaluación (precision/recall/F1, accuracy, evaluación humana,
+análisis de error, métricas de NLP, métricas de similitud) y once categorías
+de limitaciones reportadas por los propios 238 estudios. **Ninguna de esas
+categorías trata verificar que una fuente o cita atribuida por el LLM
+efectivamente respalde el requisito que generó**; lo más cercano es
+*hallucinations* (63,4 % de prevalencia), pero se define como salida que
+contradice el input, el contexto o los hechos —contenido inventado, no
+fidelidad de una referencia a su fuente—. Al ser una síntesis de todo el campo
+y no un estudio aislado, refuerza la verificación anterior: si el gap
+existiera en algún estudio de los 238, el framework de extracción de esta
+revisión lo habría capturado en alguna de sus categorías.
+
+La misma SLR cuantifica, con cifra propia, la escasez de estudios como el
+presente: **90,3 % de los 238 estudios están en etapa conceptual o de prueba
+de concepto, 8,4 % en prototipo, y sólo 1,3 % (3 estudios) en producción**
+(RQ5). Un caso longitudinal sobre un proyecto real en ejecución cae en ese
+1,3 %. Los propios autores señalan además que *"few studies triangulated
+human and quantitative evaluations or reported inter-rater reliability, which
+limits external and construct validity"* —el hueco exacto que la medición de
+concordancia entre revisores de este instrumento cubre— y que *"human-in-the-
+loop and role-based methods are also underexplored"*.
+
 ---
 
 ## LIMITACIONES A DECLARAR
@@ -291,7 +320,11 @@ documento de laboratorio.
    experimento *crossover* controlado como el de Broccia et al. (2026), que sí
    logra causalidad mediante manipulación con/sin LLM sobre 34 sujetos. Se
    opta deliberadamente por validez ecológica —un proyecto real, no un
-   documento de laboratorio— a cambio de esa fuerza inferencial.
+   documento de laboratorio— a cambio de esa fuerza inferencial. Al mismo tiempo,
+   Cheng et al. (2026) cuantifican que sólo el 1,3 % de 238 estudios
+   revisados sobre GenAI en RE alcanza producción —el 90,3 % no pasa de
+   etapa conceptual—, así que el trabajo se ubica en el segmento menos
+   frecuente y de mayor validez externa de la literatura del área.
 2. **El cliente no valida.** §5.1 recomienda revisar desde múltiples
    perspectivas —cliente, ingeniero de requisitos, constructor—. Los dos
    revisores son ambos analistas. Es replicación deliberada para medir
@@ -330,3 +363,11 @@ A., & Vogelsang, A. (2026). *Human-AI Collaboration in Requirements
 Engineering: Evidence of the Negative Effect of LLMs on Requirements
 Inspection.* arXiv:2608.21298v1. Preprint, no confirmada revisión por pares al
 momento de la consulta.
+
+Cheng, H., Husen, J. H., Lu, Y., Racharak, T., Yoshioka, N., Ubayashi, N., &
+Washizaki, H. (2026). *Generative AI for Requirements Engineering: A
+Systematic Literature Review.* Software: Practice and Experience, 56, 141–170.
+https://doi.org/10.1002/spe.70029. Revisión sistemática con protocolo
+Kitchenham, 238 estudios primarios (2019–mayo 2025); artículo de acceso
+abierto, dataset de extracción público en
+github.com/haowei614/GenAI4RE_SLR_Data.
