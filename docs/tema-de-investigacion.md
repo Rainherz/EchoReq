@@ -310,6 +310,33 @@ limits external and construct validity"* —el hueco exacto que la medición de
 concordancia entre revisores de este instrumento cubre— y que *"human-in-the-
 loop and role-based methods are also underexplored"*.
 
+**Tercera verificación, con salvedad de estatus.** Zadenoori, Dąbrowski,
+Alhoshan, Zhao y Ferrari, *"Large Language Models (LLMs) for Requirements
+Engineering (RE): A Systematic Literature Review"* (preprint enviado a
+Elsevier, arXiv:2509.11446v1, sep. 2025), mapea **74 estudios primarios**
+sobre LLM4RE publicados 2023–2024. **Es un preprint sin revisión por pares
+—los propios autores lo declaran: "This paper is a preliminary study. No
+systematic cross-checking has been performed on the retrieved and analysed
+studies"—, así que se cita con ese peso menor, nunca en pie de igualdad con
+Cheng et al., que sí está en journal indexado.**
+
+Su esquema de extracción —once tareas de RE, seis fases del ciclo de vida,
+nueve artefactos de entrada, diez de salida, ocho estrategias de
+prompting— tampoco incluye ninguna categoría que capture verificar la
+fidelidad de una cita a su fuente, ni aparece mencionado como hallazgo de
+alguno de los 74 estudios ni como dirección de trabajo futuro. Es la
+tercera fuente independiente, y la más reciente en el campo específico
+LLM4RE, que no cubre el aporte.
+
+Aporta además la cita textual más alineada con la elección de diseño de
+este trabajo: *"combining Mixed Methods with Field Studies and Experimental
+Simulations, also considering **longitudinal observations**, can provide a
+more holistic understanding"* (p.54). Y un dato de encuadre para el
+planteamiento del problema: elicitación y validación concentran el 40 % de
+los 74 estudios, mientras que detección de defectos es marginal (4 %) — la
+comunidad se concentra lejos del punto donde vive el aporte de este
+trabajo.
+
 ---
 
 ## LIMITACIONES A DECLARAR
@@ -371,3 +398,10 @@ https://doi.org/10.1002/spe.70029. Revisión sistemática con protocolo
 Kitchenham, 238 estudios primarios (2019–mayo 2025); artículo de acceso
 abierto, dataset de extracción público en
 github.com/haowei614/GenAI4RE_SLR_Data.
+
+Zadenoori, M. A., Dąbrowski, J., Alhoshan, W., Zhao, L., & Ferrari, A. (2025).
+*Large Language Models (LLMs) for Requirements Engineering (RE): A Systematic
+Literature Review.* arXiv:2509.11446v1. Preprint enviado a Elsevier, no
+revisado por pares; los propios autores lo declaran estudio preliminar sin
+verificación cruzada sistemática de los estudios recuperados. 74 estudios
+primarios (2023–2024).
