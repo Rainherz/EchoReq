@@ -3,6 +3,7 @@ import "./shell.css";
 
 export type Section =
   | "sessions"
+  | "transcript"
   | "discovery"
   | "review"
   | "document"
@@ -28,6 +29,7 @@ interface NavEntry {
 function projectNav(counts: NavCounts): NavEntry[] {
   return [
     { id: "sessions", label: "Sesiones", count: counts.meetings },
+    { id: "transcript", label: "Transcripción" },
     // Descubrimiento existe sólo para la primera reunión de un proyecto,
     // cuando todavía no hay documento contra el cual comparar. Para el resto
     // se atenúa: dejarlo igual que las demás invita a entrar a una pantalla

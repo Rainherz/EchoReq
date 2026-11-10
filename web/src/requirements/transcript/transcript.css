@@ -1,0 +1,287 @@
+/* Ocupa el alto disponible: es una superficie de lectura con dos paneles que
+   se desplazan por separado, para tener a la vista la cita y la propuesta. */
+.transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-width: var(--measure-wide);
+  margin-inline: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.transcript__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.7rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.transcript__split--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 900px) {
+  .transcript {
+    height: auto;
+  }
+  .transcript__split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .transcript__scroll {
+    max-height: 70vh;
+  }
+}
+
+.transcript__pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.transcript__scroll {
+  overflow-y: auto;
+  min-height: 0;
+  margin: 0 -0.2rem;
+  padding: 0 0.2rem;
+}
+
+.transcript__note {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid var(--warn);
+  background: var(--warn-wash);
+  border-radius: 0 5px 5px 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------ turnos */
+
+.ttranscript {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tturn {
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.4rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  font-family: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  width: 100%;
+}
+
+.tturn__body {
+  display: block;
+  min-width: 0;
+}
+
+.tturn__text {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* Citado por alguna propuesta: marca a la izquierda y botón. */
+.tturn--cited {
+  box-shadow: inset 2px 0 0 var(--ok-line);
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.tturn--cited:hover {
+  background: var(--hover);
+}
+
+.tturn--lit,
+.tturn--lit:hover {
+  background: var(--ok-wash);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+
+.tturn--lit .turn__meta {
+  color: var(--ok-text);
+}
+
+.tturn--dim:not(.tturn--cited) {
+  opacity: 0.7;
+}
+
+.tturn__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.tturn__badgelabel {
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.tturn__badge {
+  font-family: var(--f-mono);
+}
+
+.tturn:focus-visible,
+.ptrace__head:focus-visible {
+  outline: 2px solid var(--ok);
+  outline-offset: 1px;
+}
+
+/* ------------------------------------------------------- propuestas */
+
+.ptrace__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ptrace {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.ptrace--lit {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 2px var(--ok-wash);
+  background: var(--card);
+}
+
+.ptrace--dim {
+  opacity: 0.75;
+}
+
+.ptrace__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ptrace__head:hover {
+  background: var(--hover);
+}
+
+.ptrace__head[aria-pressed="true"] {
+  background: var(--ok-wash);
+}
+
+.ptrace__id {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ptrace__target {
+  font-family: var(--f-mono);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
+
+.ptrace__cites {
+  margin-left: auto;
+  font-family: var(--f-mono);
+  font-size: 0.66rem;
+  color: var(--faint);
+}
+
+.ptrace__body {
+  padding: 0.65rem 0.7rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.ptrace__label {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 0.15rem;
+}
+
+.ptrace__why,
+.ptrace__final,
+.ptrace__none {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.ptrace__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pdecision {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pdecision__who {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pdecision__time {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--faint);
+}
+
+.pdecision__edit {
+  flex-basis: 100%;
+  margin: 0.15rem 0 0;
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid var(--warn);
+  background: var(--warn-wash);
+  border-radius: 0 4px 4px 0;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transcript__scroll {
+    scroll-behavior: auto;
+  }
+}

@@ -13,6 +13,7 @@ from .entities import (
     DecisionCorrection,
     DocumentEntry,
     IterationMetrics,
+    ProposalTrace,
     Rejection,
     RequirementRevision,
     ReviewDecision,
@@ -28,6 +29,10 @@ class ProposalRepository(Protocol):
         ...
 
     def get(self, proposal_id: str) -> ChangeProposal | None: ...
+
+    def trace_for_meeting(self, meeting_id: str) -> list[ProposalTrace]:
+        """Todas las propuestas de la reunión con sus decisiones, por iteración."""
+        ...
 
 
 class DecisionRepository(Protocol):

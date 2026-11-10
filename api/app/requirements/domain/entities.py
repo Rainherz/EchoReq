@@ -294,3 +294,46 @@ class IterationMetrics:
     #: `discovery` o `living`. La curva que compara iteraciones arranca en la
     #: primera de documentación viva.
     mode: str = "living"
+
+
+@dataclass(frozen=True, slots=True)
+class ProposalDecision:
+    """Lo que decidió un revisor sobre una propuesta, tal como quedó registrado."""
+
+    participant_id: str
+    participant_name: str | None
+    action: Action
+    edited_content: str | None
+    #: Cuánto tardó: ``decided_at - presented_at``.
+    seconds: float
+
+
+@dataclass(frozen=True, slots=True)
+class ProposalConsolidation:
+    outcome: str
+    chosen_from: str | None
+    resolved_by: str
+    reason: str
+    content: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ProposalTrace:
+    """Una propuesta con las citas que la sostienen y cómo se tomó.
+
+    No lleva la marca de defecto de la referencia: el estudio mide revisión a
+    ciegas y esta vista no puede revelar cuáles fueron sembradas.
+    """
+
+    id: str
+    iteration: int
+    operation: Operation
+    target_id: str
+    previous_content: str | None
+    content: str | None
+    source_turn_ids: list[int]
+    rationale: str
+    signals: list[QualitySignal]
+    theme: str | None
+    decisions: list[ProposalDecision]
+    consolidation: ProposalConsolidation | None

@@ -5,6 +5,7 @@ import { AsyncBoundary } from "./shell/AsyncBoundary";
 import { MeetingPicker } from "./shell/MeetingPicker";
 import { CaptureScreen } from "./requirements/capture/CaptureScreen";
 import { NewMeeting } from "./requirements/capture/NewMeeting";
+import { TranscriptScreen } from "./requirements/transcript/TranscriptScreen";
 import { DiscoveryScreen } from "./requirements/discovery/DiscoveryScreen";
 import { ReviewScreen } from "./requirements/review/ReviewScreen";
 import { DocumentScreen } from "./requirements/document/DocumentScreen";
@@ -48,6 +49,7 @@ const LAST_PARTICIPANT = "echoreq.participant";
 
 const SECTIONS: Section[] = [
   "sessions",
+  "transcript",
   "discovery",
   "review",
   "document",
@@ -62,6 +64,7 @@ const SECTIONS: Section[] = [
 
 const SECTION_LABEL: Record<Section, string> = {
   sessions: "Sesiones",
+  transcript: "Transcripción",
   discovery: "Descubrimiento",
   review: "Revisión",
   document: "Documento",
@@ -391,7 +394,9 @@ function ProjectApp({
   );
 
   const crumb =
-    route.section === "review" || route.section === "discovery"
+    route.section === "review" ||
+    route.section === "discovery" ||
+    route.section === "transcript"
       ? `/ ${SECTION_LABEL[route.section]} / Reunión ${iteration}`
       : `/ ${SECTION_LABEL[route.section]}`;
 
@@ -453,6 +458,17 @@ function ProjectApp({
                   onChanged={meetings.reload}
                   onAddMeeting={() => setAddingMeeting(true)}
                 />
+              ))}
+
+            {route.section === "transcript" &&
+              (selected ? (
+                <TranscriptScreen
+                  meeting={selected}
+                  turns={turns}
+                  speakers={speakerNames}
+                />
+              ) : (
+                <NoMeetingsYet onGo={() => navigate("sessions")} />
               ))}
 
             {route.section === "discovery" && selected?.mode !== "discovery" && (

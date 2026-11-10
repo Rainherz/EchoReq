@@ -25,6 +25,9 @@ from ...requirements.domain.entities import (
     IterationMetrics,
     Meeting,
     Project,
+    ProposalConsolidation,
+    ProposalDecision,
+    ProposalTrace,
     QualitySignal,
     Rejection,
     RequirementRevision,
@@ -515,6 +518,70 @@ class PostgresProposalRepository:
             cur.execute("SELECT * FROM change_proposals WHERE id = %s", (proposal_id,))
             row = cur.fetchone()
             return _to_proposal(row) if row else None
+
+    def trace_for_meeting(self, meeting_id: str) -> list[ProposalTrace]:
+        with cursor() as cur:
+            cur.execute(
+                """
+                SELECT p.id, p.iteration, p.operation, p.target_id,
+                       p.previous_content, p.content, p.source_turn_ids,
+                       p.rationale, p.signals, p.theme,
+                       c.outcome       AS c_outcome,
+                       c.chosen_from   AS c_chosen_from,
+                       c.resolved_by   AS c_resolved_by,
+                       c.reason        AS c_reason,
+                       c.content       AS c_content,
+                       coalesce(
+                           jsonb_agg(
+                               jsonb_build_object(
+                                   'participant_id', d.participant_id,
+                                   'participant_name', pt.display_name,
+                                   'action', d.action,
+                                   'edited_content', d.edited_content,
+                                   'seconds', extract(
+                                       epoch FROM d.decided_at - d.presented_at
+                                   )
+                               ) ORDER BY d.decided_at, d.id
+                           ) FILTER (WHERE d.id IS NOT NULL),
+                           '[]'::jsonb
+                       ) AS decisions
+                FROM change_proposals p
+                LEFT JOIN review_decisions d ON d.proposal_id = p.id
+                LEFT JOIN participants pt ON pt.id = d.participant_id
+                LEFT JOIN consolidations c ON c.proposal_id = p.id
+                WHERE p.meeting_id = %s
+                GROUP BY p.id, c.proposal_id
+                ORDER BY p.iteration, p.id
+                """,
+                (meeting_id,),
+            )
+            return [
+                ProposalTrace(
+                    id=row["id"],
+                    iteration=row["iteration"],
+                    operation=row["operation"],
+                    target_id=row["target_id"],
+                    previous_content=row["previous_content"],
+                    content=row["content"],
+                    source_turn_ids=list(row["source_turn_ids"]),
+                    rationale=row["rationale"],
+                    signals=[QualitySignal(**s) for s in row["signals"]],
+                    theme=row["theme"],
+                    decisions=[ProposalDecision(**d) for d in row["decisions"]],
+                    consolidation=(
+                        ProposalConsolidation(
+                            outcome=row["c_outcome"],
+                            chosen_from=row["c_chosen_from"],
+                            resolved_by=row["c_resolved_by"],
+                            reason=row["c_reason"],
+                            content=row["c_content"],
+                        )
+                        if row["c_outcome"] is not None
+                        else None
+                    ),
+                )
+                for row in cur.fetchall()
+            ]
 
 
 class PostgresDecisionRepository:

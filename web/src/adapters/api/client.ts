@@ -540,6 +540,51 @@ export async function fetchTurns(meetingId: string): Promise<Turn[]> {
   }));
 }
 
+/** Lo que decidió un revisor sobre una propuesta. */
+export interface ProposalDecision {
+  participantId: string;
+  participantName: string | null;
+  action: ReviewAction;
+  editedContent: string | null;
+  /** Cuánto tardó en decidir. */
+  seconds: number;
+}
+
+export interface ProposalConsolidation {
+  outcome: "adopt" | "drop" | "rewrite";
+  chosenFrom: string | null;
+  resolvedBy: string;
+  reason: string;
+  content: string | null;
+}
+
+/**
+ * Una propuesta del agente con sus citas y las decisiones de cada revisor.
+ * No trae la marca de defecto: la revisión es a ciegas y esta vista no puede
+ * revelar cuáles fueron sembradas.
+ */
+export interface MeetingProposal {
+  id: string;
+  iteration: number;
+  operation: "create" | "modify" | "delete" | "conflict";
+  targetId: string;
+  previousContent: string | null;
+  content: string | null;
+  sourceTurnIds: number[];
+  rationale: string;
+  signals: Array<{ rule: string; label: string; detail: string }>;
+  theme: string | null;
+  decisions: ProposalDecision[];
+  consolidation: ProposalConsolidation | null;
+}
+
+export const fetchMeetingProposals = (
+  meetingId: string,
+): Promise<MeetingProposal[]> =>
+  request<MeetingProposal[]>(
+    `/meetings/${encodeURIComponent(meetingId)}/proposals`,
+  );
+
 export function fetchDocument(
   projectId: string,
   revision: number,

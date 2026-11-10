@@ -58,6 +58,7 @@ from .schemas import (
     MeetingAudioOut,
     MeetingIn,
     MeetingOut,
+    MeetingProposalOut,
     MetricsOut,
     ProjectIn,
     ProjectOut,
@@ -456,6 +457,40 @@ def meeting_turns(meeting_id: str) -> list[TurnOut]:
             text=t.text,
         )
         for t in turns
+    ]
+
+
+@router.get("/meetings/{meeting_id}/proposals")
+def meeting_proposals(meeting_id: str) -> list[MeetingProposalOut]:
+    """Qué propuso el agente en la reunión, qué turnos lo sostienen y qué
+    decidió cada revisor.
+
+    Es lectura para quien audita el proceso. No expone la marca de defecto de
+    la referencia: el estudio mide revisión a ciegas.
+    """
+    traces = _proposals.trace_for_meeting(meeting_id)
+    # Una reunión sin propuestas todavía es un estado normal, no un recurso
+    # faltante: mismo criterio que /turns.
+    if not traces and not _meetings_repo.exists(meeting_id):
+        raise HTTPException(
+            status_code=404, detail=f"No existe la reunión {meeting_id}."
+        )
+    return [
+        MeetingProposalOut(
+            id=t.id,
+            iteration=t.iteration,
+            operation=t.operation,
+            target_id=t.target_id,
+            previous_content=t.previous_content,
+            content=t.content,
+            source_turn_ids=t.source_turn_ids,
+            rationale=t.rationale,
+            signals=[asdict(s) for s in t.signals],
+            theme=t.theme,
+            decisions=[asdict(d) for d in t.decisions],
+            consolidation=asdict(t.consolidation) if t.consolidation else None,
+        )
+        for t in traces
     ]
 
 

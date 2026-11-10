@@ -206,6 +206,45 @@ class ProposalOut(Schema):
     context_turns: list[TurnOut]
 
 
+class ProposalDecisionOut(Schema):
+    participant_id: str
+    participant_name: str | None
+    action: str
+    edited_content: str | None
+    #: Cuánto tardó en decidir, en segundos.
+    seconds: float
+
+
+class ProposalConsolidationOut(Schema):
+    outcome: str
+    chosen_from: str | None
+    resolved_by: str
+    reason: str
+    content: str | None
+
+
+class MeetingProposalOut(Schema):
+    """Una propuesta con su cita y lo que decidió cada revisor.
+
+    A propósito no tiene `known_defective` ni el tipo de defecto: la vista es
+    para leer cómo se tomó cada sugerencia y no puede revelar cuáles fueron
+    sembradas. Igual que la cola de revisión.
+    """
+
+    id: str
+    iteration: int
+    operation: str
+    target_id: str
+    previous_content: str | None
+    content: str | None
+    source_turn_ids: list[int]
+    rationale: str
+    signals: list[SignalOut]
+    theme: str | None
+    decisions: list[ProposalDecisionOut]
+    consolidation: ProposalConsolidationOut | None = None
+
+
 class DecisionIn(Schema):
     proposal_id: str
     participant_id: str
