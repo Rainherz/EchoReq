@@ -154,6 +154,18 @@ PROPOSALS = [
 ]
 
 
+# Tipo de defecto de cada propuesta marcada como defectuosa. La migración 009
+# lo exige: una propuesta `known_defective` sin `defect_kind` no entra.
+DEFECTS = {
+    "p-02": ("clause_collapse", "Mete el reembolso dentro de R-02 en lugar de proponerlo aparte."),
+    "d-202": ("clause_collapse", "Suma la excepción del profesional como otra cláusula de R-02."),
+}
+
+
+def _defect(pid: str, defective: bool) -> tuple[str | None, str | None]:
+    return DEFECTS[pid] if defective else (None, None)
+
+
 # Propuestas de las iteraciones 1 y 2, solo para la demostración.
 DEMO_PROPOSALS = [
     ("d-101", 1, "m-2026-08-20", "create", "R-05", None, "Como médico quiero bloquear franjas horarias por ausencia.", [112, 118], "Bloqueo de disponibilidad.", False),
@@ -178,11 +190,11 @@ def seed_demo_decisions() -> None:
         cur.executemany(
             "INSERT INTO change_proposals "
             "(id, project_id, meeting_id, iteration, operation, target_id, previous_content, "
-            " content, source_turn_ids, rationale, signals, known_defective) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            " content, source_turn_ids, rationale, signals, known_defective, defect_kind, defect_note) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             [
                 (pid, PROJECT, mid, it, op, target, previous, content, turns,
-                 rationale, json.dumps([]), defective)
+                 rationale, json.dumps([]), defective, *_defect(pid, defective))
                 for pid, it, mid, op, target, previous, content, turns, rationale, defective
                 in DEMO_PROPOSALS
             ],
@@ -273,12 +285,13 @@ def seed() -> None:
         cur.executemany(
             "INSERT INTO change_proposals "
             "(id, project_id, meeting_id, iteration, operation, target_id, previous_content, "
-            " content, source_turn_ids, rationale, signals, theme, known_defective) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            " content, source_turn_ids, rationale, signals, theme, known_defective, defect_kind, defect_note) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
             [
                 (
                     pid, PROJECT, "m-2026-09-17", 3, op, target, previous,
                     content, turns, rationale, json.dumps(signals), theme, defective,
+                    *_defect(pid, defective),
                 )
                 for pid, op, target, previous, content, turns, rationale, signals, theme, defective
                 in PROPOSALS
