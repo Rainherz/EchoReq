@@ -24,4 +24,8 @@ dist/
 
 # cachés de tooling
 .atl/*.cache.json
-storage/
+
+# audio y transcripciones subidas: datos de participantes, nunca al repo.
+# Anclado a api/: un "storage/" suelto también ignoraba el adaptador
+# api/app/adapters/storage/, y la API no arrancaba al clonar.
+/api/storage/
