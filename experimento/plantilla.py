@@ -5,9 +5,11 @@
 
 Salida en experimento/codificacion/:
 
-``plantilla.csv``  Una fila por propuesta, **barajada y sin la condición**: quien
-                   codifica no sabe si la propuesta salió de la entrevista
-                   estructurada o de la otra. Cada codificador la copia como
+``plantilla_A.csv`` / ``plantilla_B.csv``  Una fila por propuesta, **barajada y
+                   sin la condición**: quien codifica no sabe si la propuesta
+                   salió de la entrevista estructurada o de la otra. Con
+                   ``--doble 0.3`` el 30 % aparece en las dos (para el kappa) y
+                   el resto se reparte. Cada uno la guarda como
                    ``codificacion_A.csv`` / ``codificacion_B.csv`` y completa:
                      - ``necesidad``: N01…N18 de verdad_de_campo.csv, o NINGUNA
                      - ``cita_sostiene``: S si los turnos citados sostienen el
@@ -58,6 +60,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--semilla", type=int, default=2026)
     ap.add_argument("--prefijo", default="exp-", help="Proyectos a incluir.")
+    ap.add_argument(
+        "--doble", type=float, default=1.0,
+        help="Fracción que codifican los dos (para el kappa). 1.0 = todo doble; "
+             "0.3 = 30%% en común y el resto repartido mitad y mitad.",
+    )
     args = ap.parse_args()
 
     terms = lexico()
@@ -124,19 +131,39 @@ def main() -> int:
     random.Random(args.semilla).shuffle(order)
     out = HERE / "codificacion"
     out.mkdir(exist_ok=True)
-    with (out / "plantilla.csv").open("w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0]))
-        w.writeheader()
-        for n, i in enumerate(order, 1):
-            rows[i]["item"] = key[i]["item"] = f"I{n:03d}"
-            w.writerow(rows[i])
+    for n, i in enumerate(order, 1):
+        rows[i]["item"] = key[i]["item"] = f"I{n:03d}"
+    items = [rows[i] for i in order]
+
+    # Reparto: una fracción la codifican los dos (para el kappa); el resto se
+    # reparte para que la carga alcance. El sorteo usa la misma semilla.
+    rng = random.Random(args.semilla + 1)
+    idx = list(range(len(items)))
+    rng.shuffle(idx)
+    n_doble = round(len(items) * max(0.0, min(1.0, args.doble)))
+    doble = set(idx[:n_doble])
+    resto = idx[n_doble:]
+    solo_a, solo_b = set(resto[0::2]), set(resto[1::2])
+    for k in key:
+        k["codifica"] = ""
+    asign = {"A": doble | solo_a, "B": doble | solo_b}
+    for j, it in enumerate(items):
+        key_row = next(k for k in key if k["item"] == it["item"])
+        key_row["codifica"] = "AB" if j in doble else ("A" if j in solo_a else "B")
+
+    for quien, sel in asign.items():
+        with (out / f"plantilla_{quien}.csv").open("w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=list(rows[0]))
+            w.writeheader()
+            w.writerows(items[j] for j in sorted(sel))
     with (out / "clave.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(key[0]))
         w.writeheader()
         w.writerows(sorted(key, key=lambda k: k["item"]))
 
-    print(f"{len(rows)} propuestas · semilla {args.semilla}")
-    print(f"  {out / 'plantilla.csv'}  → copiar como codificacion_A.csv y codificacion_B.csv")
+    print(f"{len(rows)} propuestas · semilla {args.semilla} · en común: {n_doble}")
+    print(f"  {out / 'plantilla_A.csv'}  ({len(asign['A'])} ítems) → guardar como codificacion_A.csv")
+    print(f"  {out / 'plantilla_B.csv'}  ({len(asign['B'])} ítems) → guardar como codificacion_B.csv")
     print(f"  {out / 'clave.csv'}      → no abrir hasta terminar de codificar")
     return 0
 

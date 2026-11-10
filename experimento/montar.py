@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Monta las corridas del experimento en EchoReq, por la API.
 
-    cd api && .venv/bin/python ../experimento/montar.py [--corridas 3] [--api http://localhost:8010/api]
+    cd api && .venv/bin/python ../experimento/montar.py [--corridas 10] [--engine gemini] [--api http://localhost:8010/api]
 
 Crea un proyecto por corrida y condición —exp-e-1, exp-ne-1, …— con una sola
 reunión (descubrimiento), registra el consentimiento y sube la transcripción
@@ -78,6 +78,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--corridas", type=int, default=3)
     ap.add_argument("--api", default="http://localhost:8010/api")
+    ap.add_argument(
+        "--engine", choices=("claude", "gemini"), default=None,
+        help="Motor con el que se van a generar todas las corridas (va en los comandos que imprime).",
+    )
     args = ap.parse_args()
 
     comandos = []
@@ -107,7 +111,8 @@ def main() -> int:
                 print(f"{name}: falló la transcripción ({status}) {imported}")
                 return 1
             print(f"{pid:10} {mid:14} {imported['turnCount']} turnos  sha256 {imported['sha256'][:12]}…")
-            comandos.append(f".venv/bin/python generate.py {mid} --project {pid}")
+            engine = f" --engine {args.engine}" if args.engine else ""
+            comandos.append(f".venv/bin/python generate.py {mid} --project {pid}{engine}")
 
     if comandos:
         print("\nGenerá cada corrida (una llamada al modelo por línea):\n")

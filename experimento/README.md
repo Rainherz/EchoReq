@@ -24,28 +24,33 @@ partir de su transcripción?
 ## Pasos
 
 ```bash
-make db && make api                      # EchoReq arriba, con la migración 019 aplicada
+make db && make api
 cd api
-.venv/bin/python ../experimento/montar.py          # 6 proyectos: exp-e-1..3, exp-ne-1..3
-export ANTHROPIC_API_KEY=...
-.venv/bin/python generate.py exp-e-1-r1 --project exp-e-1    # … y las otras 5 líneas que imprime montar.py
-.venv/bin/python ../experimento/plantilla.py
+.venv/bin/python ../experimento/montar.py --corridas 10 --engine gemini   # 20 proyectos: exp-e-1..10, exp-ne-1..10
+export GEMINI_API_KEY=...
+# correr las 20 líneas generate.py que imprime montar.py (todas con el mismo motor y modelo)
+.venv/bin/python ../experimento/plantilla.py --doble 0.3
 ```
 
 Después:
 
-1. Dos integrantes copian `codificacion/plantilla.csv` como `codificacion_A.csv`
-   y `codificacion_B.csv` y codifican **por separado**, sin abrir `clave.csv`:
+1. Cada codificador recibe **su** plantilla (`plantilla_A.csv` / `plantilla_B.csv`),
+   la guarda como `codificacion_A.csv` / `codificacion_B.csv` y codifica **solo**,
+   sin abrir `clave.csv`:
    - `necesidad`: N01…N18 (ver `verdad_de_campo.csv`) o `NINGUNA`
    - `cita_sostiene`: `S` si los turnos citados sostienen el requisito, `N` si no
-2. Se juntan, resuelven los desacuerdos y guardan `codificacion/consenso.csv`.
-3. `python3 ../experimento/metricas.py` → `resultados/resumen.md` y `por_corrida.csv`.
+
+   El 30 % de los ítems está en las dos plantillas (base del κ); el resto se
+   reparte mitad y mitad.
+2. Sobre los ítems en común, resuelven los desacuerdos y guardan
+   `codificacion/consenso.csv` (mismas columnas, solo esos ítems).
+3. `python3 ../experimento/metricas.py` → `resultados/resumen.md` y `por_corrida.csv`
+   (media ± d.e., diferencia, δ de Cliff, p de Mann-Whitney exacta y κ).
 
 ## Variables
 
-- **VI:** tipo de entrevista (E, NE).
-- **Controladas:** stakeholder (ficha fija), modelo (`claude-opus-5`, fijado en
-  `claude_engine.py`), prompt (`prompts.py`), formato (historias de usuario),
+- **VI:** tipo de entrevista (E, NE). **Réplicas:** 10 corridas por condición.
+- **Controladas:** stakeholder (ficha fija), modelo (el mismo en las 20 corridas; registrado en `llm_calls`), prompt (`prompts.py`), formato (historias de usuario),
   modo descubrimiento, plataforma.
 - **VD:** VD1 cobertura de elicitación, VD2 cobertura de extracción, VD3
   precisión, VD4 ambigüedad, VD5 atomicidad, VD6 trazabilidad válida (definidas

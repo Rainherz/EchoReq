@@ -20,6 +20,8 @@ VD4 ambiguedad             % de propuestas con término vago y sin criterio medi
 VD5 atomicidad             % de propuestas con una sola responsabilidad
 VD6 trazabilidad           % de propuestas cuyas citas sostienen el requisito
 
+Por variable: media ± d.e., diferencia E − NE, δ de Cliff y p de Mann-Whitney.
+
 Solo usa la biblioteca estándar: se puede correr fuera del entorno de la API.
 """
 
@@ -68,6 +70,43 @@ def cliffs_delta(xs: list[float], ys: list[float]) -> float | None:
     return (gt - lt) / (len(xs) * len(ys))
 
 
+def mann_whitney(xs: list[float], ys: list[float]) -> float | None:
+    """p bilateral de Mann-Whitney. Exacta por permutación (con empates, rangos
+    medios) mientras C(n1+n2, n1) sea manejable; si no, aproximación normal."""
+    from itertools import combinations
+    from math import comb, erf, sqrt
+
+    n1, n2 = len(xs), len(ys)
+    if n1 < 2 or n2 < 2:
+        return None
+    pooled = xs + ys
+    order = sorted(range(n1 + n2), key=lambda i: pooled[i])
+    ranks = [0.0] * (n1 + n2)
+    i = 0
+    while i < len(order):
+        j = i
+        while j + 1 < len(order) and pooled[order[j + 1]] == pooled[order[i]]:
+            j += 1
+        for k in range(i, j + 1):
+            ranks[order[k]] = (i + j) / 2 + 1
+        i = j + 1
+    mid = n1 * n2 / 2
+    u_obs = sum(ranks[:n1]) - n1 * (n1 + 1) / 2
+    dev = abs(u_obs - mid) - 1e-9
+    if len(set(pooled)) == 1:
+        return 1.0
+    if comb(n1 + n2, n1) <= 400_000:
+        hits = total = 0
+        for c in combinations(range(n1 + n2), n1):
+            u = sum(ranks[i] for i in c) - n1 * (n1 + 1) / 2
+            total += 1
+            hits += abs(u - mid) >= dev
+        return hits / total
+    sd = sqrt(n1 * n2 * (n1 + n2 + 1) / 12)
+    z = abs(u_obs - mid) / sd
+    return 2 * (1 - 0.5 * (1 + erf(z / sqrt(2))))
+
+
 def pct(n: int, d: int) -> float:
     return round(100 * n / d, 1) if d else 0.0
 
@@ -97,9 +136,20 @@ def main() -> int:
     A = {r["item"]: r for r in read(args.dir / "codificacion_A.csv")}
     B = {r["item"]: r for r in read(args.dir / "codificacion_B.csv")}
     cons_path = args.dir / "consenso.csv"
-    C = {r["item"]: r for r in read(cons_path)} if cons_path.exists() else A
+    CONS = {r["item"]: r for r in read(cons_path)} if cons_path.exists() else {}
     if not cons_path.exists():
-        print("AVISO: no hay consenso.csv; las métricas usan la codificación A.")
+        print("AVISO: no hay consenso.csv; en los ítems codificados por los dos se usa A.")
+
+    def filled(row: dict | None) -> bool:
+        return bool(row) and bool(norm_need(row.get("necesidad", "")))
+
+    # Por ítem: consenso si existe; si no, A; si A no lo tiene, B.
+    C = {}
+    for i in key:
+        for src in (CONS, A, B):
+            if filled(src.get(i)):
+                C[i] = src[i]
+                break
 
     items = sorted(key)
     missing = [i for i in items if not norm_need(C.get(i, {}).get("necesidad", ""))]
@@ -117,7 +167,7 @@ def main() -> int:
 
     rows = []
     for (cond, run), its in sorted(runs.items()):
-        needs = [norm_need(C[i]["necesidad"]) for i in its if i in C]
+        needs = [norm_need(C[i]["necesidad"]) if i in C else "" for i in its]
         found = {n for n in needs if n not in ("", "NINGUNA")}
         n = len(its)
         rows.append({
@@ -130,7 +180,7 @@ def main() -> int:
             "precision": pct(sum(1 for x in needs if x not in ("", "NINGUNA")), n),
             "ambiguedad": pct(sum(int(key[i]["ambigua_auto"]) for i in its), n),
             "atomicidad": pct(sum(1 for i in its if int(key[i]["responsabilidades"]) == 1), n),
-            "trazabilidad": pct(sum(1 for i in its if norm_sn(C[i].get("cita_sostiene", "")) == "S"), n),
+            "trazabilidad": pct(sum(1 for i in its if i in C and norm_sn(C[i].get("cita_sostiene", "")) == "S"), n),
             "senales_ambiguedad_agente": sum(int(key[i]["senal_ambiguedad_agente"]) for i in its),
         })
 
@@ -155,24 +205,30 @@ def main() -> int:
         f"propuestas codificadas: {len(items)} · verdad de campo: {total} necesidades "
         f"(presentes en E: {len(present['E'])}, en NE: {len(present['NE'])})",
         "",
-        "| Variable | E (media ± d.e.) | NE (media ± d.e.) | Diferencia E − NE | δ de Cliff |",
-        "|---|---|---|---|---|",
+        "| Variable | E (media ± d.e.) | NE (media ± d.e.) | Diferencia E − NE | δ de Cliff | p (Mann-Whitney) |",
+        "|---|---|---|---|---|---|",
     ]
     for col, label in VDS:
         xe, se = stats("E", col)
         xn, sn = stats("NE", col)
         diff = f"{st.mean(xe) - st.mean(xn):+.1f}" if xe and xn else "—"
         d = cliffs_delta(xe, xn)
-        lines.append(f"| {label} | {se} | {sn} | {diff} | {'—' if d is None else f'{d:+.2f}'} |")
+        pv = mann_whitney(xe, xn)
+        lines.append(
+            f"| {label} | {se} | {sn} | {diff} | {'—' if d is None else f'{d:+.2f}'} "
+            f"| {'—' if pv is None else f'{pv:.4f}'} |"
+        )
     lines += [
         "",
         f"Concordancia entre codificadores (κ de Cohen): necesidad = "
         f"{'—' if k_need is None else f'{k_need:.2f}'}, cita sostiene = "
         f"{'—' if k_cita is None else f'{k_cita:.2f}'}",
         "",
-        "Nota: con 3 corridas por condición ninguna prueba de rangos puede llegar a "
-        "p < 0,05 (Mann-Whitney exacto, mínimo p = 0,10 a dos colas); se reporta el "
-        "tamaño del efecto (δ de Cliff) en lugar de significancia.",
+        f"Ítems codificados por los dos (base del κ): "
+        f"{sum(1 for i in items if filled(A.get(i)) and filled(B.get(i)))} de {len(items)}.",
+        "",
+        "p: Mann-Whitney bilateral, exacta por permutación (rangos medios ante empates). "
+        "Con 3 corridas por condición el mínimo posible es p = 0,10; con 10, p < 0,001.",
     ]
     (args.salida / "resumen.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
