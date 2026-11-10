@@ -98,7 +98,10 @@ def generate_proposals(
 
         accepted.append(
             ChangeProposal(
-                id=f"{id_prefix}-{request.iteration:02d}-{index:02d}",
+                # La reunión ya nombra al proyecto. Sin ella, dos proyectos en su
+                # primera iteración generaban los mismos `p-01-01` y el segundo
+                # se perdía en el ON CONFLICT del guardado sin que nadie lo viera.
+                id=f"{id_prefix}-{request.meeting_id}-{index:02d}",
                 project_id=request.project_id,
                 meeting_id=request.meeting_id,
                 iteration=request.iteration,

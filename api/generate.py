@@ -183,6 +183,16 @@ def main() -> int:
 
     stored = store.store_proposals(outcome.accepted)
     print(f"{stored} propuestas guardadas en la cola de la iteración {iteration}")
+    # Una propuesta admitida que no entra choca con un identificador que ya
+    # existe. Antes eso pasaba en silencio; ahora la corrida lo dice.
+    lost = len(outcome.accepted) - stored
+    if lost:
+        print(
+            f"AVISO: {lost} de {len(outcome.accepted)} propuestas admitidas no se "
+            "guardaron porque su identificador ya existía. ¿Ya se había generado "
+            "esta reunión? Para reemplazar la cola, usá --replace."
+        )
+        return 1
     return 0
 
 
