@@ -1,4 +1,9 @@
-"""Audio de una reunión y escritura de su transcripción."""
+"""Audio de una reunión y escritura de su transcripción.
+
+Los turnos se escriben por acá vengan del audio (`store_turns`) o de un
+archivo importado (`store_imported_turns`): la misma inserción, la misma
+regla de solo anexado.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +23,9 @@ class MeetingAudio:
     sha256: str | None
     status: str
     turn_count: int
+    has_consent: bool = False
+    #: `txt` o `vtt` si los turnos salieron de un archivo importado.
+    transcript_format: str | None = None
 
 
 def load(meeting_id: str) -> MeetingAudio:
@@ -25,7 +33,8 @@ def load(meeting_id: str) -> MeetingAudio:
         cur.execute(
             """
             SELECT m.id, m.label, m.audio_path, m.audio_sha256,
-                   m.transcription_status,
+                   m.transcription_status, m.transcript_format,
+                   (m.consent_at IS NOT NULL) AS has_consent,
                    (SELECT count(*) FROM turns t WHERE t.meeting_id = m.id) AS turns
             FROM meetings m WHERE m.id = %s
             """,
@@ -43,6 +52,8 @@ def load(meeting_id: str) -> MeetingAudio:
         sha256=row["audio_sha256"],
         status=row["transcription_status"],
         turn_count=row["turns"],
+        has_consent=row["has_consent"],
+        transcript_format=row["transcript_format"],
     )
 
 
@@ -124,21 +135,7 @@ def store_turns(meeting_id: str, result: TranscriptionResult) -> int:
                 ],
             )
 
-        cur.executemany(
-            "INSERT INTO turns (meeting_id, turn_id, speaker, starts_at, ends_at, text) "
-            "VALUES (%s, %s, %s, %s, %s, %s)",
-            [
-                (
-                    meeting_id,
-                    turn.turn_id,
-                    turn.speaker,
-                    turn.starts_at,
-                    turn.ends_at,
-                    turn.text,
-                )
-                for turn in result.turns
-            ],
-        )
+        _insert_turns(cur, meeting_id, result.turns)
         cur.execute(
             """
             UPDATE meetings
@@ -153,3 +150,80 @@ def store_turns(meeting_id: str, result: TranscriptionResult) -> int:
         )
 
     return len(result.turns)
+
+
+def _insert_turns(cur, meeting_id: str, turns) -> None:
+    cur.executemany(
+        "INSERT INTO turns (meeting_id, turn_id, speaker, starts_at, ends_at, text) "
+        "VALUES (%s, %s, %s, %s, %s, %s)",
+        [
+            (
+                meeting_id,
+                turn.turn_id,
+                turn.speaker,
+                turn.starts_at,
+                getattr(turn, "ends_at", None),
+                turn.text,
+            )
+            for turn in turns
+        ],
+    )
+
+
+def store_imported_turns(meeting_id: str, turns, transcript, fmt: str) -> int:
+    """Anexa los turnos de un archivo importado y cierra la transcripción.
+
+    La regla de una sola fuente se vuelve a verificar acá, con la fila
+    bloqueada: entre la verificación del caso de uso y esta escritura pudo
+    llegar otra importación o terminar una transcripción del audio.
+
+    La procedencia queda como `transcription_model = 'import'`: estos turnos
+    no salieron de ningún modelo, y decir otra cosa contaminaría la
+    comparación entre iteraciones que la columna existe para proteger.
+    """
+    from ...requirements.domain.transcript_import import NotImportable
+
+    with cursor() as cur:
+        cur.execute(
+            """
+            SELECT m.audio_path, m.transcription_status,
+                   EXISTS (SELECT 1 FROM turns t WHERE t.meeting_id = m.id) AS has_turns
+            FROM meetings m WHERE m.id = %s FOR UPDATE
+            """,
+            (meeting_id,),
+        )
+        row = cur.fetchone()
+        if row is None:
+            raise LookupError(f"No existe la reunión {meeting_id}.")
+        if row["has_turns"] or row["audio_path"] is not None or row["transcription_status"] == "running":
+            raise NotImportable(
+                f"La reunión {meeting_id} ya tiene turnos o audio. Los turnos "
+                "salen de una sola fuente: creá otra reunión."
+            )
+
+        _insert_turns(cur, meeting_id, turns)
+        cur.execute(
+            """
+            UPDATE meetings
+            SET transcription_status = 'done',
+                transcription_error = NULL,
+                transcription_model = 'import',
+                transcription_params = %s,
+                transcribed_at = now(),
+                transcript_filename = %s,
+                transcript_path = %s,
+                transcript_sha256 = %s,
+                transcript_format = %s
+            WHERE id = %s
+            """,
+            (
+                Json({"format": fmt, "parser": "transcript_import"}),
+                transcript.filename,
+                transcript.path,
+                transcript.sha256,
+                fmt,
+                meeting_id,
+            ),
+        )
+
+    return len(turns)

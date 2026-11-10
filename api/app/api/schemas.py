@@ -147,6 +147,8 @@ class MeetingOut(Schema):
     audio_bytes: int | None
     transcription_status: str
     transcription_error: str | None
+    transcript_filename: str | None = None
+    transcript_format: str | None = None
 
 
 class MeetingIn(Schema):
@@ -160,6 +162,15 @@ class MeetingAudioOut(Schema):
     size_bytes: int
     sha256: str
     transcription_status: str
+
+
+class TranscriptImportOut(Schema):
+    filename: str
+    #: `txt` o `vtt`.
+    format: str
+    sha256: str
+    turn_count: int
+    speakers: list[str]
 
 
 class ProjectOut(Schema):

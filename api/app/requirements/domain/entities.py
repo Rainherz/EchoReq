@@ -159,6 +159,10 @@ class Meeting:
     audio_bytes: int | None = None
     transcription_status: str = "pending"
     transcription_error: str | None = None
+    #: Si los turnos salieron de un archivo importado: su nombre y formato
+    #: (`txt` o `vtt`). `None` si vienen del audio o todavía no hay.
+    transcript_filename: str | None = None
+    transcript_format: str | None = None
 
 
 #: Formatos en los que se puede especificar. La cadena que se mide usa uno

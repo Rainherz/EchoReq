@@ -14,6 +14,7 @@ from ..adapters.persistence import speakers
 from ..adapters.persistence import transcript_store
 from ..adapters.persistence.exports import DATASETS, row_count, to_csv
 from ..adapters.storage import audio as audio_store
+from ..adapters.storage import transcript as transcript_files
 from ..adapters.persistence.repositories import (
     DuplicateActor,
     DuplicateParticipant,
@@ -30,8 +31,15 @@ from ..adapters.persistence.repositories import (
     PostgresDocumentRepository,
     PostgresProposalRepository,
     PostgresTranscriptRepository,
+    SourceTaken,
 )
 from ..requirements.domain.entities import DecisionCorrection, ReviewDecision
+from ..requirements.domain.transcript_import import (
+    MAX_BYTES as MAX_TRANSCRIPT_BYTES,
+    NotImportable,
+    TranscriptError,
+)
+from ..requirements.import_transcript import run_import
 from ..requirements.use_cases import ReviewQueue, SpecificationReader, StudyMetrics
 from .schemas import (
     AgreementOut,
@@ -65,6 +73,7 @@ from .schemas import (
     DatasetOut,
     ProposalOut,
     RejectionOut,
+    TranscriptImportOut,
     TurnOut,
     RevisionOut,
 )
@@ -338,25 +347,76 @@ def upload_audio(meeting_id: str, file: UploadFile = File(...)) -> MeetingAudioO
         raise HTTPException(
             status_code=404, detail=f"No existe la reunión {meeting_id}."
         )
+    # Por la misma razón se mira la fuente antes de escribir: una reunión con
+    # la transcripción importada no recibe audio.
+    if transcript_store.load(meeting_id).transcript_format is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"La reunión {meeting_id} ya tiene su transcripción importada. "
+                "El audio y la transcripción son alternativas: los turnos salen "
+                "de una sola fuente."
+            ),
+        )
 
     try:
         stored = audio_store.store(meeting_id, file.filename or "", file.file)
     except audio_store.RejectedAudio as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    _meetings_repo.attach_audio(
-        meeting_id,
-        filename=stored.filename,
-        path=stored.path,
-        size_bytes=stored.size_bytes,
-        sha256=stored.sha256,
-    )
+    try:
+        _meetings_repo.attach_audio(
+            meeting_id,
+            filename=stored.filename,
+            path=stored.path,
+            size_bytes=stored.size_bytes,
+            sha256=stored.sha256,
+        )
+    except SourceTaken as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     return MeetingAudioOut(
         filename=stored.filename,
         size_bytes=stored.size_bytes,
         sha256=stored.sha256,
         transcription_status="pending",
+    )
+
+
+@router.post("/meetings/{meeting_id}/transcript", status_code=201)
+def upload_transcript(
+    meeting_id: str, file: UploadFile = File(...)
+) -> TranscriptImportOut:
+    """Carga la transcripción ya hecha (.txt «Hablante: texto» o .vtt).
+
+    Es la alternativa al audio: de acá salen los turnos que el agente cita,
+    en lugar de transcribirlos. Exige consentimiento y una reunión sin turnos
+    ni audio. El archivo se guarda tal cual llegó, con su SHA-256, para que
+    cualquiera pueda comprobar que los turnos salen de él.
+    """
+    if not _meetings_repo.exists(meeting_id):
+        raise HTTPException(
+            status_code=404, detail=f"No existe la reunión {meeting_id}."
+        )
+
+    # Se lee uno más que el tope para que el parser pueda rechazar el exceso
+    # sin cargar en memoria un archivo arbitrariamente grande.
+    raw = file.file.read(MAX_TRANSCRIPT_BYTES + 1)
+    try:
+        imported = run_import(
+            transcript_store, transcript_files, meeting_id, file.filename or "", raw
+        )
+    except TranscriptError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except NotImportable as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return TranscriptImportOut(
+        filename=imported.filename,
+        format=imported.format,
+        sha256=imported.sha256,
+        turn_count=imported.turn_count,
+        speakers=imported.speakers,
     )
 
 

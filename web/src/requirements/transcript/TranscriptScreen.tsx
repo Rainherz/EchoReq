@@ -63,7 +63,7 @@ function NoTranscript({ meeting }: { meeting: Meeting }) {
       <p style={{ margin: 0, fontSize: ".88rem", lineHeight: 1.55 }}>
         {meeting.transcriptionStatus === "running"
           ? "La transcripción está en curso. Volvé en unos minutos."
-          : "Cargá el audio en Sesiones y corré la transcripción: cuando termine, el texto y las propuestas del agente aparecen acá."}
+          : "Cargá el audio en Sesiones y corré la transcripción, o importá ahí la transcripción ya hecha: cuando haya turnos, el texto y las propuestas del agente aparecen acá."}
       </p>
     </div>
   );

@@ -50,6 +50,15 @@ make smoke
 configuraciones distintas y el build detecta errores que la verificación de
 tipos suelta deja pasar.
 
+Las migraciones de `api/migrations/` las aplica PostgreSQL solo al crear el
+volumen (`docker-entrypoint-initdb.d`). Sobre una base ya inicializada, una
+migración nueva se aplica a mano, por ejemplo:
+
+```bash
+docker exec -i echoreq-db psql -v ON_ERROR_STOP=1 -U echoreq -d echoreq \
+  < api/migrations/019_transcript_import.sql
+```
+
 ## Estado
 
 Fase 1 — interfaces sobre datos mock, sin backend.
@@ -317,6 +326,9 @@ Una reunión también puede tener turnos cargados directo en la base, sin haber
 pasado por el pipeline. La pantalla lo dice así —«turnos cargados a mano»— en
 vez de mostrar el procesamiento como completo.
 
+El audio no es la única entrada: la reunión puede traer su transcripción ya
+hecha. Ver Importar la transcripción.
+
 ### Transcripción
 
 Del audio a los turnos citables, en la máquina del investigador:
@@ -381,6 +393,54 @@ mide, así que el instrumento no puede inducirla.
 Los hablantes salen como `S1`, `S2`. La diarización distingue voces, no
 personas: separa cuántas hay y cuándo habló cada una, pero no puede saber cuál
 es el cliente.
+
+### Importar la transcripción
+
+La alternativa al audio. Si la reunión ya trae su transcripción —el `.vtt`
+que exportan Meet, Teams o Zoom, o un `.txt` «Hablante: texto»— los turnos
+salen de ese archivo en lugar de transcribir. Desde la pantalla de Captura
+(eligiendo «Transcripción ya hecha» como entrada), o por consola:
+
+```bash
+cd api
+.venv/bin/python import_transcript.py <meeting_id> reunion.vtt --dry-run
+.venv/bin/python import_transcript.py <meeting_id> reunion.vtt
+```
+
+| Formato | De dónde | Hablante |
+| --- | --- | --- |
+| `.vtt` | Meet, Teams o Zoom con transcripción activada | `<v Nombre>` o `Nombre:` |
+| `.txt` | Una intervención por línea | `Hablante: texto`, con `[mm:ss]` opcional |
+
+Reglas, iguales en la API (`POST /meetings/{id}/transcript`) y en la consola:
+
+- **Una sola fuente.** Los turnos de una reunión salen del audio o del
+  archivo, nunca de los dos. Una reunión con turnos o con audio cargado no
+  acepta una transcripción, y una con la transcripción importada no acepta
+  audio. Para usar la otra entrada se crea otra reunión.
+- **Consentimiento antes.** Importar ya escribe los turnos, así que sin
+  `consent_at` se rechaza.
+- **Una sola carga.** Mismo motivo que la transcripción del audio: `turns` es
+  de solo anexado y las decisiones citan los turnos por número.
+- **Un turno es una racha de un mismo hablante.** Teams parte una intervención
+  en cues de pocos segundos; si cada cue fuera un turno, cuántos turnos cita el
+  agente dependería de la plataforma y no de la conversación.
+- **Sin marca de tiempo no se inventa una.** `starts_at` queda vacío.
+- **Se guarda el archivo tal cual**, en `ECHOREQ_TRANSCRIPT_DIR` (por defecto
+  `api/storage/transcripts`), con su SHA-256 en la base: los turnos se pueden
+  volver a derivar y comprobar sin confiar en nadie.
+- **La procedencia no miente.** Queda `transcription_status = 'done'` como con
+  el audio, pero `transcription_model = 'import'`: estos turnos no salieron de
+  ningún modelo. El formato y el archivo van en `transcript_format`,
+  `transcript_filename`, `transcript_path` y `transcript_sha256` (migración
+  019).
+
+Los hablantes quedan con el nombre que trae el archivo, no `S1`, `S2`. En
+«Quién es cada voz» se les asigna el rol igual que a una voz diarizada; lo
+que no hay es recorte para escuchar, porque no hay audio.
+
+El parser vive en `app/requirements/domain/transcript_import.py` y las reglas
+en `app/requirements/import_transcript.py`, con sus pruebas en `api/tests/`.
 
 ### Quién es cada voz
 
@@ -590,7 +650,7 @@ nunca como borde ni como trazo — para eso va el paso de texto.
 web/src/
   requirements/          el dominio nombra el proyecto
     domain/              tipos, diff, derivación del documento
-    capture/             audio, participantes, consentimiento
+    capture/             audio o transcripción, participantes, consentimiento
     discovery/           primer borrador (reunión 1)
     review/              cola de revisión instrumentada
     document/            especificación por revisión
@@ -605,12 +665,16 @@ Del lado de la API, la transcripción sigue la misma separación que el resto:
 ```
 api/
   transcribe.py                          CLI, corre con .venv-asr
+  import_transcript.py                   CLI, la alternativa: desde .txt o .vtt
   app/requirements/
     domain/transcription.py              qué es un turno, atribución de voces
+    domain/transcript_import.py          parser de .txt y .vtt
     transcribe.py                        reglas: una sola vez, con audio
+    import_transcript.py                 reglas: una sola fuente, con consentimiento
   app/adapters/
     transcription/local_engine.py        faster-whisper + pyannote
     persistence/transcript_store.py      turnos, estado y procedencia
+    storage/transcript.py                el archivo importado y su hash
 ```
 
 La segmentación en turnos y la atribución de hablantes viven en el dominio, no

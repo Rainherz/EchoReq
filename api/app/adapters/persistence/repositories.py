@@ -128,7 +128,8 @@ class PostgresCatalogRepository:
                     m.id, m.project_id, m.iteration, m.label, m.mode, m.held_at,
                     (m.consent_at IS NOT NULL) AS has_consent,
                     m.audio_filename, m.audio_bytes, m.transcription_status,
-                    m.transcription_error,
+                    m.transcription_error, m.transcript_filename,
+                    m.transcript_format,
                     (SELECT count(*) FROM turns t WHERE t.meeting_id = m.id)
                         AS turn_count,
                     (SELECT count(*) FROM change_proposals cp
@@ -406,6 +407,10 @@ class PostgresParticipantRepository:
             return cur.fetchone() is not None
 
 
+class SourceTaken(Exception):
+    """La reunión ya toma sus turnos de otra fuente."""
+
+
 class PostgresMeetingRepository:
     """Escritura sobre la reunión: consentimiento y audio."""
 
@@ -470,8 +475,25 @@ class PostgresMeetingRepository:
         size_bytes: int,
         sha256: str,
     ) -> None:
-        """Asocia el audio y deja la transcripción pendiente."""
+        """Asocia el audio y deja la transcripción pendiente.
+
+        Se rechaza si la reunión ya tiene su transcripción importada: el audio
+        y el archivo de texto son alternativas, y los turnos salen de una sola.
+        """
         with cursor() as cur:
+            cur.execute(
+                "SELECT transcript_format FROM meetings WHERE id = %s FOR UPDATE",
+                (meeting_id,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise LookupError(f"No existe la reunión {meeting_id}.")
+            if row["transcript_format"] is not None:
+                raise SourceTaken(
+                    f"La reunión {meeting_id} ya tiene su transcripción importada "
+                    f"({row['transcript_format']}). El audio y la transcripción son "
+                    "alternativas: los turnos salen de una sola fuente."
+                )
             cur.execute(
                 """
                 UPDATE meetings

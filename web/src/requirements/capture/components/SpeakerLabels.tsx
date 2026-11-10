@@ -15,6 +15,9 @@ interface SpeakerLabelsProps {
   meetingId: string;
   /** Avisa cuando cambió una etiqueta, para refrescar los contadores. */
   onChanged?: () => void;
+  /** Si hay audio para escuchar cada voz. Una transcripción importada trae
+      los hablantes con nombre y sin audio: no hay recorte que reproducir. */
+  canPlay?: boolean;
 }
 
 /**
@@ -28,7 +31,11 @@ interface SpeakerLabelsProps {
  * el agente no puede distinguir un requisito que el cliente pidió de una idea
  * que el entrevistador introdujo al preguntar.
  */
-export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
+export function SpeakerLabels({
+  meetingId,
+  onChanged,
+  canPlay = true,
+}: SpeakerLabelsProps) {
   const [speakers, setSpeakers] = useState<Speaker[] | null>(null);
   const [roles, setRoles] = useState<Record<string, string>>({});
   const [names, setNames] = useState<Record<string, string>>({});
@@ -127,7 +134,7 @@ export function SpeakerLabels({ meetingId, onChanged }: SpeakerLabelsProps) {
               caracteres
             </span>
             <span className="voice__samples">
-              {speaker.samples.map((sample) => {
+              {canPlay && speaker.samples.map((sample) => {
                 const key = `${speaker.code}-${sample.startSeconds}`;
                 return (
                   <button

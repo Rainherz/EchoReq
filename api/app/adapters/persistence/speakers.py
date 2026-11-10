@@ -60,7 +60,10 @@ class Speaker:
 
 
 def _sample(row) -> Sample:
-    start = seconds_from(row["starts_at"])
+    # Una transcripción importada sin marcas de tiempo deja `starts_at`
+    # vacío. Sin audio no hay recorte que ubicar, así que el cero no inventa
+    # nada que alguien vaya a escuchar.
+    start = seconds_from(row["starts_at"]) if row["starts_at"] else 0.0
     # Sin marca de fin —los turnos del fixture no la tienen— se ofrece una
     # ventana corta desde el inicio en lugar de no ofrecer nada.
     end = seconds_from(row["ends_at"]) if row["ends_at"] else start + 8.0

@@ -98,6 +98,56 @@
   line-height: 1.5;
 }
 
+/* ------------------------------------------------------- fuente de turnos */
+
+/* Audio o transcripción: dos entradas para la misma reunión, una sola vale. */
+.source {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.5rem;
+}
+
+.source__opt {
+  text-align: left;
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--sunken);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.source__opt:hover:not(:disabled) {
+  border-color: var(--ok-line);
+}
+
+.source__opt--on {
+  border-color: var(--ok);
+  background: var(--ok-wash);
+}
+
+.source__opt:disabled {
+  cursor: default;
+}
+
+.source__opt:disabled:not(.source__opt--on) {
+  opacity: 0.5;
+}
+
+.source__sub {
+  display: block;
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--faint);
+  margin-top: 0.15rem;
+}
+
+.source + .step__hint {
+  margin-bottom: 0.85rem;
+}
+
 /* ---------------------------------------------------------------- audio */
 
 .dropzone {

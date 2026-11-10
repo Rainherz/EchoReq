@@ -387,23 +387,28 @@ export interface Meeting {
   audioBytes: number | null;
   transcriptionStatus: "pending" | "running" | "done" | "failed";
   transcriptionError: string | null;
+  /** Archivo de texto del que salieron los turnos, si se importó. `null`
+      si vienen del audio o todavía no hay. */
+  transcriptFilename: string | null;
+  transcriptFormat: "txt" | "vtt" | null;
 }
 
 /**
- * Sube el audio de una reunión.
+ * Sube un archivo de la reunión: el audio o la transcripción ya hecha.
  *
  * Va como multipart y sin `Content-Type` propio: el navegador tiene que
  * poner el suyo con el `boundary`, y fijarlo a mano rompe el parseo.
  */
-export async function uploadAudio(
+async function uploadMeetingFile<T>(
   meetingId: string,
+  kind: "audio" | "transcript",
   file: File,
-): Promise<{ filename: string; sizeBytes: number; sha256: string }> {
+): Promise<T> {
   const body = new FormData();
   body.append("file", file);
 
   const response = await fetch(
-    `${BASE}/meetings/${encodeURIComponent(meetingId)}/audio`,
+    `${BASE}/meetings/${encodeURIComponent(meetingId)}/${kind}`,
     { method: "POST", body },
   );
 
@@ -417,6 +422,25 @@ export async function uploadAudio(
 
   return response.json();
 }
+
+/** Sube el audio de una reunión. Sus turnos salen de transcribirlo. */
+export const uploadAudio = (meetingId: string, file: File) =>
+  uploadMeetingFile<{ filename: string; sizeBytes: number; sha256: string }>(
+    meetingId,
+    "audio",
+    file,
+  );
+
+/** Sube la transcripción ya hecha (.txt «Hablante: texto» o .vtt), la
+ *  alternativa al audio: los turnos salen del archivo. */
+export const uploadTranscript = (meetingId: string, file: File) =>
+  uploadMeetingFile<{
+    filename: string;
+    format: "txt" | "vtt";
+    sha256: string;
+    turnCount: number;
+    speakers: string[];
+  }>(meetingId, "transcript", file);
 
 export async function recordConsent(meetingId: string): Promise<void> {
   const response = await fetch(
