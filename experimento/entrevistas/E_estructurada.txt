@@ -1,0 +1,60 @@
+# MATERIAL EXPERIMENTAL — stakeholder sintético (ver ficha_stakeholder.md).
+# Condición E: entrevista estructurada. Guion por bloques + repregunta ante términos vagos.
+Analista: Buenas tardes, director. Gracias por recibirnos. Antes de empezar, ¿autoriza que grabemos la sesión?
+Director: Sí, autorizo que se grabe.
+Analista: Vamos a ir en tres bloques: cómo hace hoy el monitoreo, qué información necesita ver y cómo se comunica con la UGEL y los docentes. Para empezar, ¿cuál es su cargo y cuántos docentes tiene a su cargo?
+Director: Soy director designado desde el dos mil veintitrés, entré por concurso. Tengo veintidós docentes, dos auxiliares y unos trescientos veinte estudiantes. Como somos jornada escolar completa tengo dos coordinadores pedagógicos que me apoyan con algunas visitas.
+Analista: Cuénteme cómo fue su último monitoreo, paso por paso.
+Director: Fue en setiembre, la segunda visita del año. El cronograma estaba en el Plan Anual de Trabajo, pero lo ajusté al horario. Entré a cada aula unos cuarenta y cinco minutos con las rúbricas y fui anotando en mi cuaderno de campo. Después tuve la retroalimentación con cada docente, pasé todo a Excel y armé el informe para la UGEL.
+Analista: Cuando dice las rúbricas, ¿a cuáles se refiere exactamente?
+Director: A las cinco rúbricas de observación de aula del Minedu, con sus niveles del uno al cuatro. A veces la UGEL manda además una ficha adicional, que cambia según la campaña. Llega en PDF por el WhatsApp de directores y la imprimo.
+Analista: ¿Cómo decide a quién visita primero y en qué fechas?
+Director: Primero a los contratados nuevos y a los que salieron bajo la vez anterior. Las fechas las cuadro con el horario.
+Analista: ¿Qué significa para usted que un docente salió bajo?
+Director: Que tuvo nivel uno o dos en la visita anterior.
+Analista: ¿Y qué fechas evita al cuadrar el horario?
+Director: Las semanas de evaluación y las actividades: aniversario, desfiles. La UGEL nos da un rango de fechas por oficio múltiple y dentro de eso me acomodo.
+Analista: Durante la visita, ¿dónde anota lo que observa?
+Director: En papel. Después lo paso a un Excel en mi laptop, pero me atraso y se me juntan las fichas de una o dos semanas.
+Analista: ¿Qué parte de todo el proceso le toma más tiempo?
+Director: Pasar todo del papel al Excel y luego al formato que pide la UGEL.
+Analista: Cuando dice todo, ¿qué datos pasa exactamente?
+Director: La ficha completa: el nivel en cada rúbrica, las evidencias que anoté y los comentarios. Y el formato de la UGEL cambia de un año a otro: un año piden una columna y al siguiente otra, y tengo que rehacer todo.
+Analista: ¿Alguna vez se le perdió información o hubo errores?
+Director: Sí. Se me infectó el USB y perdí el consolidado del primer monitoreo, tuve que volver a digitar de las fichas en papel. Y una vez me devolvieron un reporte porque faltaba el DNI de los docentes, y otra porque usé el formato del año anterior.
+Analista: ¿Dónde guarda hoy la información?
+Director: En la laptop y en un USB. No tengo otra copia.
+Analista: Si pudiera cambiar una sola cosa, ¿qué sería?
+Director: Registrar una sola vez y que eso ya le llegue a la UGEL rápido, sin pasar del papel al Excel y del Excel al formulario.
+Analista: ¿A qué se refiere exactamente con rápido?
+Director: Que el mismo día que termino la visita, o al día siguiente como máximo, la UGEL ya lo tenga.
+Analista: Pasemos al segundo bloque. Cuando termina una ronda de visitas, ¿qué es lo primero que quiere saber?
+Director: Quiénes están en nivel uno o dos en alguna rúbrica. Siempre salen bajas las de evalúa el progreso y pensamiento crítico.
+Analista: ¿Cuándo considera que un docente necesita apoyo?
+Director: Si sale en nivel uno o dos en dos rúbricas o más, o si no mejora de una visita a otra.
+Analista: ¿Y qué hace con esa información?
+Director: Armo el plan de fortalecimiento: grupos de interaprendizaje, talleres y acompañamiento entre pares. En octubre ocho docentes salieron bajo en evaluación formativa e hicimos un grupo de interaprendizaje sobre retroalimentación con el coordinador.
+Analista: ¿Compara resultados entre visitas o entre docentes?
+Director: Las dos cosas, pero a mano. Tengo un Excel por cada visita, así que abro los archivos y comparo. Entre docentes lo veo más o menos, a ojo.
+Analista: ¿Hay algo que hoy no pueda ver y le haga falta?
+Director: El historial del docente de otros años, sobre todo cuando llega uno trasladado de otro colegio. No sé cómo le fue antes.
+Analista: ¿Desde qué dispositivo revisa esa información?
+Director: Desde la computadora de la dirección, porque solo ahí el internet funciona más o menos. En el celular solo veo WhatsApp.
+Analista: ¿Qué quiere decir con más o menos?
+Director: Que se corta varias veces al día. A veces estoy pasando las fichas y se va el internet y tengo que esperar.
+Analista: Tercer bloque. ¿Cómo se entera de lo que le pide la UGEL?
+Director: Oficialmente por oficio múltiple en la mesa de partes virtual, pero casi siempre me entero antes por el grupo de WhatsApp de directores. Ahí llegan doscientos mensajes al día y se pierde lo importante.
+Analista: ¿Le ha pasado enterarse tarde de un plazo?
+Director: Sí. Un oficio llegó con fecha atrasada y el plazo vencía al día siguiente. Me enteré porque otro director lo comentó en el grupo, y mandé el informe en la noche.
+Analista: ¿Con cuánta anticipación necesitaría saber de un plazo?
+Director: Por lo menos tres días hábiles antes.
+Analista: Cuando envía algo, ¿cómo sabe si la UGEL lo recibió?
+Director: La mesa de partes manda un correo con el número de expediente, pero eso solo dice que llegó, no si lo revisaron o si está bien. Para eso tengo que llamar al especialista.
+Analista: ¿Cómo le avisa al docente que va a ser monitoreado?
+Director: En la reunión colegiada presento el cronograma y una semana antes recuerdo por WhatsApp. Algunas visitas son inopinadas, sin aviso, porque así lo pide la norma.
+Analista: ¿Y cómo le da a conocer el resultado?
+Director: En la reunión de retroalimentación, a veces el mismo día y a veces una o dos semanas después. Le doy copia de la ficha firmada.
+Analista: Para cerrar, ¿hay algo que no hayamos tocado?
+Director: Que a mí también me monitorean. La especialista de la UGEL viene una o dos veces al año y me pide evidencias de que estoy monitoreando: actas, fichas, el plan. Y son las mismas que ya mandé.
+Analista: Le resumo: registrar una sola vez, enviar a la UGEL el mismo día o al siguiente, saber si lo revisaron, ver el historial del docente y tener respaldo. ¿Es correcto?
+Director: Sí, correcto.

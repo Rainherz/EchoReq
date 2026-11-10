@@ -1,0 +1,37 @@
+# MATERIAL EXPERIMENTAL — stakeholder sintético (ver ficha_stakeholder.md).
+# Condición NE: entrevista no estructurada. Sin guion ni repregunta. El entrevistador comete
+# errores frecuentes de novato (preguntas múltiples o inductivas, propone la solución,
+# cambia de tema sin cerrar, no repregunta términos vagos, no resume).
+Analista: Buenas tardes, director. ¿Autoriza que grabemos?
+Director: Sí, autorizo.
+Analista: Ya, bacán. Mire, nosotros estamos haciendo un sistema para el monitoreo, una app, para que todo sea más fácil. ¿Usted hace el monitoreo, no?
+Director: Sí, yo hago las visitas de monitoreo a los docentes.
+Analista: Ya. ¿Y cómo lo hace, con papel, con Excel, todo eso?
+Director: En papel durante la visita y después lo paso a Excel.
+Analista: Claro, eso debe ser bien pesado, ¿no? Me imagino que una app le ayudaría bastante.
+Director: Sí, pasar todo del papel al Excel es lo que más tiempo me toma. Y luego al formato que pide la UGEL.
+Analista: Ya, entonces la app podría generar el Excel directamente. ¿Y qué usa para observar, las rúbricas del Minedu?
+Director: Sí, las rúbricas.
+Analista: Perfecto. ¿Y cuántos profes tiene?
+Director: Veintidós docentes.
+Analista: Uf, son harto. ¿Y los visita a todos o a algunos nomás? ¿Y cada cuánto?
+Director: A todos, dos o tres veces al año. Primero a los que salieron bajo la vez anterior.
+Analista: Ya. Oiga, ¿y la UGEL qué le pide? ¿Le piden mucho papeleo?
+Director: El consolidado por rúbrica y por docente en su Excel, más el informe firmado. Y el formato cambia cada año, tengo que rehacer todo.
+Analista: Qué feo. Eso lo podemos solucionar con una plantilla que se actualice sola. ¿Y alguna vez ha tenido problemas, se le ha perdido algo?
+Director: Una vez se me infectó el USB y perdí el consolidado del primer monitoreo. Tuve que volver a digitar todo.
+Analista: Uy, entonces con la nube eso ya no pasaría. ¿Tiene buen internet en el colegio?
+Director: Más o menos. En la computadora de la dirección funciona más o menos.
+Analista: Ya, normal. ¿Y usted usa el celular para esto?
+Director: Solo para WhatsApp.
+Analista: Ya. ¿Y lo que quiere es que sea más rápido, no?
+Director: Sí. Registrar una sola vez y que le llegue a la UGEL rápido.
+Analista: Claro, claro. ¿Y con los resultados qué hace? ¿Los compara o algo?
+Director: Comparo a mano. Tengo un Excel por cada visita.
+Analista: Ya, entonces un dashboard le serviría. Y los docentes, ¿qué dicen del monitoreo? ¿Se molestan?
+Director: Algunos se ponen nerviosos, pero es parte del trabajo. Les doy la retroalimentación y una copia de la ficha.
+Analista: Normal, normal. ¿Y con la UGEL se comunica bien?
+Director: Por oficio y por el grupo de WhatsApp de directores. Llegan muchos mensajes.
+Analista: Ah sí, esos grupos son un caos. Bueno, director, creo que con eso ya tenemos una idea. La app va a tener registro de fichas, el Excel automático y un dashboard. ¿Le parece bien?
+Director: Sí, está bien.
+Analista: Listo, muchas gracias por su tiempo.

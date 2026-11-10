@@ -1,0 +1,29 @@
+# Términos vagos (uno por línea). Un requisito que contiene alguno sin un
+# criterio medible al lado cuenta como ambiguo en la métrica automática.
+# Base: términos que el guion deja a propósito para la repregunta.
+rápido
+rápidamente
+a tiempo
+oportuno
+oportunamente
+más o menos
+fácil
+fácilmente
+sencillo
+intuitivo
+amigable
+eficiente
+eficientemente
+adecuado
+adecuadamente
+suficiente
+bastante
+muchos
+pocos
+todo
+todos los datos
+lo necesario
+lo antes posible
+mejorar
+optimizar
+etc

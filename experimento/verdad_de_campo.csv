@@ -1,0 +1,19 @@
+id,necesidad,version_vaga,detalle_operativo,turnos_E,nivel_E,turnos_NE,nivel_NE
+N01,"Registrar la observación una sola vez, en digital, durante o al terminar la visita",registrar una sola vez,Sin pasar del papel al Excel ni del Excel al formulario,16;18;26,completa,24,vaga
+N02,"Usar las 5 rúbricas del Minedu con niveles I–IV, y admitir la ficha adicional de la UGEL",las rúbricas,"Las cinco, niveles I a IV; la ficha UGEL cambia por campaña",8,completa,10,vaga
+N03,"Programar el cronograma de visitas dentro del rango que da la UGEL, evitando semanas de evaluación y actividades",cuadrar los horarios,"Bloquear semanas de evaluación, aniversario y desfiles",10;14,completa,,ausente
+N04,Priorizar visitas a contratados nuevos y a docentes con nivel bajo en la visita anterior,primero a los que salieron bajo,Nivel I o II en la visita anterior,10;12,completa,14,vaga
+N05,Generar el consolidado por rúbrica y por docente en el formato vigente de la UGEL,el formato que pide la UGEL,El formato cambia de año a año (columnas),18;20,completa,8;16,completa
+N06,Enviar los resultados a la UGEL sin trámite duplicado,que llegue rápido,"El mismo día de la visita o al día siguiente, como máximo",26;28,completa,24,vaga
+N07,"Saber si la UGEL revisó y aprobó lo enviado, no solo que llegó",saber si está bien,"Estado: recibido / revisado / observado, sin llamar al especialista",50,completa,,ausente
+N08,Identificar a los docentes que necesitan apoyo,los que salen bajo,"Nivel I o II en 2 o más rúbricas, o sin mejora entre visitas",30;32,completa,,ausente
+N09,Comparar resultados entre visitas y entre docentes desde un solo registro,comparo a mano,"Un histórico único, no un Excel por visita",36,completa,26,completa
+N10,"Ver el historial de monitoreo de un docente de años anteriores, incluso si viene trasladado",el historial,Resultados de años previos y de otra IE,38,completa,,ausente
+N11,No perder la información,se me perdió el consolidado,Respaldo automático fuera de la laptop o del USB,22;24,completa,18,vaga
+N12,Validar los datos obligatorios antes de enviar un reporte,me lo devolvieron,DNI del docente y formato del año vigente,22,completa,,ausente
+N13,Recibir avisos de plazos de la UGEL separados del ruido de WhatsApp,que me avisen a tiempo,Aviso con al menos 3 días hábiles de anticipación,44;46;48,completa,30,vaga
+N14,Avisar a los docentes del cronograma y permitir visitas inopinadas,aviso por WhatsApp,Recordatorio una semana antes; las inopinadas no se notifican,52,completa,,ausente
+N15,Entregar al docente la retroalimentación con su ficha firmada,le doy copia,"En la reunión de retroalimentación, dentro de la semana",54,vaga,28,vaga
+N16,Reunir las evidencias de su propio monitoreo para la supervisión de la UGEL sin reenviarlas,me piden las mismas evidencias,"Actas, fichas y plan, ya enviados, consultables por el especialista",56,completa,,ausente
+N17,"Registrar el plan de fortalecimiento (GIA, talleres, acompañamiento) vinculado a los resultados",armo el plan,Acciones ligadas a los docentes y rúbricas con nivel bajo,34,completa,,ausente
+N18,Poder trabajar con conectividad intermitente,el internet funciona más o menos,Se corta varias veces al día: registrar sin conexión y sincronizar,40;42,completa,20,vaga
