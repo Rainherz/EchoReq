@@ -1,4 +1,5 @@
 import type { SpeakerCode } from "../../domain/types";
+import { speakerMark } from "../../domain/speaker";
 
 export interface Participant {
   code: SpeakerCode;
@@ -33,7 +34,9 @@ export function ParticipantList({
     <div>
       {participants.map((person) => (
         <div key={person.code} className="person">
-          <span className={`speaker speaker--${person.code}`}>{person.code}</span>
+          <span className={`speaker speaker--${person.code}`} title={person.code}>
+            {speakerMark(person.code)}
+          </span>
           <span>
             {person.name}
             <span className="person__share">

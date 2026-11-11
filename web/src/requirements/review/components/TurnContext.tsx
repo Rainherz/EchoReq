@@ -1,4 +1,5 @@
 import type { Turn } from "../../domain/types";
+import { isNamedSpeaker, speakerMark } from "../../domain/speaker";
 
 /** Quién es cada voz. El rol orienta la lectura; el nombre, cuando está,
     dice a quién se le escuchó decir eso. */
@@ -68,17 +69,27 @@ export function TurnContext({
               </p>
             )}
             <div className={cited.has(turn.id) ? "turn turn--cited" : "turn"}>
-              <span className={`speaker ${tono(turn.speaker)}`}>
-                {turn.speaker}
+              <span
+                className={`speaker ${tono(turn.speaker)}`}
+                title={turn.speaker}
+              >
+                {speakerMark(turn.speaker)}
               </span>
               <span>
                 <span className="turn__meta">
-                  {turn.startsAt} · turno {turn.id}
-                  {who(turn.speaker) && (
+                  {turn.startsAt && `${turn.startsAt} · `}turno {turn.id}
+                  {who(turn.speaker) ? (
                     <span className={`turn__who ${tono(turn.speaker)}`}>
                       {" · "}
                       {who(turn.speaker)}
                     </span>
+                  ) : (
+                    isNamedSpeaker(turn.speaker) && (
+                      <span className={`turn__who ${tono(turn.speaker)}`}>
+                        {" · "}
+                        {turn.speaker}
+                      </span>
+                    )
                   )}
                 </span>
                 {turn.text}

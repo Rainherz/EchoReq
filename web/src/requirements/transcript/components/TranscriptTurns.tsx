@@ -1,6 +1,7 @@
 import type { Turn } from "../../domain/types";
 import type { MeetingProposal } from "../../../adapters/api/client";
 import type { SpeakerNames } from "../../review/components/TurnContext";
+import { speakerMark } from "../../domain/speaker";
 
 interface TranscriptTurnsProps {
   turns: Turn[];
@@ -56,11 +57,11 @@ export function TranscriptTurns({
         const body = (
           <>
             <span className={`speaker ${tone(turn.speaker)}`} aria-hidden="true">
-              {turn.speaker}
+              {speakerMark(turn.speaker)}
             </span>
             <span className="tturn__body">
               <span className="turn__meta">
-                {turn.startsAt} · turno {turn.id}
+                {turn.startsAt && `${turn.startsAt} · `}turno {turn.id}
                 {who(turn.speaker) ? (
                   <span className={`turn__who ${tone(turn.speaker)}`}>
                     {" · "}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Speaker } from "../../../adapters/api/client";
 import { clipUrl, fetchSpeakers, labelSpeaker } from "../../../adapters/api/client";
+import { isNamedSpeaker, speakerMark } from "../../domain/speaker";
 
 /** Sugerencias de rol. Es lo que el agente necesita para distinguir quién
     pide de quién pregunta. */
@@ -126,10 +127,14 @@ export function SpeakerLabels({
       {speakers.map((speaker) => (
         <div key={speaker.code} className="voice">
           <div className="voice__head">
-            <span className={`speaker speaker--${speaker.code}`}>
-              {speaker.code}
+            <span
+              className={`speaker speaker--${speaker.code}`}
+              title={speaker.code}
+            >
+              {speakerMark(speaker.code)}
             </span>
             <span className="voice__meta">
+              {isNamedSpeaker(speaker.code) && `${speaker.code} · `}
               {speaker.turns} turnos · {Math.round(speaker.characters / 100) / 10}k
               caracteres
             </span>
